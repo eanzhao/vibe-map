@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "eanzhao/vibe-map/render"
+
+import {
+  "eanzhao/vibe-map/core",
+}
+
+// Values
+pub fn render(@core.Dag) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

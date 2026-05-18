@@ -1,0 +1,211 @@
+{
+  "project": {
+    "name": "vibe-map (self)",
+    "description": ""
+  },
+  "milestones": [
+    {
+      "id": "pkg-cmd-vmap",
+      "title": "cmd/vmap",
+      "description": "Backfilled MoonBit package",
+      "deps": [],
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "pkg-core",
+      "title": "core",
+      "description": "Backfilled MoonBit package",
+      "deps": [],
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "pkg-render",
+      "title": "render",
+      "description": "Backfilled MoonBit package",
+      "deps": [],
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "plan-roadmap",
+      "title": "roadmap",
+      "description": "Planned items extracted from /tmp/vmap-fake-roadmap/roadmap.md",
+      "deps": [],
+      "regression_testable": false,
+      "tests": [],
+      "docs": [
+        "/tmp/vmap-fake-roadmap/roadmap.md"
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id": "cmd-vmap-main",
+      "milestone": "pkg-cmd-vmap",
+      "title": "main.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-ops",
+      "milestone": "pkg-core",
+      "title": "ops.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "ops_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "core-plan",
+      "milestone": "pkg-core",
+      "title": "plan.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "plan_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "core-audit",
+      "milestone": "pkg-core",
+      "title": "audit.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "audit_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "core-store",
+      "milestone": "pkg-core",
+      "title": "store.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-types",
+      "milestone": "pkg-core",
+      "title": "types.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "types_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "core-errors",
+      "milestone": "pkg-core",
+      "title": "errors.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-backfill",
+      "milestone": "pkg-core",
+      "title": "backfill.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "backfill_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "render-html",
+      "milestone": "pkg-render",
+      "title": "html.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "html_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "plan-roadmap-add-live-reload-serve-mode",
+      "milestone": "plan-roadmap",
+      "title": "add live-reload serve mode",
+      "status": "todo",
+      "deps": [],
+      "notes": "",
+      "regression_testable": false,
+      "tests": [],
+      "docs": [
+        "/tmp/vmap-fake-roadmap/roadmap.md"
+      ]
+    },
+    {
+      "id": "plan-roadmap-generate-mcp-tool-definitions-for-ai-age",
+      "milestone": "plan-roadmap",
+      "title": "generate MCP tool definitions for AI agents",
+      "status": "todo",
+      "deps": [],
+      "notes": "",
+      "regression_testable": false,
+      "tests": [],
+      "docs": [
+        "/tmp/vmap-fake-roadmap/roadmap.md"
+      ]
+    },
+    {
+      "id": "plan-roadmap-symbol-level-backfill-via-moon-ide-outli",
+      "milestone": "plan-roadmap",
+      "title": "symbol-level backfill via `moon ide outline`",
+      "status": "todo",
+      "deps": [],
+      "notes": "",
+      "regression_testable": false,
+      "tests": [],
+      "docs": [
+        "/tmp/vmap-fake-roadmap/roadmap.md"
+      ]
+    },
+    {
+      "id": "plan-roadmap-cross-language-adapter-beyond-moonbit",
+      "milestone": "plan-roadmap",
+      "title": "cross-language adapter beyond MoonBit",
+      "status": "todo",
+      "deps": [],
+      "notes": "",
+      "regression_testable": false,
+      "tests": [],
+      "docs": [
+        "/tmp/vmap-fake-roadmap/roadmap.md"
+      ]
+    }
+  ]
+}

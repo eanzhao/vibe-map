@@ -1,0 +1,10 @@
+import {
+  "eanzhao/vibe-map/core",
+  "eanzhao/vibe-map/render",
+  "moonbitlang/core/argparse",
+  "moonbitlang/x/sys" @sys,
+}
+
+options(
+  "is-main": true,
+)

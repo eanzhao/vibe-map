@@ -1,0 +1,562 @@
+///|
+fn main {
+  let argv = @sys.get_cli_args()
+  let cmd = build_cli()
+  // argv[0] is the program path; argparse wants only the trailing args.
+  let args = if argv.length() > 0 { argv[1:] } else { argv[:] }
+  let parsed : Result[@argparse.Matches, Error] = try? cmd.parse(argv=args)
+  match parsed {
+    Err(e) => {
+      println("\{e}")
+      @sys.exit(2)
+    }
+    Ok(matches) => {
+      let dispatched : Result[Unit, Error] = try? dispatch(matches)
+      match dispatched {
+        Ok(_) => ()
+        Err(e) => {
+          println("error: \{e}")
+          @sys.exit(1)
+        }
+      }
+    }
+  }
+}
+
+///|
+/// Build the `vmap` argparse command tree.
+fn build_cli() -> @argparse.Command {
+  @argparse.Command::new(
+    "vmap",
+    about="DAG-based progress visualization for vibe coding.",
+    version="0.1.0",
+    arg_required_else_help=true,
+    subcommand_required=true,
+    subcommands=[
+      @argparse.Command::new(
+        "init",
+        about="Create a new vibe-map.json in the current directory.",
+        options=[
+          @argparse.OptionArg::new("name", long="name", about="Project name"),
+          @argparse.OptionArg::new(
+            "file",
+            long="file",
+            default_values=[@core.default_path],
+            about="Path to the DAG file",
+          ),
+        ],
+      ),
+      @argparse.Command::new(
+        "add",
+        about="Add a milestone or issue.",
+        subcommand_required=true,
+        subcommands=[
+          @argparse.Command::new(
+            "milestone",
+            about="Add a milestone (a user-visible capability).",
+            flags=[
+              @argparse.FlagArg::new(
+                "regression-testable",
+                long="regression-testable",
+                negatable=true,
+                about="Mark as backed by regression tests (or use --no-regression-testable).",
+              ),
+            ],
+            options=[
+              @argparse.OptionArg::new("id", long="id", required=true),
+              @argparse.OptionArg::new("title", long="title", required=true),
+              @argparse.OptionArg::new("description", long="description"),
+              @argparse.OptionArg::new(
+                "deps",
+                long="deps",
+                about="Comma-separated milestone ids this depends on",
+              ),
+              @argparse.OptionArg::new(
+                "tests",
+                long="tests",
+                about="Comma-separated test file paths/globs",
+              ),
+              @argparse.OptionArg::new(
+                "docs",
+                long="docs",
+                about="Comma-separated documentation paths",
+              ),
+              @argparse.OptionArg::new("file", long="file", default_values=[
+                @core.default_path,
+              ]),
+            ],
+          ),
+          @argparse.Command::new(
+            "issue",
+            about="Add an issue (an implementation task under a milestone).",
+            flags=[
+              @argparse.FlagArg::new(
+                "regression-testable",
+                long="regression-testable",
+                negatable=true,
+                about="Mark as backed by regression tests (or use --no-regression-testable).",
+              ),
+            ],
+            options=[
+              @argparse.OptionArg::new("id", long="id", required=true),
+              @argparse.OptionArg::new(
+                "milestone",
+                long="milestone",
+                required=true,
+              ),
+              @argparse.OptionArg::new("title", long="title", required=true),
+              @argparse.OptionArg::new(
+                "deps",
+                long="deps",
+                about="Comma-separated issue ids this depends on",
+              ),
+              @argparse.OptionArg::new("notes", long="notes"),
+              @argparse.OptionArg::new(
+                "tests",
+                long="tests",
+                about="Comma-separated test file paths/globs",
+              ),
+              @argparse.OptionArg::new(
+                "docs",
+                long="docs",
+                about="Comma-separated documentation paths",
+              ),
+              @argparse.OptionArg::new("file", long="file", default_values=[
+                @core.default_path,
+              ]),
+            ],
+          ),
+        ],
+      ),
+      @argparse.Command::new(
+        "update",
+        about="Update fields on a milestone or issue. Flags that are not passed leave the existing value alone.",
+        positionals=[@argparse.PositionArg::new("id")],
+        flags=[
+          @argparse.FlagArg::new(
+            "regression-testable",
+            long="regression-testable",
+            negatable=true,
+            about="Mark/unmark as backed by regression tests.",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new(
+            "status",
+            long="status",
+            about="todo | in-progress | blocked | done",
+          ),
+          @argparse.OptionArg::new("title", long="title"),
+          @argparse.OptionArg::new(
+            "tests",
+            long="tests",
+            about="Replace the test list (comma-separated; empty string clears).",
+          ),
+          @argparse.OptionArg::new(
+            "docs",
+            long="docs",
+            about="Replace the docs list (comma-separated; empty string clears).",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "rm",
+        about="Remove a milestone or issue.",
+        positionals=[@argparse.PositionArg::new("id")],
+        options=[
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "render",
+        about="Render the DAG to a self-contained HTML page.",
+        options=[
+          @argparse.OptionArg::new(
+            "out",
+            long="out",
+            default_values=["dag.html"],
+            about="Output path",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "status",
+        about="Show a summary of the DAG. With --json, emit machine-readable output.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit a single JSON document instead of a text summary.",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "audit",
+        about="Check the DAG for missing tests / docs. Exit code 3 on violations.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit a single JSON document (`{ ok, violations: [...] }`).",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "backfill",
+        about="Synthesize milestones (per package) and issues (per source file) from an existing MoonBit source tree. Merges into the existing DAG; existing ids are left alone.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit the BackfillReport as JSON.",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new(
+            "src",
+            long="src",
+            default_values=["src"],
+            about="Source tree root to scan.",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "plan",
+        about="Scan markdown files for `- [ ]` checklist items and synthesize `todo` nodes. Each .md file becomes a milestone; each unchecked item becomes an issue.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit the PlanReport as JSON.",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new(
+            "docs",
+            long="docs",
+            required=true,
+            about="Comma-separated list of files or directories to scan.",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+    ],
+  )
+}
+
+///|
+fn dispatch(matches : @argparse.Matches) -> Unit raise {
+  let (name, sub) = matches.subcommand.unwrap()
+  match name {
+    "init" => cmd_init(sub)
+    "add" => {
+      let (sub_name, sub_sub) = sub.subcommand.unwrap()
+      match sub_name {
+        "milestone" => cmd_add_milestone(sub_sub)
+        "issue" => cmd_add_issue(sub_sub)
+        _ => fail("unknown add subcommand: \{sub_name}")
+      }
+    }
+    "update" => cmd_update(sub)
+    "rm" => cmd_rm(sub)
+    "render" => cmd_render(sub)
+    "status" => cmd_status(sub)
+    "audit" => cmd_audit(sub)
+    "backfill" => cmd_backfill(sub)
+    "plan" => cmd_plan(sub)
+    _ => fail("unknown subcommand: \{name}")
+  }
+}
+
+///|
+/// Read the first value bound to `key`, or `default` if it was omitted.
+fn opt(m : @argparse.Matches, key : String, default? : String = "") -> String {
+  match m.values.get(key) {
+    Some(arr) => if arr.length() > 0 { arr[0] } else { default }
+    None => default
+  }
+}
+
+///|
+/// True if the user explicitly passed `--key` on argv (not a default).
+fn provided(m : @argparse.Matches, key : String) -> Bool {
+  m.sources.get(key) is Some(@argparse.Argv)
+}
+
+///|
+/// Parse `--deps a,b,c` (or empty string) into an array, dropping blanks.
+fn parse_csv(raw : String) -> Array[String] {
+  if raw == "" {
+    return []
+  }
+  let out = []
+  for part in raw.split(",") {
+    let trimmed = part.trim().to_string()
+    if trimmed != "" {
+      out.push(trimmed)
+    }
+  }
+  out
+}
+
+///|
+fn parse_status(raw : String) -> @core.Status raise {
+  match raw {
+    "todo" => @core.Todo
+    "in-progress" => @core.InProgress
+    "blocked" => @core.Blocked
+    "done" => @core.Done
+    _ => fail("invalid status: \{raw} (want todo|in-progress|blocked|done)")
+  }
+}
+
+///|
+fn cmd_init(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let name = opt(m, "name", default="untitled")
+  let dag = @core.Dag::empty(name)
+  @core.save(dag, path)
+  println("created \{path} (project: \{name})")
+}
+
+///|
+fn cmd_add_milestone(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  let title = opt(m, "title")
+  let dag = @core.load(path, default_name="untitled")
+  dag.add_milestone(
+    id~,
+    title~,
+    description=opt(m, "description"),
+    deps=parse_csv(opt(m, "deps")),
+    regression_testable=m.flags.get("regression-testable").unwrap_or(false),
+    tests=parse_csv(opt(m, "tests")),
+    docs=parse_csv(opt(m, "docs")),
+  )
+  @core.save(dag, path)
+  println("+ milestone \{id}: \{title}")
+}
+
+///|
+fn cmd_add_issue(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  let milestone = opt(m, "milestone")
+  let title = opt(m, "title")
+  let dag = @core.load(path, default_name="untitled")
+  dag.add_issue(
+    id~,
+    milestone~,
+    title~,
+    deps=parse_csv(opt(m, "deps")),
+    notes=opt(m, "notes"),
+    regression_testable=m.flags.get("regression-testable").unwrap_or(false),
+    tests=parse_csv(opt(m, "tests")),
+    docs=parse_csv(opt(m, "docs")),
+  )
+  @core.save(dag, path)
+  println("+ issue \{id} under \{milestone}: \{title}")
+}
+
+///|
+fn cmd_update(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  let dag = @core.load(path, default_name="untitled")
+  let mut touched = false
+  if provided(m, "status") {
+    let s = opt(m, "status")
+    dag.update_status(id, parse_status(s))
+    println("~ \{id} status -> \{s}")
+    touched = true
+  }
+  if provided(m, "title") {
+    let t = opt(m, "title")
+    dag.update_title(id, t)
+    println("~ \{id} title -> \{t}")
+    touched = true
+  }
+  if provided(m, "regression-testable") {
+    let v = m.flags.get("regression-testable").unwrap_or(false)
+    dag.set_regression_testable(id, v)
+    println("~ \{id} regression_testable -> \{v}")
+    touched = true
+  }
+  if provided(m, "tests") {
+    let ts = parse_csv(opt(m, "tests"))
+    dag.set_tests(id, ts)
+    println("~ \{id} tests -> [\{ts.length()}]")
+    touched = true
+  }
+  if provided(m, "docs") {
+    let ds = parse_csv(opt(m, "docs"))
+    dag.set_docs(id, ds)
+    println("~ \{id} docs -> [\{ds.length()}]")
+    touched = true
+  }
+  if not(touched) {
+    fail(
+      "update needs at least one of --status / --title / --regression-testable / --tests / --docs",
+    )
+  }
+  @core.save(dag, path)
+}
+
+///|
+fn cmd_rm(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  let dag = @core.load(path, default_name="untitled")
+  dag.remove(id)
+  @core.save(dag, path)
+  println("- \{id}")
+}
+
+///|
+fn cmd_render(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let out = opt(m, "out", default="dag.html")
+  let dag = @core.load(path, default_name="untitled")
+  let html = @render.render(dag)
+  @core.write_text(out, html)
+  println("rendered -> \{out}")
+}
+
+///|
+fn cmd_status(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let dag = @core.load(path, default_name="untitled")
+  if m.flags.get("json").unwrap_or(false) {
+    println(status_json(dag).stringify(indent=2))
+    return
+  }
+  println("project: \{dag.project.name}")
+  if dag.project.description != "" {
+    println("  \{dag.project.description}")
+  }
+  if dag.milestones.length() == 0 {
+    println(
+      "(no milestones yet — try `vmap add milestone --id m1 --title …`)",
+    )
+    return
+  }
+  for milestone in dag.milestones {
+    let (done, total) = dag.progress(milestone.id)
+    let pct = if total > 0 { done * 100 / total } else { 0 }
+    println(
+      "• [\{milestone.id}] \{milestone.title}  (\{done}/\{total} · \{pct}%)",
+    )
+    for issue in dag.issues_of(milestone.id) {
+      let mark = match issue.status {
+        @core.Done => "✓"
+        @core.InProgress => "…"
+        @core.Blocked => "!"
+        @core.Todo => "·"
+      }
+      println("    \{mark} [\{issue.id}] \{issue.title}")
+    }
+  }
+}
+
+///|
+/// Build the JSON shape returned by `vmap status --json`: the raw DAG plus a
+/// `progress` field derived per milestone, so AI agents don't have to recompute.
+fn status_json(dag : @core.Dag) -> Json {
+  let progress : Map[String, Json] = {}
+  for m in dag.milestones {
+    let (done, total) = dag.progress(m.id)
+    progress[m.id] = { "done": done.to_json(), "total": total.to_json() }
+  }
+  { "dag": dag.to_json(), "progress": progress.to_json() }
+}
+
+///|
+fn cmd_audit(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let dag = @core.load(path, default_name="untitled")
+  let report = dag.audit()
+  if m.flags.get("json").unwrap_or(false) {
+    println(report.to_json().stringify(indent=2))
+  } else if report.ok {
+    println("audit: clean (0 violations)")
+  } else {
+    println("audit: \{report.violations.length()} violation(s)")
+    for v in report.violations {
+      println("  ! [\{v.node_kind} \{v.node_id}] \{v.kind}: \{v.message}")
+    }
+  }
+  if not(report.ok) {
+    @sys.exit(3)
+  }
+}
+
+///|
+fn cmd_backfill(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let src = opt(m, "src", default="src")
+  let dag = @core.load(path, default_name="untitled")
+  let report = dag.backfill_moonbit(src)
+  @core.save(dag, path)
+  if m.flags.get("json").unwrap_or(false) {
+    println(report.to_json().stringify(indent=2))
+  } else {
+    println(
+      "backfill from \{src}: +\{report.added_milestones.length()} milestone(s), +\{report.added_issues.length()} issue(s)",
+    )
+    if report.skipped_milestones.length() > 0 ||
+      report.skipped_issues.length() > 0 {
+      println(
+        "  (skipped \{report.skipped_milestones.length()} milestone(s) and \{report.skipped_issues.length()} issue(s) that already existed)",
+      )
+    }
+  }
+}
+
+///|
+fn cmd_plan(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let docs = parse_csv(opt(m, "docs"))
+  if docs.length() == 0 {
+    fail("plan needs --docs <path1,path2,...>")
+  }
+  let dag = @core.load(path, default_name="untitled")
+  let report = dag.plan_from_docs(docs)
+  @core.save(dag, path)
+  if m.flags.get("json").unwrap_or(false) {
+    println(report.to_json().stringify(indent=2))
+  } else {
+    println(
+      "plan from \{docs.length()} path(s): +\{report.added_milestones.length()} milestone(s), +\{report.added_issues.length()} issue(s)",
+    )
+    if report.skipped_milestones.length() > 0 ||
+      report.skipped_issues.length() > 0 {
+      println(
+        "  (skipped \{report.skipped_milestones.length()} milestone(s) and \{report.skipped_issues.length()} issue(s) that already existed)",
+      )
+    }
+  }
+}

@@ -1,0 +1,100 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "eanzhao/vibe-map/core"
+
+import {
+  "moonbitlang/core/json",
+}
+
+// Values
+pub let default_path : String
+
+pub fn load(String, default_name? : String) -> Dag raise DagError
+
+pub fn save(Dag, String) -> Unit raise DagError
+
+pub fn write_text(String, String) -> Unit raise DagError
+
+// Errors
+pub(all) suberror DagError {
+  DuplicateId(String)
+  UnknownId(String)
+  UnknownMilestone(String)
+  CycleDetected(String)
+  IoError(String)
+  ParseError(String)
+}
+pub impl Show for DagError
+
+// Types and methods
+pub(all) struct Dag {
+  project : Project
+  milestones : Array[Milestone]
+  issues : Array[Issue]
+}
+pub fn Dag::add_issue(Self, id~ : String, milestone~ : String, title~ : String, deps? : Array[String], notes? : String) -> Unit raise DagError
+pub fn Dag::add_milestone(Self, id~ : String, title~ : String, description? : String, deps? : Array[String]) -> Unit raise DagError
+pub fn Dag::assert_acyclic(Self) -> Unit raise DagError
+pub fn Dag::empty(String) -> Self
+pub fn Dag::find_issue(Self, String) -> (Int, Issue)?
+pub fn Dag::find_milestone(Self, String) -> (Int, Milestone)?
+pub fn Dag::has_id(Self, String) -> Bool
+pub fn Dag::has_issue(Self, String) -> Bool
+pub fn Dag::has_milestone(Self, String) -> Bool
+pub fn Dag::issues_of(Self, String) -> Array[Issue]
+pub fn Dag::progress(Self, String) -> (Int, Int)
+pub fn Dag::remove(Self, String) -> Unit raise DagError
+pub fn Dag::update_status(Self, String, Status) -> Unit raise DagError
+pub fn Dag::update_title(Self, String, String) -> Unit raise DagError
+pub impl Eq for Dag
+pub impl Show for Dag
+pub impl ToJson for Dag
+pub impl @json.FromJson for Dag
+
+pub(all) struct Issue {
+  id : String
+  milestone : String
+  title : String
+  status : Status
+  deps : Array[String]
+  notes : String
+}
+pub impl Eq for Issue
+pub impl Show for Issue
+pub impl ToJson for Issue
+pub impl @json.FromJson for Issue
+
+pub(all) struct Milestone {
+  id : String
+  title : String
+  description : String
+  deps : Array[String]
+}
+pub impl Eq for Milestone
+pub impl Show for Milestone
+pub impl ToJson for Milestone
+pub impl @json.FromJson for Milestone
+
+pub(all) struct Project {
+  name : String
+  description : String
+}
+pub impl Eq for Project
+pub impl Show for Project
+pub impl ToJson for Project
+pub impl @json.FromJson for Project
+
+pub(all) enum Status {
+  Todo
+  InProgress
+  Blocked
+  Done
+}
+pub impl Eq for Status
+pub impl Show for Status
+pub impl ToJson for Status
+pub impl @json.FromJson for Status
+
+// Type aliases
+
+// Traits
+
