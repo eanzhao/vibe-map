@@ -43,12 +43,18 @@ OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 case "$OS-$ARCH" in
   darwin-arm64)    TARGET=darwin-arm64 ;;
-  darwin-x86_64)   TARGET=darwin-x86_64 ;;
+  darwin-x86_64)
+    echo "darwin-x86_64 (Intel Mac) is not in the prebuilt matrix yet." >&2
+    echo "build from source: git clone https://github.com/${REPO} && cd vibe-map" >&2
+    echo "                   moon install && moon build --target native --release" >&2
+    echo "                   ./install.sh --local \"\$PWD\"" >&2
+    exit 1 ;;
   linux-x86_64)    TARGET=linux-x86_64 ;;
   linux-aarch64)   TARGET=linux-arm64 ;;
   *)
     echo "unsupported platform: $OS-$ARCH" >&2
-    echo "supported: darwin-arm64 / darwin-x86_64 / linux-x86_64 / linux-arm64" >&2
+    echo "supported prebuilt: darwin-arm64 / linux-x86_64 / linux-arm64" >&2
+    echo "Intel mac / other: build from source then ./install.sh --local <path>" >&2
     exit 1 ;;
 esac
 

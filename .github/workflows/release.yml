@@ -21,7 +21,6 @@ jobs:
       matrix:
         include:
           - { os: macos-14,         target: darwin-arm64,  install: unix }
-          - { os: macos-13,         target: darwin-x86_64, install: unix }
           - { os: ubuntu-22.04,     target: linux-x86_64,  install: unix }
           - { os: ubuntu-22.04-arm, target: linux-arm64,   install: unix }
     runs-on: ${{ matrix.os }}
