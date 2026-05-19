@@ -216,6 +216,8 @@ vmap import --in <path>                批量加载手写的 vibe-map.json（校
 vmap render --out X.html               出可视化 HTML
 vmap status [--json] [--release K]     文本 / JSON 摘要（可按 release 过滤）
 vmap audit [--json]                    质量守门
+vmap coverage [--json]                 DAG 引用了多少 docs/src/issues（防漏门槛）
+vmap doctor [--json]                   健康度告警（density/lane/orphan/mismatch）
 vmap backfill --src DIR                从源码反推（救援工具）
 vmap plan --docs F,…                   从 markdown 反推
 vmap release add <key>                 加 release lane

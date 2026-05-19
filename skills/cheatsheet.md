@@ -176,6 +176,33 @@ vmap add goal --id goal-... --gh-query "is:issue repo:<owner>/<repo> <ref>"
 vmap update <task> --add-doc "https://github.com/<owner>/<repo>/issues/<num>"
 ```
 
+## 防漏检查（bootstrap 后 / 任何时候）
+
+```bash
+# 覆盖率：DAG 引用了多少 docs / src 顶层目录 / GH issue
+vmap coverage                            # 三个维度总览
+vmap coverage --docs-only                # 只看 docs
+vmap coverage --code-only                # 只看 src/<dir> 匹配
+vmap coverage --issues-only --issues-file /tmp/issues.json
+vmap coverage --docs-root README.md,docs # 改 scan 路径
+vmap coverage --src-root app/lib         # 改 src 根
+vmap coverage --max-examples 100         # 多列点未引用示例
+vmap coverage --json                     # AI loop 友好
+
+# issues 维度需要先用 gh 拉数据
+gh issue list --state all --limit 500 \
+  --json number,title,state,url > /tmp/issues.json
+vmap coverage --issues-file /tmp/issues.json
+
+# 健康度告警：density / lane balance / orphan / codebase mismatch
+vmap doctor                              # 文本
+vmap doctor --json                       # JSON
+vmap doctor --scan-root . --src-root src # 覆盖默认扫描路径
+# 始终 exit 0（advisory，不阻塞）
+```
+
+经验阈值：`vmap coverage` 的 weakest 维度 < 70% → bootstrap 没做完，回 playbook §1.5。
+
 ## 救援工具（对老 codebase）
 
 ```bash
@@ -236,3 +263,5 @@ vmap upgrade | bash     # 实际执行升级（重装 binary + skills）
 - `vmap audit --json`
 - `vmap backfill --json`
 - `vmap plan --json`
+- `vmap coverage --json`
+- `vmap doctor --json`

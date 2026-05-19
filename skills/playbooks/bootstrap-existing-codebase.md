@@ -31,6 +31,44 @@ find . -type f -name "*.md" \
 - 主语言是什么？→ 决定 backfill 模板（moonbit / typescript / dotnet，或暂不 backfill）
 - 主入口在哪？→ `src/main.*`、`index.*`、`app.*`、`cmd/*/main.*`、`bin/*`
 
+## 1.5 强制全量盘点（盘点完才能进 step 2）
+
+冷启动**漏 goal** 是 vmap 最常见的故障模式——agent 抽样几个文档觉得"够了"，就开始 `vmap add goal`，结果用户事后发现 30%+ 的能力被漏了。
+
+防漏的唯一办法是**先把项目的"全集"显式列出来**，决定每一项是"映射 / 暂略 / 不做"，然后才动手。
+
+```bash
+# 全量 markdown 清单（PRD 候选源的全集）
+find . -type f -name "*.md" \
+  -not -path './.git/*' -not -path './node_modules/*' \
+  -not -path './_build/*' -not -path './.vmap/*' \
+  -not -path './target/*' -not -path './.venv/*' \
+  | tee /tmp/vmap-all-md.txt | wc -l
+cat /tmp/vmap-all-md.txt
+
+# 全量 issue 清单（含 closed —— 见 §2.5）
+gh issue list --state all --limit 500 \
+  --json number,title,state,labels,url > /tmp/vmap-all-issues.json
+jq '. | length' /tmp/vmap-all-issues.json
+
+# 顶层 src/ 目录（每个目录可能 = 一类能力）
+ls -la src/ src/lib/ 2>/dev/null
+```
+
+读这些，给每一项标个意图（"映射 / 暂略 / 不做"）。**不要**只抽几个看着眼熟的。
+
+完成 step 4 后回头跑：
+
+```bash
+vmap coverage              # 三个维度的引用率
+vmap coverage --json > /tmp/vmap-cov.json
+```
+
+**硬门槛**：如果 `weakest` 维度 < 70%，**不要进 step 5（和用户对话），先回 step 2 补抽**。
+70% 是经验阈值——低于它通常意味着"你只看了显眼的，没扫到长尾"。这是 vmap v0.6.0 加进来的反漏机制；之前没这个门槛时，200+ docs 的项目漏 30%+ 是常态。
+
+跑 `vmap doctor` 看健康度告警（density / lane balance / orphan / codebase mismatch），把 `codebase_mismatch` 类的告警当**最严重信号**——它直接说"代码里有 foo/ 但 DAG 里没人提 foo"。
+
 ## 2. 找 PRD-shaped 信号
 
 > **抽 goal 之前，尽量把项目的文档读完整**——不是抽样 5 分钟就停。冷启动抽出来的 goal 直接决定后续画布的形状，你少读一份设计文档就可能漏一整条语义 lane。
@@ -72,11 +110,38 @@ gh issue list --state open --label "enhancement" --limit 30
 gh issue list --state open --label "bug" --limit 30
 gh issue list --state open --milestone "v1.0" --limit 30   # 如果有 milestone
 
-# 已 closed 的也扫一眼（"已交付的能力"反向追溯）
+# 已 closed 的也扫一眼（"已交付的能力"反向追溯）—— 见 §2.5
 gh issue list --state closed --limit 30
 ```
 
 如果没装 `gh` 或没登录，跳过这一步并告诉用户："建议装 gh CLI 并登录，issues 是接最 fresh 的 PRD 信号；这次先跳过"。
+
+### 2.5 闭合 issue 也是 PRD 信号（容易被漏）
+
+`--state closed` 的 issue 远不只是"历史记录"。在很多项目里它们承担着**事实上的路线图**职责：
+
+- **拆分痕迹**：一个大 issue 被关闭，因为它"被拆成 #71 / #72 / #73 几个子 issue"。原 issue 就是子 issue 的 PRD 出处。
+- **转写痕迹**：issue 被关闭，原因是"内容已经写进 `docs/roadmap.md` / `TODOS.md` / 设计文档"。这种 issue 不能跳。
+- **延期痕迹**：v0.X 时讨论过、被打 `won't fix in v0.X` label 然后关闭——下一版的候选 PRD。
+
+**怎么甄别**：
+
+```bash
+# 全部 closed issue
+gh issue list --state closed --limit 200 \
+  --json number,title,state,labels,closedAt,body \
+  > /tmp/closed-issues.json
+
+# 看标题里是不是有"拆分 / 转写 / forward-planning"线索
+jq -r '.[] | "#\(.number) \(.title)"' /tmp/closed-issues.json | \
+  grep -iE "split|拆|move to|转写|moved|roadmap|forward|planning"
+
+# 看 body 里有没有引用某个文档作为转写目的地
+jq -r '.[] | select(.body | test("docs/|TODO|ROADMAP"; "i")) | "#\(.number) \(.title)"' \
+  /tmp/closed-issues.json
+```
+
+把这类 closed issue 当 PRD 信号处理（用上面 §2 同样的规则归到 goal/task），而不是默认跳过。
 
 每条 issue 怎么处理：
 
@@ -117,6 +182,45 @@ vmap add task --id t-fix-pagination-bug \
 但是**文档层面要尽量读完**——README、docs/、design/、ROADMAP、ARCHITECTURE、CHANGELOG、顶层 module docstring。只跳过被明确标注 `deprecated` / `archived` / `legacy` / `废弃` 的文档，以及"贡献者指南 / 代码风格"这类与产品能力无关的文档。
 
 目标：抽出 5-15 个高质量的语义 goal 草稿。读文档花在前期，比抽错了再 rename 便宜。
+
+### 3.5 平台基建也是 goal（不只是"用户能感知的能力"）
+
+vmap 的核心定义是 "goal = 用户能感知的能力"，但在 LLM-native / 异步任务驱动 / 多模态等项目里，有一类**用户感知不到、但失败就崩**的基础设施。它们必须进 DAG，否则一旦挂掉没人知道是谁在维护：
+
+- **LLM 调用池 / 限流 / 重试** —— 没 goal → 没 owner → 没人盯 cost / failure rate
+- **图片 / 音频 / 视频流水线**（上传 → 处理 → 存 → CDN）—— 没 goal → 数据丢了不知道哪一步漏
+- **异步任务系统 / 定时任务 / 队列** —— 没 goal → 一个 job 卡住没人发现
+- **观测 / 日志 / metrics 接入** —— 没 goal → 出事后只能 git blame
+- **数据迁移 / schema 版本** —— 没 goal → 升级时漏字段
+
+这类 goal 的命名规范——**用 `goal-infra-*` 或 `goal-*-platform` 前缀**，与"用户感知能力" goal 视觉区分：
+
+```bash
+vmap add goal --id goal-infra-llm-pool \
+  --title "LLM 调用池（多 provider / 限流 / cost 上限）" \
+  --description "所有 LLM-driven feature 的共享依赖；挂了 N 个 goal 受影响" \
+  --closure scoped \
+  --owner alice \
+  --product infra
+
+vmap add goal --id goal-infra-image-pipeline \
+  --title "图片上传 → 处理 → CDN 流水线" \
+  --closure scoped --owner bob --product infra
+
+vmap add goal --id goal-infra-narrative-jobs \
+  --title "异步剧情生成 jobs（队列 + 失败重放）" \
+  --closure obligation --owner alice --product infra
+```
+
+辨别一个 candidate 应该是 platform goal 还是普通能力 goal：
+
+| 问题 | 答 yes → platform goal |
+|---|---|
+| 至少 3 个其它 goal 依赖它吗？ | 是 |
+| 它挂了，多个用户能力同时不可用吗？ | 是 |
+| 它在 codebase 里通常以 "shared" / "common" / "infra" / "core" 出现吗？ | 是 |
+
+**`vmap doctor` 会用 `goal-infra-*` 命名约定来计算"如果它挂了，N 个 goal 受影响"**（实现在 round 2）。
 
 ## 3. 决策分支
 
@@ -241,9 +345,21 @@ gh issue list --state open --label "good first issue"
 
 ## 5. 和用户对一遍（关键！）
 
-冷启动最容易**自信地错**。做完一遍后**主动让用户审视**：
+冷启动最容易**自信地错**。做完一遍后**主动让用户审视**——但**先用 vmap 自己验一下覆盖率**，不要让用户帮你 review 时才发现你漏了一半。
 
 ```bash
+# 第一道关：覆盖率门槛
+vmap coverage
+# 如果 weakest < 70%，回 §1.5 / §2 / §3.5 补抽——不要进对用户那一步
+vmap coverage --json > /tmp/vmap-coverage-before-review.json
+
+# 第二道关：健康度告警
+vmap doctor
+# 重点看：
+#   ! codebase_mismatch  → 代码里有 foo/ 但 DAG 没人提，加 goal-foo 或解释为什么不加
+#   ! lane_imbalance     → 某 release 太重，考虑拆 0.X.a / 0.X.b
+#   i orphan_goal        → 这个 goal 没 downstream，确认是叶子能力还是漏 dep
+
 # 一份草稿
 vmap status > /tmp/draft.txt
 vmap list goals --json > /tmp/goals.json
@@ -341,12 +457,13 @@ archived / 历史 goal 可以接受 audit 红——它们就是事后追溯。
 
 ## 待来的工具（不阻塞当前 playbook）
 
-未来 `goal-llm-plan`（1.0 计划）做出来后，理想流程是：
+未来 `vmap discover`（round 2）做出来后，理想流程是：
 
 ```bash
-vmap discover   # 假设的命令，目前不存在
-# 自动跑 backfill + plan + 喂 LLM 抽语义 goal proposals
-# 输出："suggested goals + which pkg-* to archive + which TODOs to promote"
+vmap discover --docs --issues --codebase
+# 喂 LLM 同时扫所有 markdown + closed/open issue + src/ 顶层目录，输出
+# candidate goal 列表（带 confidence + source 引用 + 与现有 goal 的 overlap 警告）
+# vmap discover --apply 一键吸收，vmap discover --review 进交互筛选
 ```
 
-目前这一切都是 manual。**如果你（AI agent）跑完这个 playbook 后觉得有些步骤可以更自动化**，记下来给项目 owner —— 这是 vmap 自身的 product feedback。
+目前 step 2 / 3.5 还是 manual——`vmap coverage` 和 `vmap doctor` 是反漏的兜底，但不能代替人读文档。**如果你（AI agent）跑完这个 playbook 后觉得有些步骤可以更自动化**，记下来给项目 owner —— 这是 vmap 自身的 product feedback。

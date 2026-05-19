@@ -7,9 +7,18 @@
 
 ---
 
-## 你（agent）的工作模式
+## 你（agent）的两种工作模式
 
-每次接到一个用户任务，按这个顺序走：
+vmap 是个**双向接口**：
+
+- **维护模式**：你读代码 / PRD → 写进 `.vmap/`（让图反映现状）
+- **实现模式**：你读 `.vmap/` → 写代码（按图施工）
+
+每次接到任务，先判断自己在哪一种。两种模式的核心动作不一样，下面分开列。
+
+### 维护模式 — 让图反映现状
+
+接到"加 / 改 / 整理 DAG"的任务，按这个顺序走：
 
 0. **如果项目里还没有 `.vmap/`**——这是**冷启动**场景，先读 `skills/playbooks/bootstrap-existing-codebase.md`，建一份初版 DAG 让用户审视，再继续。**不要默认跑 backfill 就完事**——出来的是 package 镜像不是语义 DAG。
 1. **从 PRD/README/issue 提语义 goal**——不是按文件、不是按 package
@@ -21,29 +30,44 @@
 6. **关键节点跑 vmap audit**，按 violations 修测试 / 文档 / region metadata
 7. **想看全貌**：vmap status / vmap show / vmap list / vmap deps / vmap release list
 
-**核心约束**：用户不会主动开 `.vmap/vibe-map.html`，但他随时可能打开。所以你每次有进展都要 vmap update，让图反映真实状态。否则 vmap 就退化成你写代码的"副本"而不是"共识接口"。
+**维护模式核心约束**：用户不会主动开 `.vmap/vibe-map.html`，但他随时可能打开。所以你每次有进展都要 vmap update，让图反映真实状态。否则 vmap 就退化成你写代码的"副本"而不是"共识接口"。
+
+### 实现模式 — 拿 DAG 当 reading list / 工作队列
+
+接到"实现 X / 推进 focus goal / 把 todo task 做掉"的任务，**先看图再下笔**。DAG 里 `docs` / `tests` / `--gh-query` / `--add-doc <issue URL>` 已经把"这件事要读哪些规格、跑哪些测试"都记下来了。流程：
+
+1. **挑下一个 task**：`vmap list tasks --goal <focus-goal> --status todo`，按 deps 选一个上游已 done 的
+2. **读它链了什么**：`vmap show <task-id>` 看 `docs` / `tests` 列表，**全读进 context**——源文件、issue URL、ADR / RFC 都算
+3. **跑现有 tests 当基线**：知道现在什么过、什么不过
+4. **标 in-progress**：`vmap update <task-id> --status in-progress`
+5. **写代码 + 测试**
+6. **回写**：`vmap update <task-id> --status done --add-test <new test> --add-doc <new doc>`
+7. **回 step 1**，直到 focus goal 的 task 全 done
+
+详见 `skills/playbooks/implement-from-dag.md`。
+
+**实现模式核心约束**：**不要绕过 DAG 去问用户"接下来做什么"**。如果 `vmap list tasks --status todo` 给的结果不对（task 拆得太粗 / docs 没写 / deps 错了），说明 DAG 漂了——切回维护模式补图，再回来实现。别凭印象选下一个 task。
 
 ---
 
-## ⚠️ 会话边界：vmap 会话只分析、不改码
+## ⚠️ 会话边界：一次只在一种模式里
 
-当前会话被用来"启用 / 维护 vibe-map"——那么这个会话的产出只有两类：
+两种模式**别在同一会话里来回切**。理由：
 
-1. 往 `.vmap/` 里写（JSON、HTML）：跑 `vmap init / add / update / audit / render / release ...`
-2. 用自然语言跟用户对齐 goal / task / closure 的语义
+- **维护模式里顺手改码**：会让图和代码同时漂，丢掉"这张图是此刻代码的诚实映射"。用户后续复盘"vmap 是不是漏看了什么"时，你已经把现场改过了。
+- **实现模式里顺手重建 DAG**：边写边改 goal / task 结构 = 一边设计一边实现，scope 会无控制地扩张。实现模式允许 `vmap update --status` / `--add-test` / `--add-doc` 这些**状态回写**，但**别加新 goal / 拆 task / 改 deps**——那是维护模式的事。
 
-**不要修改用户项目里的任何源代码 / 配置 / 测试文件**。哪怕你边读边发现"这一行明显是 bug、顺手改了吧"——不改。理由：
+**如果实现模式中途发现 DAG 错了**（task 拆得不对 / docs 漏了 / deps 反了），**停下来切回维护模式**，告诉用户：
 
-- vmap 维护的是项目的"共识快照"。同一会话里 agent 既分析图又改源代码，会让图和代码同时漂，丢掉"这张图是此刻代码的诚实映射"这个性质。
-- 用户后续要复盘"vmap 是不是漏看了什么"时，你已经把现场改过了。
+> 实现到一半我发现 DAG 漂了（具体...）。建议先停下来补图，再继续实现。
+> 你可以现在切到维护视角（哪怕同一会话），我们把 task / docs / deps 修对，再回来做。
 
 **如果用户在同一会话里同时让你"维护 vmap" + "顺手改一下代码"**，明确告诉他：
 
-> 当前这个会话我建议只用来给项目做 vmap 分析（写 `.vmap/`）。
-> 你要改代码的话，开一个新的 session（⌘N / 新建一个 chat），在那边专心改实现；
-> 这边 vmap 一直挂着，等你那边改完再回来更新 goal/task 状态。
+> 这两件事建议分开会话做。当前这个会话我用来 {维护 / 实现} vmap；
+> 另一件事开一个新的 session（⌘N / 新建一个 chat）专做，这边可以一直挂着，等你那边告一段落再回来同步。
 
-如果用户坚持"就在这里一起做"，可以做，但**先 commit 一次当前 `.vmap/` 的状态作为基线**，再开始改码，便于事后区分"vmap 视图"和"代码 diff"两个层面的变化。
+如果用户坚持"就在这里一起做"，可以做，但**先 commit 一次当前 `.vmap/` 的状态作为基线**，再开始混着干，便于事后区分"图的变化"和"代码的变化"。
 
 ---
 
@@ -104,14 +128,37 @@ planned → open → closed
 
 ## 常用工作流（playbooks）
 
-| 场景 | 看这份 |
-|---|---|
-| **`.vmap/` 还没初始化 + 代码已经一大坨**（冷启动） | `skills/playbooks/bootstrap-existing-codebase.md` |
-| 接到一个新需求，要把它放进图 | `skills/playbooks/new-feature.md` |
-| audit 报红，按它修 tests / docs | `skills/playbooks/audit-fix-loop.md` |
-| 推一个 release 收尾 | `skills/playbooks/release-shipping.md` |
-| 用户问"现在做到哪了" | `skills/playbooks/daily-progress.md` |
-| 重命名 / 移动 task / 改 deps | `skills/cheatsheet.md` |
+| 场景 | 模式 | 看这份 |
+|---|---|---|
+| **`.vmap/` 还没初始化 + 代码已经一大坨**（冷启动） | 维护 | `skills/playbooks/bootstrap-existing-codebase.md` |
+| 接到一个新需求，要把它放进图 | 维护 | `skills/playbooks/new-feature.md` |
+| **图已经有了，按图把 todo task 一个个做掉** | 实现 | `skills/playbooks/implement-from-dag.md` |
+| audit 报红，按它修 tests / docs | 维护 | `skills/playbooks/audit-fix-loop.md` |
+| 推一个 release 收尾 | 维护 | `skills/playbooks/release-shipping.md` |
+| 用户问"现在做到哪了" | 维护 | `skills/playbooks/daily-progress.md` |
+| 重命名 / 移动 task / 改 deps | 维护 | `skills/cheatsheet.md` |
+
+## 防漏（v0.6.0 加入）
+
+`vmap coverage` 和 `vmap doctor` 是 bootstrap 之后的两道防漏关，也可以**随时跑**来检查 DAG 是不是和真实项目脱节了：
+
+```bash
+# 覆盖率：DAG 里 docs / src / issues 有多大比例被引用
+vmap coverage              # 全部三个维度
+vmap coverage --docs-only  # 只看 docs
+vmap coverage --json       # AI loop 友好
+
+# 用 gh issue 数据扩展 issues 维度
+gh issue list --state all --limit 500 \
+  --json number,title,state,url > /tmp/issues.json
+vmap coverage --issues-file /tmp/issues.json
+
+# 健康度告警：density / lane balance / orphan / codebase mismatch
+vmap doctor
+vmap doctor --json
+```
+
+**经验阈值**：bootstrap 后 `vmap coverage` 的 weakest 维度应该 ≥ 70%。低于这个值通常意味着 DAG 漏了主要能力——回 bootstrap-existing-codebase.md §1.5 / §2.5 / §3.5 补抽，不要急着进"和用户对话"那一步。
 
 ## 升级 vmap
 
@@ -143,6 +190,12 @@ vmap upgrade | bash
 5. ❌ **不分 release 就一直 add** —— 没有版本边界，scope 会无限漂移
 6. ❌ **加 milestone 字段填非 release key 的字符串** —— vmap 当前软校验，但 audit 会发 `release_unknown` 警告
 7. ❌ **手改 .vmap/vibe-map.json** —— 用 vmap CLI 改，自动跑循环检测、状态机校验、auto-render
+
+### Bootstrap 专属反模式（v0.6.0 加入）
+
+8. ❌ **bootstrap 跳过覆盖率验证** —— 抽完 goal 不跑 `vmap coverage` / `vmap doctor` 就直接和用户对，相当于裸眼检漏。playbook §1.5 把 70% 设成硬门槛；低于这个值就回头补抽。
+9. ❌ **"alpha 已实装的能力不用入图"** —— 如果代码已存在但 DAG 里没有对应 goal，这张图就在误导后加入的工程师。`vmap coverage --code` 和 `vmap doctor` 的 `codebase_mismatch` 告警就是给这种情况兜底的——出现 warning 必须处理（加 goal、或者解释"这是 utility 不是能力"并 archive 对应代码）。
+10. ❌ **只看 open issue / 跳过 closed issue** —— closed issue 经常承担**事实上的路线图**职责（拆分痕迹 / 转写到 docs / 延期标签）。bootstrap playbook §2.5 强制要求扫 `--state all`。
 
 ---
 

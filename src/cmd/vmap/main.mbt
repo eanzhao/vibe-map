@@ -720,6 +720,84 @@ fn build_cli() -> @argparse.Command {
         "upgrade",
         about="Print the upgrade command. Pipe through bash to actually upgrade: `vmap upgrade | bash`.",
       ),
+      @argparse.Command::new(
+        "coverage",
+        about="Report how much of the project's docs / source / GitHub issues is referenced from the DAG. Use as a bootstrap gate: <70% means the DAG probably missed major capabilities.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit a single CoverageReport JSON document.",
+          ),
+          @argparse.FlagArg::new(
+            "docs-only",
+            long="docs-only",
+            about="Only run the docs dimension.",
+          ),
+          @argparse.FlagArg::new(
+            "code-only",
+            long="code-only",
+            about="Only run the code dimension.",
+          ),
+          @argparse.FlagArg::new(
+            "issues-only",
+            long="issues-only",
+            about="Only run the issues dimension (requires --issues-file).",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new(
+            "docs-root",
+            long="docs-root",
+            about="Comma-separated paths to scan for markdown (default: `.`).",
+          ),
+          @argparse.OptionArg::new(
+            "src-root",
+            long="src-root",
+            about="Top-level source dir whose subdirs are checked against goal/task ids (default: auto-detect src | lib | app | packages).",
+          ),
+          @argparse.OptionArg::new(
+            "issues-file",
+            long="issues-file",
+            about="Path to JSON file produced by `gh issue list --json number,title,state,url --limit 500 --state all`. If omitted, the issues dimension is skipped.",
+          ),
+          @argparse.OptionArg::new(
+            "max-examples",
+            long="max-examples",
+            default_values=["50"],
+            about="Cap the number of unreferenced/unmatched examples shown per dimension.",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "doctor",
+        about="Aggregate health warnings: density anomalies, release-lane imbalance, orphan goals, codebase↔DAG mismatches. Advisory only — always exits 0.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit a single DoctorReport JSON document.",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg::new(
+            "scan-root",
+            long="scan-root",
+            about="Root path for the markdown scan that feeds the density check (default: `.`).",
+          ),
+          @argparse.OptionArg::new(
+            "src-root",
+            long="src-root",
+            about="Top-level source dir for the codebase-mismatch check (default: auto-detect).",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
     ],
   )
 }
@@ -770,6 +848,8 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
     "rename" => cmd_rename(sub)
     "version" => cmd_version(sub)
     "upgrade" => cmd_upgrade(sub)
+    "coverage" => cmd_coverage(sub)
+    "doctor" => cmd_doctor(sub)
     _ => fail("unknown subcommand: \{name}")
   }
 }
@@ -1832,9 +1912,7 @@ fn cmd_version(m : @argparse.Matches) -> Unit {
   let json_mode = m.flags.get("json").unwrap_or(false)
   let check_url = "https://api.github.com/repos/eanzhao/vibe-map/releases/latest"
   if json_mode {
-    let payload : Map[String, Json] = {
-      "version": @core.version.to_json(),
-    }
+    let payload : Map[String, Json] = { "version": @core.version.to_json() }
     if check {
       payload["latest_check_url"] = check_url.to_json()
       payload["upgrade_hint"] = "vmap upgrade | bash".to_json()
@@ -1850,6 +1928,168 @@ fn cmd_version(m : @argparse.Matches) -> Unit {
     println("")
     println("# To upgrade if needed:")
     println("vmap upgrade | bash")
+  }
+}
+
+///|
+/// `vmap coverage` — how much of docs / src / issues the DAG actually
+/// references. Auto-runs all three dimensions unless `--*-only` narrows it.
+fn cmd_coverage(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let dag = @core.load(path, default_name="untitled")
+  let docs_only = m.flags.get("docs-only").unwrap_or(false)
+  let code_only = m.flags.get("code-only").unwrap_or(false)
+  let issues_only = m.flags.get("issues-only").unwrap_or(false)
+  let any_only = docs_only || code_only || issues_only
+  let run_docs = if any_only { docs_only } else { true }
+  let run_code = if any_only { code_only } else { true }
+  let run_issues = if any_only { issues_only } else { true }
+  let scan_roots = parse_csv(opt(m, "docs-root"))
+  let src_root = opt(m, "src-root")
+  let issues_file = opt(m, "issues-file")
+  let max_examples = parse_optional_int_arg(
+    opt(m, "max-examples"),
+    "max-examples",
+    default=50,
+  )
+  if issues_only && issues_file == "" {
+    fail(
+      "coverage --issues-only requires --issues-file <PATH> (produce it with: `gh issue list --json number,title,state,url --limit 500 --state all > /tmp/issues.json`)",
+    )
+  }
+  let report = dag.coverage(
+    scan_roots,
+    src_root,
+    issues_file,
+    run_docs,
+    run_code,
+    run_issues,
+    max_examples~,
+  )
+  if m.flags.get("json").unwrap_or(false) {
+    println(report.to_json().stringify(indent=2))
+    return
+  }
+  print_coverage_text(report, issues_file~)
+}
+
+///|
+/// Pretty text view for `vmap coverage`. Mirrors the JSON one-for-one so
+/// agents reading either get the same picture.
+fn print_coverage_text(
+  report : @core.CoverageReport,
+  issues_file? : String = "",
+) -> Unit {
+  match report.docs {
+    Some(d) => {
+      println(
+        "docs coverage:    \{format_pct_str(d.pct)}% (\{d.referenced} / \{d.total} markdown files referenced)",
+      )
+      if d.unreferenced_examples.length() > 0 {
+        let suffix = if d.unreferenced_total > d.unreferenced_examples.length() {
+          " (showing \{d.unreferenced_examples.length()} of \{d.unreferenced_total} — `--json` for the full list)"
+        } else {
+          ""
+        }
+        println("  unreferenced examples\{suffix}:")
+        for p in d.unreferenced_examples {
+          println("    \{p}")
+        }
+      }
+    }
+    None => ()
+  }
+  match report.code {
+    Some(c) => {
+      println(
+        "code coverage:    \{format_pct_str(c.pct)}% (\{c.matched} / \{c.total} top-level src dirs match a goal/task)",
+      )
+      if c.unmatched.length() > 0 {
+        println("  unmatched dirs:")
+        for d in c.unmatched {
+          println("    \{d}")
+        }
+      }
+    }
+    None => ()
+  }
+  match report.issues {
+    Some(i) => {
+      println(
+        "issues coverage:  \{format_pct_str(i.pct)}% (\{i.referenced_direct} / \{i.total} issues directly referenced; \{i.open} open / \{i.closed} closed)",
+      )
+      if i.goals_with_gh_query > 0 {
+        println(
+          "  fuzzy hint: \{i.goals_with_gh_query} goal(s) have a `gh_query` field — run tools/audit_github.py for strict drift check.",
+        )
+      }
+      if i.unreferenced_examples.length() > 0 {
+        let suffix = if i.unreferenced_total > i.unreferenced_examples.length() {
+          " (showing \{i.unreferenced_examples.length()} of \{i.unreferenced_total})"
+        } else {
+          ""
+        }
+        println("  unreferenced issues\{suffix}:")
+        for line in i.unreferenced_examples {
+          println("    \{line}")
+        }
+      }
+    }
+    None =>
+      if issues_file == "" {
+        println(
+          "issues coverage:  (skipped — pass `--issues-file <PATH>` after `gh issue list --json number,title,state,url --state all > <PATH>`)",
+        )
+      } else {
+        println("issues coverage:  (no issues_file content read)")
+      }
+  }
+  println("")
+  println(
+    "overall:          weakest dimension is `\{report.weakest}` at \{format_pct_str(report.overall_score)}%",
+  )
+  if report.weakest != "(none)" && report.overall_score < 70.0 {
+    println(
+      "  hint: bootstrap-existing-codebase playbook §1.5 sets 70% as the gate before drafting goals.",
+    )
+  }
+}
+
+///|
+fn format_pct_str(value : Double) -> String {
+  let scaled = (value * 10.0).to_int()
+  let whole = scaled / 10
+  let frac = scaled % 10
+  "\{whole}.\{frac}"
+}
+
+///|
+/// `vmap doctor` — aggregate health warnings. Always exits 0; this is
+/// advisory, not a CI gate.
+fn cmd_doctor(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let dag = @core.load(path, default_name="untitled")
+  let scan_root = opt(m, "scan-root")
+  let src_root = opt(m, "src-root")
+  let report = dag.doctor(scan_root, src_root)
+  if m.flags.get("json").unwrap_or(false) {
+    println(report.to_json().stringify(indent=2))
+    return
+  }
+  println(
+    "doctor: \{report.warnings.length()} warning(s)  (goals=\{report.stats.goals}, tasks=\{report.stats.tasks}, releases=\{report.stats.releases}, md=\{report.stats.markdown_files}, code_dirs=\{report.stats.code_dirs})",
+  )
+  if report.warnings.length() == 0 {
+    println("  clean — no anomalies detected.")
+    return
+  }
+  for w in report.warnings {
+    let sev_mark = if w.severity == "warn" { "!" } else { "i" }
+    let goal_suffix = match w.goal_id {
+      Some(id) => " [\{id}]"
+      None => ""
+    }
+    println("  \{sev_mark} \{w.kind}\{goal_suffix}: \{w.message}")
   }
 }
 

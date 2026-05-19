@@ -32,6 +32,8 @@ pub fn load_template_file(String) -> Template raise DagError
 
 pub fn save(Dag, String) -> Unit raise DagError
 
+pub let version : String
+
 pub fn write_text(String, String) -> Unit raise DagError
 
 // Errors
@@ -89,6 +91,27 @@ pub impl Show for ClosureTierConfig
 pub impl ToJson for ClosureTierConfig
 pub impl @json.FromJson for ClosureTierConfig
 
+pub(all) struct CodeCoverage {
+  total : Int
+  matched : Int
+  pct : Double
+  unmatched : Array[String]
+}
+pub impl Show for CodeCoverage
+pub impl ToJson for CodeCoverage
+
+pub(all) struct CoverageReport {
+  docs : DocsCoverage?
+  code : CodeCoverage?
+  issues : IssuesCoverage?
+  overall_score : Double
+  weakest : String
+  scanned_md_files : Int
+  scanned_code_dirs : Int
+}
+pub impl Show for CoverageReport
+pub impl ToJson for CoverageReport
+
 pub(all) struct Dag {
   config : VmapConfig?
   project : Project
@@ -107,6 +130,8 @@ pub fn Dag::assign_release(Self, String, String) -> Unit raise DagError
 pub fn Dag::audit(Self) -> AuditReport
 pub fn Dag::backfill(Self, String, Template) -> BackfillReport raise DagError
 pub fn Dag::backfill_moonbit(Self, String) -> BackfillReport raise DagError
+pub fn Dag::coverage(Self, Array[String], String, String, Bool, Bool, Bool, max_examples? : Int) -> CoverageReport raise DagError
+pub fn Dag::doctor(Self, String, String) -> DoctorReport raise DagError
 pub fn Dag::downstream(Self, String) -> Array[String]
 pub fn Dag::effective_config(Self) -> VmapConfig
 pub fn Dag::empty(String) -> Self
@@ -184,6 +209,46 @@ pub(all) struct DiscoveredTask {
 }
 pub impl Show for DiscoveredTask
 
+pub(all) struct DocsCoverage {
+  total : Int
+  referenced : Int
+  pct : Double
+  unreferenced_examples : Array[String]
+  unreferenced_total : Int
+}
+pub impl Show for DocsCoverage
+pub impl ToJson for DocsCoverage
+
+pub(all) struct DoctorReport {
+  ok : Bool
+  warnings : Array[DoctorWarning]
+  stats : DoctorStats
+}
+pub impl Show for DoctorReport
+pub impl ToJson for DoctorReport
+
+pub(all) struct DoctorStats {
+  goals : Int
+  tasks : Int
+  releases : Int
+  goals_with_downstream : Int
+  markdown_files : Int
+  code_dirs : Int
+  density_ratio : Double
+}
+pub impl Show for DoctorStats
+pub impl ToJson for DoctorStats
+
+pub(all) struct DoctorWarning {
+  kind : String
+  severity : String
+  message : String
+  goal_id : String?
+  details : Map[String, String]
+}
+pub impl Show for DoctorWarning
+pub impl ToJson for DoctorWarning
+
 pub(all) struct FileRules {
   source : SourceRule
   test_colocated : PatternList
@@ -237,6 +302,29 @@ pub impl Eq for Goal
 pub impl Show for Goal
 pub impl ToJson for Goal
 pub impl @json.FromJson for Goal
+
+pub(all) struct IssueEntry {
+  number : Int
+  title : String
+  state : String
+  url : String
+}
+pub impl Show for IssueEntry
+pub impl ToJson for IssueEntry
+pub impl @json.FromJson for IssueEntry
+
+pub(all) struct IssuesCoverage {
+  total : Int
+  open : Int
+  closed : Int
+  referenced_direct : Int
+  unreferenced_examples : Array[String]
+  unreferenced_total : Int
+  goals_with_gh_query : Int
+  pct : Double
+}
+pub impl Show for IssuesCoverage
+pub impl ToJson for IssuesCoverage
 
 pub(all) struct LocalizedText {
   en : String
