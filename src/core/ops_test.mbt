@@ -62,3 +62,34 @@ test "remove goal drops its tasks and scrubs deps" {
   let (_, m2) = dag.find_goal("m2").unwrap()
   assert_eq(m2.deps.length(), 0)
 }
+
+///|
+test "goal closure can only move forward" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_goal(id="m1", title="A", closure="obligation")
+  dag.set_goal_closure("m1", "scoped")
+  let err : Result[Unit, @core.DagError] = try? dag.set_goal_closure(
+    "m1", "seed",
+  )
+  guard err is Err(InvalidMetadata(_)) else { fail("expected InvalidMetadata") }
+}
+
+///|
+test "goal metadata validates against config enums" {
+  let dag = @core.Dag::empty("demo")
+  let err : Result[Unit, @core.DagError] = try? dag.add_goal(
+    id="m1",
+    title="A",
+    closure="ghost",
+  )
+  guard err is Err(InvalidMetadata(_)) else { fail("expected InvalidMetadata") }
+}
+
+///|
+test "config metadata is validated" {
+  let dag = @core.Dag::empty("demo")
+  let cfg = dag.effective_config()
+  let bad : @core.Dag = { ..dag, config: Some({ ..cfg, products: [] }) }
+  let err : Result[Unit, @core.DagError] = try? bad.validate()
+  guard err is Err(InvalidMetadata(_)) else { fail("expected InvalidMetadata") }
+}

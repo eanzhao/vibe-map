@@ -55,10 +55,11 @@ vmap plan --docs TODOS.md --format tlist
 
 ## 质量守门：`vmap audit`
 
-vibe coding 最容易出的问题是"看起来都做完了，但都没测试 / 没文档"。`audit` 检查两条规则：
+vibe coding 最容易出的问题是"看起来都做完了，但都没测试 / 没文档"，公司 region map 还多一个问题：状态声称没有 GitHub 证据。`audit` 现在检查三类规则：
 
 - `regression_testable: true` 但 `tests: []` → `missing_tests`
 - `status != todo` 但 `docs: []` → `missing_docs`（todo 节点不卡，没写完当然没文档）
+- goal 缺 `closure/formal/product/owner/issue_count/focus/archived/promoted_at/gh_query` → `missing_region_metadata`
 
 ```bash
 vmap audit               # 文本
@@ -71,8 +72,16 @@ AI 工作流大概是：
 ```
 vmap audit --json > /tmp/v
 # parse violations, 给每个 missing_tests 写测试 / 给每个 missing_docs 写文档
-# vmap update <id> --tests …  或  vmap update <id> --docs …
+# vmap update <id> --tests … / --docs … / --owner … / --gh-query …
 # 再 audit，直到 exit 0
+```
+
+GitHub issue 数漂移用独立脚本跑，和 `region-map` 一样依赖 `gh` CLI：
+
+```bash
+python3 tools/audit_github.py --file vibe-map.json
+python3 tools/audit_github.py --file vibe-map.json --strict
+python3 tools/audit_github.py --file vibe-map.json --markdown
 ```
 
 ## 可视化：Sisyphus 风格拓扑工作台
@@ -82,12 +91,15 @@ vmap render --out dag.html
 open dag.html
 ```
 
-- **暗色 canvas 拓扑图**：发光节点、点阵背景、可拖拽/缩放/适配视图
-- **形状 = kind**：六边形 = goal，圆形 = task
-- **颜色 = status**：done 绿 / in-progress 蓝 / blocked 红 / todo 灰
-- **左侧进度面板**：按 goal 展示完成度
-- **右侧详情面板**：显示节点依赖、被依赖、tests / docs / notes
+- **暗色 canvas goal DAG**：发光节点、点阵背景、可拖拽/缩放/适配视图
+- **画布只展示 goal**：task 不作为图节点，只收进 goal 详情里
+- **颜色 = closure**：seed / obligation / scoped / public / bridged / mature
+- **节点统一形状**：只用颜色表达状态，formal 只在详情里显示
+- **大小 = issue_count**，红框 = 当前焦点，半透明 = archived
+- **左侧进度面板**：按 goal 展示完成度，支持搜索和产品筛选
+- **右侧详情面板**：显示 owner/product/milestone/closure trigger/promotion timeline/GitHub query；每个 task 也有展开详情，包含 status / deps / notes / tests / docs
 - 点节点 → 高亮整条传递依赖链
+- 点刷新按钮或按 `R` → 回到默认排版
 - 单个自包含 HTML 文件，无前端框架和 CDN 运行依赖
 
 `examples/dag.html` 是这个项目自己 dogfood 出来的渲染结果。
@@ -103,12 +115,14 @@ vmap rm <id>                    Remove a goal or task
 vmap import --in <path>         Bulk-load a hand-crafted vibe-map.json
 vmap render --out X.html        Render a self-contained HTML page
 vmap status [--json]            Text or JSON summary (含 goal 进度)
-vmap audit [--json]             Quality gate (tests + docs)
+vmap audit [--json]             Quality gate (tests + docs + region metadata)
 vmap backfill --src DIR         Auto-detect template, synthesize from source
 vmap plan --docs F,…            Synthesize from markdown (checklist or tlist)
 ```
 
-每个命令 `--help` 看完整 flag。模板系统：`--template moonbit|typescript|dotnet` 或 `--template-file path.json` 自定义；不传 = 从项目结构自动探测。
+每个命令 `--help` 看完整 flag。`vmap add goal` / `vmap update <goal>` 支持 `--closure`、`--formal`、`--product`、`--milestone`、`--owner`、`--issue-count`、`--focus`、`--archived`、`--promoted-at scoped=2026-05-01,public=2026-05-10`、`--gh-query`。closure 只能单调前进，不能从 `mature` 回退到 `public`。
+
+模板系统：`--template moonbit|typescript|dotnet` 或 `--template-file path.json` 自定义；不传 = 从项目结构自动探测。
 
 ## 数据模型
 
@@ -116,12 +130,31 @@ vmap plan --docs F,…            Synthesize from markdown (checklist or tlist)
 
 ```jsonc
 {
+  "config": {
+    "products": [{ "key": "default", "label": { "en": "Default", "zh": "默认" } }],
+    "closure_tiers": [
+      { "key": "seed", "label": { "en": "Proposed", "zh": "提出" }, "color": "#94a3b8", "trigger": { "en": "issue created", "zh": "issue 已创建" } }
+    ],
+    "formal_levels": [
+      { "key": "checked", "label": { "en": "Has CI / tests", "zh": "有自动化测试 / CI" } }
+    ]
+  },
   "project": { "name": "…", "description": "…" },
   "goals": [{
     "id": "g1",
     "title": "用户能登录",
     "description": "",
     "deps": [],                     // 跨 goal 依赖
+    "closure": "seed | obligation | scoped | public | bridged | mature",
+    "formal": "none | sop | checked | audited",
+    "product": "default",
+    "milestone": "M0",
+    "owner": "github-user",
+    "issue_count": 3,
+    "focus": false,
+    "archived": false,
+    "promoted_at": { "seed": "2026-05-19" },
+    "gh_query": "is:issue is:open repo:owner/repo label:g1",
     "regression_testable": false,
     "tests": [],                    // 测试文件 / glob
     "docs": []                      // 文档路径
@@ -140,6 +173,8 @@ vmap plan --docs F,…            Synthesize from markdown (checklist or tlist)
 }
 ```
 
+`config` 是状态/产品/视觉编码，`goals` 是业务数据，renderer 不再硬编码具体 closure 颜色。`formal` 保留为详情里的证据等级，不参与节点形状。旧 JSON 没有这些字段也能读；新建 goal 会自动填默认 `closure=seed`、`formal=none|checked`、`product=<config.products[0]>`、`issue_count=0`、`focus=false`、`archived=false`、`promoted_at={}`。
+
 依赖在添加时做循环检测；删 goal 会连带删它的 task 并清理其它节点中指向它的 deps。
 
 ## 构建
@@ -150,7 +185,7 @@ vmap plan --docs F,…            Synthesize from markdown (checklist or tlist)
 moon install                # 拉 moonbitlang/x 依赖
 moon build --target native  # 出 native 二进制
 # → _build/native/debug/build/cmd/vmap/vmap.exe
-moon test                   # 23 tests
+moon test                   # 27 tests
 moon fmt && moon check
 ```
 
@@ -160,12 +195,13 @@ moon fmt && moon check
 - [ ] `vmap serve`：watch JSON + 浏览器实时刷新（需要 MoonBit 端最小 HTTP server）
 - [ ] MCP wrapper：让 Claude Code / Codex / Cursor 直接调 vmap，不用走 Bash
 - [ ] symbol-level backfill：用 `moon ide outline` 拿公开符号粒度，而不是按文件
+- [ ] GitHub Pages / CI workflow：render 示例页 + 每周跑 `tools/audit_github.py`
 
 中期：
 - [ ] cross-language adapter（Rust / Go / Python 的包/文件约定）
 - [ ] LLM-assisted plan：从自由文本 README/设计文档抽 todo，不只 `- [ ]` checklist
 - [ ] 节点详情面板（点击后侧栏显示 tests / docs / notes）
-- [ ] "north star" 节点形状（star）+ 一键聚焦最关键路径
+- [ ] "north star" 焦点模式 + 一键聚焦最关键路径
 
 ## 许可证
 

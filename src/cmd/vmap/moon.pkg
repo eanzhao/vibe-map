@@ -2,6 +2,7 @@ import {
   "eanzhao/vibe-map/core",
   "eanzhao/vibe-map/render",
   "moonbitlang/core/argparse",
+  "moonbitlang/core/strconv",
   "moonbitlang/x/sys" @sys,
 }
 

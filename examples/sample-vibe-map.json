@@ -1,4 +1,139 @@
 {
+  "config": {
+    "version": 1,
+    "products": [
+      {
+        "key": "vmap",
+        "label": {
+          "en": "vibe-map",
+          "zh": "vibe-map"
+        }
+      }
+    ],
+    "closure_tiers": [
+      {
+        "key": "seed",
+        "label": {
+          "en": "Proposed",
+          "zh": "提出"
+        },
+        "color": "#94a3b8",
+        "trigger": {
+          "en": "issue / discussion created",
+          "zh": "issue / discussion 已创建"
+        }
+      },
+      {
+        "key": "obligation",
+        "label": {
+          "en": "Claimed",
+          "zh": "接手"
+        },
+        "color": "#38bdf8",
+        "trigger": {
+          "en": "assignee set",
+          "zh": "assignee 字段非空"
+        }
+      },
+      {
+        "key": "scoped",
+        "label": {
+          "en": "Designed",
+          "zh": "设计完"
+        },
+        "color": "#a78bfa",
+        "trigger": {
+          "en": "design merged",
+          "zh": "设计已合并"
+        }
+      },
+      {
+        "key": "public",
+        "label": {
+          "en": "Committed",
+          "zh": "已承诺"
+        },
+        "color": "#fdba74",
+        "trigger": {
+          "en": "release notes published",
+          "zh": "release notes 已发"
+        }
+      },
+      {
+        "key": "bridged",
+        "label": {
+          "en": "Integrated",
+          "zh": "已集成"
+        },
+        "color": "#2dd4bf",
+        "trigger": {
+          "en": "up/downstream closed + smoke passed",
+          "zh": "上下游 closed + smoke 通过"
+        }
+      },
+      {
+        "key": "mature",
+        "label": {
+          "en": "Operating",
+          "zh": "运行中"
+        },
+        "color": "#34d399",
+        "trigger": {
+          "en": "30 days incident-free",
+          "zh": "30 天无 incident"
+        }
+      }
+    ],
+    "formal_levels": [
+      {
+        "key": "none",
+        "label": {
+          "en": "No automation",
+          "zh": "无自动化"
+        }
+      },
+      {
+        "key": "sop",
+        "label": {
+          "en": "Has SOP / runbook",
+          "zh": "有 SOP / runbook"
+        }
+      },
+      {
+        "key": "checked",
+        "label": {
+          "en": "Has CI / tests",
+          "zh": "有自动化测试 / CI"
+        }
+      },
+      {
+        "key": "audited",
+        "label": {
+          "en": "Has monitoring + SLO",
+          "zh": "有监控 / 告警 / SLO"
+        }
+      }
+    ],
+    "focus_quarter": {
+      "label": {
+        "en": "Current focus",
+        "zh": "当前焦点"
+      },
+      "border_color": "#f43f5e",
+      "border_width": 3
+    },
+    "archive_rule": {
+      "after_mature_days": 30,
+      "opacity": 0.35
+    },
+    "ui": {
+      "title": {
+        "en": "Vibe Region Map",
+        "zh": "Vibe Region Map"
+      },
+      "default_lang": "zh"
+    }
+  },
   "project": {
     "name": "vibe-map (self)",
     "description": ""
@@ -8,7 +143,23 @@
       "id": "pkg-cmd-vmap",
       "title": "cmd/vmap",
       "description": "Backfilled via template `moonbit`",
-      "deps": [],
+      "deps": [
+        "pkg-core",
+        "pkg-render"
+      ],
+      "closure": "scoped",
+      "formal": "sop",
+      "product": "vmap",
+      "milestone": "CLI",
+      "owner": "eanzhao",
+      "issue_count": 1,
+      "focus": true,
+      "archived": false,
+      "promoted_at": {
+        "obligation": "2026-05-18",
+        "scoped": "2026-05-19"
+      },
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map vmap",
       "regression_testable": true,
       "tests": [],
       "docs": []
@@ -18,6 +169,19 @@
       "title": "core",
       "description": "Backfilled via template `moonbit`",
       "deps": [],
+      "closure": "mature",
+      "formal": "checked",
+      "product": "vmap",
+      "milestone": "Core",
+      "owner": "eanzhao",
+      "issue_count": 8,
+      "focus": false,
+      "archived": false,
+      "promoted_at": {
+        "bridged": "2026-05-10",
+        "mature": "2026-05-19"
+      },
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map core",
       "regression_testable": true,
       "tests": [],
       "docs": []
@@ -26,7 +190,23 @@
       "id": "pkg-render",
       "title": "render",
       "description": "Backfilled via template `moonbit`",
-      "deps": [],
+      "deps": [
+        "pkg-core"
+      ],
+      "closure": "public",
+      "formal": "checked",
+      "product": "vmap",
+      "milestone": "Viz",
+      "owner": "eanzhao",
+      "issue_count": 3,
+      "focus": true,
+      "archived": false,
+      "promoted_at": {
+        "obligation": "2026-05-18",
+        "scoped": "2026-05-19",
+        "public": "2026-05-19"
+      },
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map render",
       "regression_testable": true,
       "tests": [],
       "docs": []
@@ -36,6 +216,18 @@
       "title": "roadmap",
       "description": "Planned items extracted from /tmp/vmap-fake-roadmap/roadmap.md",
       "deps": [],
+      "closure": "seed",
+      "formal": "sop",
+      "product": "vmap",
+      "milestone": "Roadmap",
+      "owner": "eanzhao",
+      "issue_count": 4,
+      "focus": false,
+      "archived": false,
+      "promoted_at": {
+        "seed": "2026-05-19"
+      },
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map roadmap",
       "regression_testable": false,
       "tests": [],
       "docs": [

@@ -10,6 +10,8 @@ pub fn auto_detect_template(String) -> Template? raise DagError
 
 pub fn builtin_templates() -> Array[Template] raise DagError
 
+pub fn default_config() -> VmapConfig
+
 pub let default_path : String
 
 pub fn find_template_by_name(String) -> Template? raise DagError
@@ -30,12 +32,22 @@ pub(all) suberror DagError {
   UnknownId(String)
   UnknownGoal(String)
   CycleDetected(String)
+  InvalidMetadata(String)
   IoError(String)
   ParseError(String)
 }
 pub impl Show for DagError
 
 // Types and methods
+pub(all) struct ArchiveRuleConfig {
+  after_mature_days : Int
+  opacity : Double
+}
+pub impl Eq for ArchiveRuleConfig
+pub impl Show for ArchiveRuleConfig
+pub impl ToJson for ArchiveRuleConfig
+pub impl @json.FromJson for ArchiveRuleConfig
+
 pub(all) struct AuditReport {
   ok : Bool
   violations : Array[Violation]
@@ -54,17 +66,30 @@ pub(all) struct BackfillReport {
 pub impl Show for BackfillReport
 pub impl ToJson for BackfillReport
 
+pub(all) struct ClosureTierConfig {
+  key : String
+  label : LocalizedText
+  color : String
+  trigger : LocalizedText
+}
+pub impl Eq for ClosureTierConfig
+pub impl Show for ClosureTierConfig
+pub impl ToJson for ClosureTierConfig
+pub impl @json.FromJson for ClosureTierConfig
+
 pub(all) struct Dag {
+  config : VmapConfig?
   project : Project
   goals : Array[Goal]
   tasks : Array[Task]
 }
-pub fn Dag::add_goal(Self, id~ : String, title~ : String, description? : String, deps? : Array[String], regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
+pub fn Dag::add_goal(Self, id~ : String, title~ : String, description? : String, deps? : Array[String], closure? : String, formal? : String, product? : String, milestone? : String, owner? : String, issue_count? : Int, focus? : Bool, archived? : Bool, promoted_at? : Map[String, String], gh_query? : String, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
 pub fn Dag::add_task(Self, id~ : String, goal~ : String, title~ : String, deps? : Array[String], notes? : String, status? : Status, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
 pub fn Dag::assert_acyclic(Self) -> Unit raise DagError
 pub fn Dag::audit(Self) -> AuditReport
 pub fn Dag::backfill(Self, String, Template) -> BackfillReport raise DagError
 pub fn Dag::backfill_moonbit(Self, String) -> BackfillReport raise DagError
+pub fn Dag::effective_config(Self) -> VmapConfig
 pub fn Dag::empty(String) -> Self
 pub fn Dag::find_goal(Self, String) -> (Int, Goal)?
 pub fn Dag::find_task(Self, String) -> (Int, Task)?
@@ -75,6 +100,16 @@ pub fn Dag::plan_from_docs(Self, Array[String], format? : String) -> PlanReport 
 pub fn Dag::progress(Self, String) -> (Int, Int)
 pub fn Dag::remove(Self, String) -> Unit raise DagError
 pub fn Dag::set_docs(Self, String, Array[String]) -> Unit raise DagError
+pub fn Dag::set_goal_archived(Self, String, Bool) -> Unit raise DagError
+pub fn Dag::set_goal_closure(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_focus(Self, String, Bool) -> Unit raise DagError
+pub fn Dag::set_goal_formal(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_gh_query(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_issue_count(Self, String, Int) -> Unit raise DagError
+pub fn Dag::set_goal_milestone(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_owner(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_product(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_promoted_at(Self, String, Map[String, String]) -> Unit raise DagError
 pub fn Dag::set_regression_testable(Self, String, Bool) -> Unit raise DagError
 pub fn Dag::set_tests(Self, String, Array[String]) -> Unit raise DagError
 pub fn Dag::tasks_of(Self, String) -> Array[Task]
@@ -120,11 +155,41 @@ pub impl Show for FileRules
 pub impl ToJson for FileRules
 pub impl @json.FromJson for FileRules
 
+pub(all) struct FocusQuarterConfig {
+  label : LocalizedText
+  border_color : String
+  border_width : Int
+}
+pub impl Eq for FocusQuarterConfig
+pub impl Show for FocusQuarterConfig
+pub impl ToJson for FocusQuarterConfig
+pub impl @json.FromJson for FocusQuarterConfig
+
+pub(all) struct FormalLevelConfig {
+  key : String
+  shape : String?
+  label : LocalizedText
+}
+pub impl Eq for FormalLevelConfig
+pub impl Show for FormalLevelConfig
+pub impl ToJson for FormalLevelConfig
+pub impl @json.FromJson for FormalLevelConfig
+
 pub(all) struct Goal {
   id : String
   title : String
   description : String
   deps : Array[String]
+  closure : String?
+  formal : String?
+  product : String?
+  milestone : String?
+  owner : String?
+  issue_count : Int?
+  focus : Bool?
+  archived : Bool?
+  promoted_at : Map[String, String]?
+  gh_query : String?
   regression_testable : Bool
   tests : Array[String]
   docs : Array[String]
@@ -133,6 +198,15 @@ pub impl Eq for Goal
 pub impl Show for Goal
 pub impl ToJson for Goal
 pub impl @json.FromJson for Goal
+
+pub(all) struct LocalizedText {
+  en : String
+  zh : String
+}
+pub impl Eq for LocalizedText
+pub impl Show for LocalizedText
+pub impl ToJson for LocalizedText
+pub impl @json.FromJson for LocalizedText
 
 pub(all) struct NameList {
   names : Array[String]
@@ -170,6 +244,15 @@ pub(all) struct PlanReport {
 }
 pub impl Show for PlanReport
 pub impl ToJson for PlanReport
+
+pub(all) struct ProductConfig {
+  key : String
+  label : LocalizedText
+}
+pub impl Eq for ProductConfig
+pub impl Show for ProductConfig
+pub impl ToJson for ProductConfig
+pub impl @json.FromJson for ProductConfig
 
 pub(all) struct Project {
   name : String
@@ -227,6 +310,15 @@ pub impl Show for Template
 pub impl ToJson for Template
 pub impl @json.FromJson for Template
 
+pub(all) struct UiConfig {
+  title : LocalizedText
+  default_lang : String
+}
+pub impl Eq for UiConfig
+pub impl Show for UiConfig
+pub impl ToJson for UiConfig
+pub impl @json.FromJson for UiConfig
+
 pub(all) struct Violation {
   kind : String
   node_id : String
@@ -236,6 +328,20 @@ pub(all) struct Violation {
 pub impl Eq for Violation
 pub impl Show for Violation
 pub impl ToJson for Violation
+
+pub(all) struct VmapConfig {
+  version : Int
+  products : Array[ProductConfig]
+  closure_tiers : Array[ClosureTierConfig]
+  formal_levels : Array[FormalLevelConfig]
+  focus_quarter : FocusQuarterConfig
+  archive_rule : ArchiveRuleConfig
+  ui : UiConfig
+}
+pub impl Eq for VmapConfig
+pub impl Show for VmapConfig
+pub impl ToJson for VmapConfig
+pub impl @json.FromJson for VmapConfig
 
 // Type aliases
 

@@ -52,16 +52,13 @@ fn page_head(title : String) -> String {
     $|    min-height: 100%;
     $|    height: 100%;
     $|    overflow: hidden;
-    $|    background:
-    $|      radial-gradient(circle at 18% 12%, rgba(125, 211, 252, 0.15), transparent 26%),
-    $|      radial-gradient(circle at 78% 6%, rgba(134, 239, 172, 0.12), transparent 26%),
-    $|      linear-gradient(135deg, #070a0f 0%, #0b111a 52%, #10151f 100%);
+    $|    background: linear-gradient(135deg, #070a0f 0%, #0b111a 52%, #10151f 100%);
     $|    color: var(--text-primary);
     $|    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     $|    letter-spacing: 0;
     $|  }
     $|
-    $|  button, input { font: inherit; }
+    $|  button, input, select { font: inherit; }
     $|  button { cursor: pointer; }
     $|
     $|  #app {
@@ -235,6 +232,29 @@ fn page_head(title : String) -> String {
     $|    gap: 8px;
     $|  }
     $|
+    $|  .control-stack {
+    $|    display: grid;
+    $|    gap: 8px;
+    $|    margin-bottom: 12px;
+    $|  }
+    $|
+    $|  .search-input, .select-input {
+    $|    width: 100%;
+    $|    min-height: 32px;
+    $|    border: 1px solid var(--border-subtle);
+    $|    border-radius: var(--radius);
+    $|    background: rgba(15, 23, 42, 0.72);
+    $|    color: var(--text-secondary);
+    $|    padding: 7px 9px;
+    $|    outline: none;
+    $|    font-size: 12px;
+    $|  }
+    $|
+    $|  .search-input:focus, .select-input:focus {
+    $|    border-color: rgba(125, 211, 252, 0.58);
+    $|    box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.12);
+    $|  }
+    $|
     $|  .node-row {
     $|    width: 100%;
     $|    padding: 10px;
@@ -394,11 +414,6 @@ fn page_head(title : String) -> String {
     $|    box-shadow: 0 0 12px var(--legend-glow, transparent);
     $|  }
     $|
-    $|  .legend-shape.hex {
-    $|    width: 12px;
-    $|    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-    $|  }
-    $|
     $|  .legend-shape.circle { border-radius: 999px; }
     $|
     $|  .detail-empty {
@@ -457,6 +472,14 @@ fn page_head(title : String) -> String {
     $|    font-size: 12px;
     $|  }
     $|
+    $|  .kv.kv-wide {
+    $|    grid-template-columns: minmax(0, 1fr);
+    $|  }
+    $|
+    $|  .kv.kv-wide > strong {
+    $|    margin-bottom: 2px;
+    $|  }
+    $|
     $|  .kv strong {
     $|    color: var(--text-dimmed);
     $|    font-weight: 600;
@@ -485,6 +508,90 @@ fn page_head(title : String) -> String {
     $|    color: var(--text-secondary);
     $|    background: rgba(15, 23, 42, 0.72);
     $|    font: 10px ui-monospace, SFMono-Regular, Menlo, monospace;
+    $|  }
+    $|
+    $|  .task-detail-list {
+    $|    display: grid;
+    $|    gap: 8px;
+    $|  }
+    $|
+    $|  .task-detail {
+    $|    overflow: hidden;
+    $|    border: 1px solid var(--border-subtle);
+    $|    border-radius: var(--radius);
+    $|    background: rgba(15, 23, 42, 0.58);
+    $|  }
+    $|
+    $|  .task-detail[open] {
+    $|    border-color: rgba(148, 163, 184, 0.28);
+    $|  }
+    $|
+    $|  .task-detail summary {
+    $|    display: grid;
+    $|    gap: 6px;
+    $|    padding: 9px;
+    $|    cursor: pointer;
+    $|    list-style: none;
+    $|  }
+    $|
+    $|  .task-detail summary::-webkit-details-marker { display: none; }
+    $|
+    $|  .task-summary-main {
+    $|    display: flex;
+    $|    align-items: center;
+    $|    justify-content: space-between;
+    $|    gap: 8px;
+    $|    min-width: 0;
+    $|  }
+    $|
+    $|  .task-title {
+    $|    min-width: 0;
+    $|    overflow-wrap: anywhere;
+    $|    color: var(--text-primary);
+    $|    font-size: 12px;
+    $|    font-weight: 650;
+    $|  }
+    $|
+    $|  .task-id {
+    $|    color: var(--text-dimmed);
+    $|    font: 10px ui-monospace, SFMono-Regular, Menlo, monospace;
+    $|    overflow-wrap: anywhere;
+    $|  }
+    $|
+    $|  .task-status {
+    $|    flex: 0 0 auto;
+    $|    display: inline-flex;
+    $|    align-items: center;
+    $|    gap: 5px;
+    $|    color: var(--task-color, var(--text-secondary));
+    $|    font-size: 10px;
+    $|  }
+    $|
+    $|  .task-detail-body {
+    $|    display: grid;
+    $|    gap: 0;
+    $|    padding: 0 9px 9px;
+    $|  }
+    $|
+    $|  .task-field {
+    $|    display: grid;
+    $|    grid-template-columns: 58px minmax(0, 1fr);
+    $|    gap: 8px;
+    $|    padding: 7px 0;
+    $|    border-top: 1px solid var(--border-subtle);
+    $|    color: var(--text-muted);
+    $|    font-size: 11px;
+    $|  }
+    $|
+    $|  .task-field strong {
+    $|    color: var(--text-dimmed);
+    $|    font-weight: 600;
+    $|  }
+    $|
+    $|  .task-field span {
+    $|    min-width: 0;
+    $|    overflow-wrap: anywhere;
+    $|    color: var(--text-secondary);
     $|  }
     $|
     $|  .notes {
@@ -533,7 +640,7 @@ fn page_head(title : String) -> String {
     $|      <div class="metric"><b id="metric-progress">0%</b><span>完成度</span></div>
     $|      <div class="metric"><b id="metric-milestones">0</b><span>目标</span></div>
     $|      <div class="metric"><b id="metric-issues">0</b><span>任务</span></div>
-    $|      <div class="metric"><b id="metric-deps">0</b><span>依赖</span></div>
+    $|      <div class="metric"><b id="metric-deps">0</b><span>连线</span></div>
     $|    </div>
     $|  </header>
     $|  <main class="workspace">
@@ -548,6 +655,12 @@ fn page_head(title : String) -> String {
     $|        <div class="progress-row">
     $|          <label><span>整体完成</span><span id="overall-progress-label">0/0</span></label>
     $|          <div class="progress"><span id="overall-progress-bar"></span></div>
+    $|        </div>
+    $|        <div class="control-stack">
+    $|          <input class="search-input" id="goal-search" type="search" placeholder="搜索 goal / owner / milestone" aria-label="搜索 goal" />
+    $|          <select class="select-input" id="product-filter" aria-label="产品筛选">
+    $|            <option value="all">全部产品</option>
+    $|          </select>
     $|        </div>
     $|        <div class="node-list" id="milestone-list"></div>
     $|      </div>
@@ -572,21 +685,24 @@ fn page_head(title : String) -> String {
     $|        </div>
     $|        <div class="filter-bar" role="group" aria-label="Node filters">
     $|          <button class="filter-button active" data-filter="all" type="button">全部</button>
+    $|          <button class="filter-button" data-filter="focus" type="button">焦点</button>
     $|          <button class="filter-button" data-filter="active" type="button">进行中</button>
-    $|          <button class="filter-button" data-filter="todo" type="button">待办</button>
-    $|          <button class="filter-button" data-filter="done" type="button">已完成</button>
+    $|          <button class="filter-button" data-filter="archived" type="button">封档</button>
     $|        </div>
     $|        <div class="toolbar" aria-label="Map controls">
-    $|          <button class="icon-button" id="zoom-in" type="button" title="放大" aria-label="放大">
+    $|          <button class="icon-button" id="reset-layout" type="button">
+    $|            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg>
+    $|          </button>
+    $|          <button class="icon-button" id="zoom-in" type="button" aria-label="放大">
     $|            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
     $|          </button>
-    $|          <button class="icon-button" id="zoom-out" type="button" title="缩小" aria-label="缩小">
+    $|          <button class="icon-button" id="zoom-out" type="button" aria-label="缩小">
     $|            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14"/></svg>
     $|          </button>
-    $|          <button class="icon-button" id="fit-view" type="button" title="适配视图" aria-label="适配视图">
+    $|          <button class="icon-button" id="fit-view" type="button" aria-label="适配视图">
     $|            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
     $|          </button>
-    $|          <button class="icon-button" id="clear-focus" type="button" title="清除聚焦" aria-label="清除聚焦">
+    $|          <button class="icon-button" id="clear-focus" type="button" aria-label="清除聚焦">
     $|            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
     $|          </button>
     $|        </div>
@@ -595,15 +711,9 @@ fn page_head(title : String) -> String {
     $|        <canvas id="map-canvas"></canvas>
     $|      </div>
     $|      <div class="legend">
+    $|        <div class="legend-group" id="legend-closure"></div>
     $|        <div class="legend-group">
-    $|          <span class="legend-chip"><i class="legend-shape hex" style="--legend-color:#38bdf8;--legend-glow:rgba(56,189,248,.5)"></i>目标</span>
-    $|          <span class="legend-chip"><i class="legend-shape circle" style="--legend-color:#86efac;--legend-glow:rgba(134,239,172,.5)"></i>任务</span>
-    $|        </div>
-    $|        <div class="legend-group">
-    $|          <span class="legend-chip"><i class="legend-shape circle" style="--legend-color:#94a3b8"></i>待办</span>
-    $|          <span class="legend-chip"><i class="legend-shape circle" style="--legend-color:#38bdf8;--legend-glow:rgba(56,189,248,.45)"></i>进行中</span>
-    $|          <span class="legend-chip"><i class="legend-shape circle" style="--legend-color:#fb7185;--legend-glow:rgba(251,113,133,.45)"></i>阻塞</span>
-    $|          <span class="legend-chip"><i class="legend-shape circle" style="--legend-color:#34d399;--legend-glow:rgba(52,211,153,.45)"></i>完成</span>
+    $|          <span class="legend-chip"><i class="legend-shape" style="width:28px;height:2px;--legend-color:#fcd34d;--legend-glow:rgba(252,211,77,.55)"></i>目标依赖</span>
     $|        </div>
     $|      </div>
     $|    </section>
@@ -645,6 +755,31 @@ let page_tail : String =
   #|    blocked: { label: '阻塞', color: '#fb7185', border: '#fda4af', glow: 'rgba(251,113,133,0.58)', opacity: 1 },
   #|    done: { label: '完成', color: '#34d399', border: '#86efac', glow: 'rgba(52,211,153,0.5)', opacity: 1 },
   #|  };
+  #|  const DEFAULT_CONFIG = {
+  #|    products: [{ key: 'default', label: { en: 'Default', zh: '默认' } }],
+  #|    closure_tiers: [
+  #|      { key: 'seed', label: { en: 'Proposed', zh: '提出' }, color: '#94a3b8', trigger: { en: 'issue / discussion created', zh: 'issue / discussion 已创建' } },
+  #|      { key: 'obligation', label: { en: 'Claimed', zh: '接手' }, color: '#38bdf8', trigger: { en: 'assignee set', zh: 'assignee 字段非空' } },
+  #|      { key: 'scoped', label: { en: 'Designed', zh: '设计完' }, color: '#a78bfa', trigger: { en: 'RFC / ADR / design doc merged', zh: 'RFC / ADR / 设计 doc merged' } },
+  #|      { key: 'public', label: { en: 'Committed', zh: '已承诺' }, color: '#fdba74', trigger: { en: 'external commitment published', zh: '对外承诺已发' } },
+  #|      { key: 'bridged', label: { en: 'Integrated', zh: '已集成' }, color: '#2dd4bf', trigger: { en: 'up/downstream closed + smoke passed', zh: '上下游 closed + smoke 通过' } },
+  #|      { key: 'mature', label: { en: 'Operating', zh: '运行中' }, color: '#34d399', trigger: { en: '30 days incident-free', zh: '30 天无 incident' } },
+  #|    ],
+  #|    formal_levels: [
+  #|      { key: 'none', label: { en: 'No automation', zh: '无自动化' } },
+  #|      { key: 'sop', label: { en: 'Has SOP / runbook', zh: '有 SOP / runbook' } },
+  #|      { key: 'checked', label: { en: 'Has CI / tests', zh: '有自动化测试 / CI' } },
+  #|      { key: 'audited', label: { en: 'Has monitoring + SLO', zh: '有监控 / 告警 / SLO' } },
+  #|    ],
+  #|    focus_quarter: { label: { en: 'Current focus', zh: '当前焦点' }, border_color: '#f43f5e', border_width: 3 },
+  #|    archive_rule: { after_mature_days: 30, opacity: 0.35 },
+  #|    ui: { title: { en: 'Vibe Region Map', zh: 'Vibe Region Map' }, default_lang: 'zh' },
+  #|  };
+  #|  const CONFIG = normalizeConfig(dag.config || {});
+  #|  const LANG = CONFIG.ui?.default_lang || 'zh';
+  #|  const CLOSURE_BY_KEY = byKey(CONFIG.closure_tiers);
+  #|  const FORMAL_BY_KEY = byKey(CONFIG.formal_levels);
+  #|  const PRODUCT_BY_KEY = byKey(CONFIG.products);
   #|
   #|  const state = {
   #|    nodes: [],
@@ -655,10 +790,93 @@ let page_tail : String =
   #|    selectedId: null,
   #|    hoveredId: null,
   #|    filter: 'all',
+  #|    productFilter: 'all',
+  #|    search: '',
   #|    focusIds: null,
   #|    transform: { x: 0, y: 0, scale: 1 },
   #|    pointer: { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null },
   #|  };
+  #|
+  #|  const SHORTCUTS = {
+  #|    resetLayout: {
+  #|      id: 'map.reset-layout',
+  #|      label: 'R',
+  #|      actionLabel: '刷新布局',
+  #|      keys: ['r'],
+  #|    },
+  #|  };
+  #|
+  #|  function shortcutHint(shortcut) {
+  #|    return shortcut.keys.map(key => key.toUpperCase()).join('/');
+  #|  }
+  #|
+  #|  function normalizeConfig(raw) {
+  #|    return {
+  #|      ...DEFAULT_CONFIG,
+  #|      ...raw,
+  #|      products: Array.isArray(raw.products) && raw.products.length ? raw.products : DEFAULT_CONFIG.products,
+  #|      closure_tiers: Array.isArray(raw.closure_tiers) && raw.closure_tiers.length ? raw.closure_tiers : DEFAULT_CONFIG.closure_tiers,
+  #|      formal_levels: Array.isArray(raw.formal_levels) && raw.formal_levels.length ? raw.formal_levels : DEFAULT_CONFIG.formal_levels,
+  #|      focus_quarter: { ...DEFAULT_CONFIG.focus_quarter, ...(raw.focus_quarter || {}) },
+  #|      archive_rule: { ...DEFAULT_CONFIG.archive_rule, ...(raw.archive_rule || {}) },
+  #|      ui: { ...DEFAULT_CONFIG.ui, ...(raw.ui || {}) },
+  #|    };
+  #|  }
+  #|
+  #|  function byKey(items) {
+  #|    const out = new Map();
+  #|    for (const item of items || []) out.set(item.key, item);
+  #|    return out;
+  #|  }
+  #|
+  #|  function localized(value, fallback) {
+  #|    if (!value) return fallback || '';
+  #|    if (typeof value === 'string') return value;
+  #|    return value[LANG] || value.zh || value.en || fallback || '';
+  #|  }
+  #|
+  #|  function hexToRgba(hex, alpha) {
+  #|    const raw = String(hex || '').replace('#', '');
+  #|    if (raw.length !== 6) return 'rgba(148,163,184,' + alpha + ')';
+  #|    const n = parseInt(raw, 16);
+  #|    const r = (n >> 16) & 255;
+  #|    const g = (n >> 8) & 255;
+  #|    const b = n & 255;
+  #|    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  #|  }
+  #|
+  #|  function closureFromStatus(status) {
+  #|    if (status === 'done') return 'bridged';
+  #|    if (status === 'in-progress') return 'obligation';
+  #|    if (status === 'blocked') return 'scoped';
+  #|    return 'seed';
+  #|  }
+  #|
+  #|  function closureMeta(key) {
+  #|    const tier = CLOSURE_BY_KEY.get(key) || CONFIG.closure_tiers[0] || DEFAULT_CONFIG.closure_tiers[0];
+  #|    const color = tier.color || '#94a3b8';
+  #|    return {
+  #|      key: tier.key || key || 'seed',
+  #|      label: localized(tier.label, tier.key || key || 'seed'),
+  #|      trigger: localized(tier.trigger, ''),
+  #|      color,
+  #|      border: color,
+  #|      glow: hexToRgba(color, 0.48),
+  #|    };
+  #|  }
+  #|
+  #|  function formalMeta(key) {
+  #|    const formal = FORMAL_BY_KEY.get(key) || CONFIG.formal_levels[0] || DEFAULT_CONFIG.formal_levels[0];
+  #|    return {
+  #|      key: formal.key || key || 'none',
+  #|      label: localized(formal.label, formal.key || key || 'none'),
+  #|    };
+  #|  }
+  #|
+  #|  function productLabel(key) {
+  #|    const product = PRODUCT_BY_KEY.get(key);
+  #|    return product ? localized(product.label, key) : (key || 'default');
+  #|  }
   #|
   #|  function statusMeta(status) {
   #|    return STATUS_META[status] || STATUS_META.todo;
@@ -679,16 +897,21 @@ let page_tail : String =
   #|    const milestones = input.goals || input.milestones || [];
   #|    const issues = input.tasks || input.issues || [];
   #|    const milestoneState = new Map();
+  #|    const taskOwner = new Map();
+  #|    const tasksByGoal = new Map();
   #|
   #|    for (const m of milestones) {
   #|      milestoneState.set(m.id, { done: 0, total: 0, worst: 'done' });
+  #|      tasksByGoal.set(m.id, []);
   #|    }
   #|
   #|    for (const issue of issues) {
   #|      const status = issue.status || 'todo';
   #|      const owner = issue.goal || issue.milestone;
+  #|      taskOwner.set(issue.id, owner);
   #|      const bucket = milestoneState.get(owner);
   #|      if (!bucket) continue;
+  #|      tasksByGoal.get(owner).push(issue);
   #|      bucket.total += 1;
   #|      if (status === 'done') bucket.done += 1;
   #|      if ((STATUS_RANK[status] ?? 1) > (STATUS_RANK[bucket.worst] ?? 1)) {
@@ -708,18 +931,50 @@ let page_tail : String =
   #|    for (const m of milestones) {
   #|      const bucket = milestoneState.get(m.id) || { done: 0, total: 0, worst: 'todo' };
   #|      const pct = bucket.total > 0 ? Math.round((bucket.done / bucket.total) * 100) : 0;
+  #|      const closureKey = m.closure || closureFromStatus(bucket.worst);
+  #|      const formalKey = m.formal || ((m.tests || []).length || bucket.done > 0 ? 'checked' : 'none');
+  #|      const issueCount = Number.isFinite(m.issue_count) ? m.issue_count : bucket.total;
+  #|      const closure = closureMeta(closureKey);
+  #|      const formal = formalMeta(formalKey);
   #|      const node = {
   #|        id: m.id,
   #|        title: m.title || m.id,
   #|        description: m.description || '',
   #|        kind: 'milestone',
   #|        status: bucket.worst,
+  #|        closure: closure.key,
+  #|        closureLabel: closure.label,
+  #|        closureTrigger: closure.trigger,
+  #|        formal: formal.key,
+  #|        formalLabel: formal.label,
+  #|        product: m.product || 'default',
+  #|        productLabel: productLabel(m.product || 'default'),
+  #|        milestone: m.milestone || '',
+  #|        owner: m.owner || '',
+  #|        issueCount,
+  #|        focus: m.focus === true,
+  #|        archived: m.archived === true,
+  #|        promotedAt: m.promoted_at || {},
+  #|        ghQuery: m.gh_query || '',
+  #|        color: closure.color,
+  #|        border: closure.border,
+  #|        glow: closure.glow,
   #|        deps: m.deps || [],
   #|        docs: m.docs || [],
   #|        tests: m.tests || [],
+  #|        tasks: (tasksByGoal.get(m.id) || []).map(task => ({
+  #|          id: task.id,
+  #|          title: task.title || task.id,
+  #|          status: task.status || 'todo',
+  #|          deps: task.deps || [],
+  #|          notes: task.notes || '',
+  #|          tests: task.tests || [],
+  #|          docs: task.docs || [],
+  #|          regressionTestable: !!task.regression_testable,
+  #|        })),
   #|        regressionTestable: !!m.regression_testable,
   #|        progress: { done: bucket.done, total: bucket.total, pct },
-  #|        radius: 46,
+  #|        radius: Math.max(40, Math.min(70, 40 + Math.sqrt(Math.max(1, issueCount)) * 5)),
   #|        x: 0,
   #|        y: 0,
   #|        vx: 0,
@@ -729,164 +984,112 @@ let page_tail : String =
   #|      nodeById.set(node.id, node);
   #|    }
   #|
-  #|    for (const issue of issues) {
-  #|      const node = {
-  #|        id: issue.id,
-  #|        title: issue.title || issue.id,
-  #|        description: issue.notes || '',
-  #|        kind: 'issue',
-  #|        status: issue.status || 'todo',
-  #|        milestone: issue.goal || issue.milestone,
-  #|        deps: issue.deps || [],
-  #|        docs: issue.docs || [],
-  #|        tests: issue.tests || [],
-  #|        regressionTestable: !!issue.regression_testable,
-  #|        progress: null,
-  #|        radius: 31,
-  #|        x: 0,
-  #|        y: 0,
-  #|        vx: 0,
-  #|        vy: 0,
-  #|      };
-  #|      nodes.push(node);
-  #|      nodeById.set(node.id, node);
+  #|    const edgeIds = new Set();
+  #|    function addGoalEdge(source, target, derived) {
+  #|      if (!source || !target || source === target) return;
+  #|      if (!nodeById.has(source) || !nodeById.has(target)) return;
+  #|      const id = source + '->' + target;
+  #|      if (edgeIds.has(id)) return;
+  #|      edgeIds.add(id);
+  #|      edges.push({ source, target, kind: 'dep', derived });
   #|    }
   #|
   #|    for (const m of milestones) {
   #|      for (const dep of (m.deps || [])) {
-  #|        if (nodeById.has(dep) && nodeById.has(m.id)) edges.push({ source: dep, target: m.id, kind: 'dep' });
+  #|        addGoalEdge(dep, m.id, false);
   #|      }
   #|    }
   #|
   #|    for (const issue of issues) {
-  #|      for (const dep of (issue.deps || [])) {
-  #|        if (nodeById.has(dep) && nodeById.has(issue.id)) edges.push({ source: dep, target: issue.id, kind: 'dep' });
-  #|      }
   #|      const owner = issue.goal || issue.milestone;
-  #|      if (nodeById.has(owner)) edges.push({ source: owner, target: issue.id, kind: 'member' });
+  #|      for (const dep of (issue.deps || [])) {
+  #|        const depOwner = taskOwner.get(dep);
+  #|        if (depOwner && depOwner !== owner) addGoalEdge(depOwner, owner, true);
+  #|      }
   #|    }
   #|
   #|    return { nodes, edges, nodeById };
   #|  }
   #|
   #|  function seedLayout() {
-  #|    const milestones = state.nodes.filter(n => n.kind === 'milestone');
-  #|    const centerRadius = Math.max(170, milestones.length * 48);
-  #|    milestones.forEach((node, index) => {
-  #|      const angle = milestones.length <= 1 ? 0 : (-Math.PI / 2) + (index / milestones.length) * Math.PI * 2;
-  #|      node.x = milestones.length <= 1 ? 0 : Math.cos(angle) * centerRadius;
-  #|      node.y = milestones.length <= 1 ? 0 : Math.sin(angle) * centerRadius;
-  #|      node.seedX = node.x;
-  #|      node.seedY = node.y;
-  #|    });
+  #|    const goals = [...state.nodes];
+  #|    const levels = goalLevels(goals);
+  #|    const byLevel = new Map();
+  #|    const levelGap = 230;
+  #|    const rowGap = 128;
   #|
-  #|    for (const milestone of milestones) {
-  #|      const children = state.nodes.filter(n => n.kind === 'issue' && n.milestone === milestone.id);
-  #|      const radius = Math.max(92, 46 + children.length * 8);
-  #|      children.forEach((node, index) => {
-  #|        const angle = (-Math.PI / 2) + (index / Math.max(1, children.length)) * Math.PI * 2;
-  #|        node.x = milestone.x + Math.cos(angle) * radius;
-  #|        node.y = milestone.y + Math.sin(angle) * radius;
-  #|        node.seedX = node.x;
-  #|        node.seedY = node.y;
+  #|    for (const goal of goals) {
+  #|      const level = levels.get(goal.id) || 0;
+  #|      if (!byLevel.has(level)) byLevel.set(level, []);
+  #|      byLevel.get(level).push(goal);
+  #|    }
+  #|
+  #|    for (const list of byLevel.values()) {
+  #|      list.sort((a, b) => {
+  #|        const score = (b.progress?.pct || 0) - (a.progress?.pct || 0);
+  #|        return score || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
   #|      });
   #|    }
   #|
-  #|    settleLayout(260);
+  #|    for (const [level, list] of byLevel.entries()) {
+  #|      list.forEach((goal, index) => {
+  #|        goal.x = level * levelGap;
+  #|        goal.y = (index - (list.length - 1) / 2) * rowGap;
+  #|      });
+  #|    }
+  #|
+  #|    centerGraph();
   #|  }
   #|
-  #|  function settleLayout(iterations) {
-  #|    const nodes = state.nodes;
-  #|    const edges = state.edges;
-  #|    if (nodes.length === 0) return;
+  #|  function goalLevels(goals) {
+  #|    const memo = new Map();
+  #|    const visiting = new Set();
   #|
-  #|    for (let step = 0; step < iterations; step += 1) {
-  #|      const alpha = 1 - step / iterations;
-  #|
-  #|      for (let i = 0; i < nodes.length; i += 1) {
-  #|        const a = nodes[i];
-  #|        for (let j = i + 1; j < nodes.length; j += 1) {
-  #|          const b = nodes[j];
-  #|          let dx = b.x - a.x;
-  #|          let dy = b.y - a.y;
-  #|          let dist2 = dx * dx + dy * dy;
-  #|          if (dist2 < 0.01) {
-  #|            dx = (i + 1) * 0.17;
-  #|            dy = (j + 1) * 0.13;
-  #|            dist2 = dx * dx + dy * dy;
-  #|          }
-  #|          const minDist = a.radius + b.radius + 34;
-  #|          const dist = Math.sqrt(dist2);
-  #|          const force = Math.min(5.5, (minDist * minDist) / dist2) * 0.14 * alpha;
-  #|          const fx = (dx / dist) * force;
-  #|          const fy = (dy / dist) * force;
-  #|          a.vx -= fx;
-  #|          a.vy -= fy;
-  #|          b.vx += fx;
-  #|          b.vy += fy;
-  #|        }
+  #|    function levelFor(goal) {
+  #|      if (memo.has(goal.id)) return memo.get(goal.id);
+  #|      if (visiting.has(goal.id)) return 0;
+  #|      visiting.add(goal.id);
+  #|      let level = 0;
+  #|      const incoming = state.edges.filter(edge => edge.target === goal.id);
+  #|      for (const edge of incoming) {
+  #|        const depGoal = state.nodeById.get(edge.source);
+  #|        if (depGoal) level = Math.max(level, levelFor(depGoal) + 1);
   #|      }
+  #|      visiting.delete(goal.id);
+  #|      memo.set(goal.id, level);
+  #|      return level;
+  #|    }
   #|
-  #|      for (const edge of edges) {
-  #|        const source = state.nodeById.get(edge.source);
-  #|        const target = state.nodeById.get(edge.target);
-  #|        if (!source || !target) continue;
-  #|        const desired = edge.kind === 'member' ? 118 : 210;
-  #|        const strength = edge.kind === 'member' ? 0.018 : 0.026;
-  #|        const dx = target.x - source.x;
-  #|        const dy = target.y - source.y;
-  #|        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-  #|        const force = (dist - desired) * strength * alpha;
-  #|        const fx = (dx / dist) * force;
-  #|        const fy = (dy / dist) * force;
-  #|        source.vx += fx;
-  #|        source.vy += fy;
-  #|        target.vx -= fx;
-  #|        target.vy -= fy;
-  #|      }
+  #|    goals.forEach(levelFor);
+  #|    return memo;
+  #|  }
   #|
-  #|      for (const node of nodes) {
-  #|        if (node.kind === 'issue') {
-  #|          const milestone = state.nodeById.get(node.milestone);
-  #|          if (milestone) {
-  #|            node.vx += (milestone.x - node.x) * 0.0025 * alpha;
-  #|            node.vy += (milestone.y - node.y) * 0.0025 * alpha;
-  #|          }
-  #|        } else {
-  #|          node.vx += ((node.seedX || 0) - node.x) * 0.004 * alpha;
-  #|          node.vy += ((node.seedY || 0) - node.y) * 0.004 * alpha;
-  #|        }
-  #|        node.vx += (0 - node.x) * 0.0008 * alpha;
-  #|        node.vy += (0 - node.y) * 0.0008 * alpha;
-  #|        node.vx *= 0.78;
-  #|        node.vy *= 0.78;
-  #|        node.x += node.vx;
-  #|        node.y += node.vy;
-  #|      }
+  #|  function centerGraph() {
+  #|    const bounds = boundsFor(state.nodes);
+  #|    if (!bounds) return;
+  #|    const centerX = bounds.minX + bounds.width / 2;
+  #|    const centerY = bounds.minY + bounds.height / 2;
+  #|    for (const node of state.nodes) {
+  #|      node.x -= centerX;
+  #|      node.y -= centerY;
   #|    }
   #|  }
   #|
   #|  function applyFilter() {
   #|    const activeStatuses = new Set(['in-progress', 'blocked']);
   #|    let visible = state.nodes.filter(node => {
-  #|      if (state.filter === 'all') return true;
-  #|      if (state.filter === 'active') return activeStatuses.has(node.status);
-  #|      return node.status === state.filter;
+  #|      if (state.filter === 'focus' && !node.focus) return false;
+  #|      if (state.filter === 'archived' && !node.archived) return false;
+  #|      if (state.filter === 'active' && !activeStatuses.has(node.status)) return false;
+  #|      if (state.productFilter !== 'all' && node.product !== state.productFilter) return false;
+  #|      if (state.search) {
+  #|        const haystack = [node.id, node.title, node.owner, node.milestone, node.productLabel, node.closureLabel].join(' ').toLowerCase();
+  #|        if (!haystack.includes(state.search)) return false;
+  #|      }
+  #|      return true;
   #|    });
   #|
   #|    const visibleIds = new Set(visible.map(n => n.id));
-  #|    if (state.filter !== 'all') {
-  #|      for (const node of [...visible]) {
-  #|        if (node.kind === 'issue' && node.milestone && !visibleIds.has(node.milestone)) {
-  #|          const milestone = state.nodeById.get(node.milestone);
-  #|          if (milestone) {
-  #|            visible.push(milestone);
-  #|            visibleIds.add(milestone.id);
-  #|          }
-  #|        }
-  #|      }
-  #|    }
-  #|
   #|    state.visibleNodes = visible;
   #|    state.visibleEdges = state.edges.filter(edge => visibleIds.has(edge.source) && visibleIds.has(edge.target));
   #|  }
@@ -950,7 +1153,8 @@ let page_tail : String =
   #|    if (!bounds) return;
   #|    const width = canvas.clientWidth || 800;
   #|    const height = canvas.clientHeight || 600;
-  #|    const scale = Math.max(0.2, Math.min(1.8, Math.min(width / bounds.width, height / bounds.height) * 0.88));
+  #|    const fitScale = Math.min(width / bounds.width, height / bounds.height) * 0.92;
+  #|    const scale = Math.max(0.58, Math.min(1.8, fitScale));
   #|    const target = {
   #|      x: width / 2 - (bounds.minX + bounds.width / 2) * scale,
   #|      y: height / 2 - (bounds.minY + bounds.height / 2) * scale,
@@ -1010,16 +1214,9 @@ let page_tail : String =
   #|    }
   #|  }
   #|
-  #|  function drawHexPath(x, y, r) {
+  #|  function drawNodePath(node, r) {
   #|    ctx.beginPath();
-  #|    for (let i = 0; i < 6; i += 1) {
-  #|      const angle = Math.PI / 6 + i * Math.PI / 3;
-  #|      const px = x + Math.cos(angle) * r;
-  #|      const py = y + Math.sin(angle) * r;
-  #|      if (i === 0) ctx.moveTo(px, py);
-  #|      else ctx.lineTo(px, py);
-  #|    }
-  #|    ctx.closePath();
+  #|    ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
   #|  }
   #|
   #|  function drawArrow(x, y, angle, size, color) {
@@ -1036,39 +1233,40 @@ let page_tail : String =
   #|    const source = state.nodeById.get(edge.source);
   #|    const target = state.nodeById.get(edge.target);
   #|    if (!source || !target) return;
-  #|    const dx = target.x - source.x;
-  #|    const dy = target.y - source.y;
-  #|    const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-  #|    const nx = dx / dist;
-  #|    const ny = dy / dist;
-  #|    const startX = source.x + nx * (source.radius + 3);
-  #|    const startY = source.y + ny * (source.radius + 3);
-  #|    const endX = target.x - nx * (target.radius + 12);
-  #|    const endY = target.y - ny * (target.radius + 12);
   #|    const isFocused = state.focusIds && state.focusIds.has(source.id) && state.focusIds.has(target.id);
   #|    const isDimmed = state.focusIds && !isFocused;
+  #|    const forward = target.x >= source.x;
+  #|    const sourceSide = forward ? 1 : -1;
+  #|    const targetSide = forward ? -1 : 1;
+  #|    const startX = source.x + sourceSide * (source.radius + 5);
+  #|    const startY = source.y;
+  #|    const endX = target.x + targetSide * (target.radius + 13);
+  #|    const endY = target.y;
+  #|    const midX = forward
+  #|      ? Math.max(startX + 42, (startX + endX) / 2)
+  #|      : Math.min(startX - 42, (startX + endX) / 2);
+  #|    const control1X = midX;
+  #|    const control1Y = startY;
+  #|    const control2X = midX;
+  #|    const control2Y = endY;
+  #|    const color = edge.derived ? '#bae6fd' : '#fcd34d';
+  #|    const glow = edge.derived ? 'rgba(186,230,253,0.58)' : 'rgba(252,211,77,0.75)';
   #|
   #|    ctx.save();
-  #|    ctx.globalAlpha = edge.kind === 'member' ? (isDimmed ? 0.04 : 0.18) : (isDimmed ? 0.08 : 0.86);
-  #|    ctx.lineWidth = edge.kind === 'member' ? 1 : (isFocused ? 3.2 : 2.1);
-  #|    ctx.strokeStyle = edge.kind === 'member' ? 'rgba(148, 163, 184, 0.48)' : (isFocused ? '#fcd34d' : '#7dd3fc');
-  #|    ctx.shadowColor = edge.kind === 'member' ? 'transparent' : (isFocused ? 'rgba(252,211,77,0.65)' : 'rgba(125,211,252,0.35)');
-  #|    ctx.shadowBlur = edge.kind === 'member' ? 0 : (isFocused ? 16 : 9);
-  #|    if (edge.kind === 'member') ctx.setLineDash([4, 7]);
-  #|
-  #|    const curve = edge.kind === 'member' ? 0 : Math.sin((source.x + target.y) * 0.003) * 26;
-  #|    const mx = (startX + endX) / 2 - ny * curve;
-  #|    const my = (startY + endY) / 2 + nx * curve;
+  #|    ctx.globalAlpha = isDimmed ? 0.12 : 0.95;
+  #|    ctx.lineWidth = isFocused ? 4 : 2.8;
+  #|    ctx.strokeStyle = isFocused ? '#fcd34d' : color;
+  #|    ctx.shadowColor = isFocused ? 'rgba(252,211,77,0.9)' : glow;
+  #|    ctx.shadowBlur = isFocused ? 20 : 14;
   #|    ctx.beginPath();
   #|    ctx.moveTo(startX, startY);
-  #|    ctx.quadraticCurveTo(mx, my, endX, endY);
+  #|    ctx.bezierCurveTo(control1X, control1Y, control2X, control2Y, endX, endY);
   #|    ctx.stroke();
   #|    ctx.setLineDash([]);
   #|
-  #|    if (edge.kind === 'dep') {
-  #|      const pulse = isFocused ? 1 + Math.sin(time / 190) * 0.12 : 1;
-  #|      drawArrow(endX, endY, Math.atan2(endY - my, endX - mx), 10 * pulse, isFocused ? '#fcd34d' : '#7dd3fc');
-  #|    }
+  #|    const pulse = isFocused ? 1 + Math.sin(time / 190) * 0.12 : 1;
+  #|    const arrowSize = 11 * pulse;
+  #|    drawArrow(endX, endY, Math.atan2(endY - control2Y, endX - control2X), arrowSize, isFocused ? '#fcd34d' : color);
   #|    ctx.restore();
   #|  }
   #|
@@ -1096,11 +1294,12 @@ let page_tail : String =
   #|  }
   #|
   #|  function drawNode(node, time) {
-  #|    const meta = statusMeta(node.status);
+  #|    const meta = { color: node.color, border: node.border, glow: node.glow, opacity: 1 };
   #|    const selected = node.id === state.selectedId;
   #|    const hovered = node.id === state.hoveredId;
   #|    const focused = state.focusIds ? state.focusIds.has(node.id) : true;
-  #|    const dim = state.focusIds && !focused ? 0.16 : meta.opacity;
+  #|    const archiveOpacity = node.archived ? (CONFIG.archive_rule?.opacity ?? 0.35) : 1;
+  #|    const dim = state.focusIds && !focused ? 0.16 : archiveOpacity;
   #|    const pulse = (node.status === 'in-progress' || selected) ? (1 + Math.sin(time / 260) * 0.055) : 1;
   #|    const radius = node.radius * pulse;
   #|
@@ -1114,25 +1313,19 @@ let page_tail : String =
   #|    gradient.addColorStop(0.13, meta.border);
   #|    gradient.addColorStop(1, meta.color);
   #|
-  #|    if (node.kind === 'milestone') {
-  #|      drawHexPath(node.x, node.y, radius);
-  #|    } else {
-  #|      ctx.beginPath();
-  #|      ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-  #|    }
+  #|    drawNodePath(node, radius);
   #|    ctx.fillStyle = gradient;
   #|    ctx.fill();
   #|    ctx.shadowBlur = 0;
-  #|    ctx.strokeStyle = selected ? '#fcd34d' : meta.border;
-  #|    ctx.lineWidth = selected ? 3.2 : 2;
+  #|    ctx.strokeStyle = node.focus ? (CONFIG.focus_quarter?.border_color || '#f43f5e') : (selected ? '#fcd34d' : meta.border);
+  #|    ctx.lineWidth = node.focus ? (CONFIG.focus_quarter?.border_width || 3) : (selected ? 3.2 : 2);
   #|    ctx.stroke();
   #|
   #|    if (selected || hovered) {
   #|      ctx.globalAlpha = selected ? 0.88 : 0.5;
   #|      ctx.strokeStyle = selected ? '#fcd34d' : 'rgba(248,250,252,0.7)';
   #|      ctx.lineWidth = selected ? 2.4 : 1.5;
-  #|      ctx.beginPath();
-  #|      ctx.arc(node.x, node.y, radius + (selected ? 9 : 6), 0, Math.PI * 2);
+  #|      drawNodePath(node, radius + (selected ? 9 : 6));
   #|      ctx.stroke();
   #|    }
   #|
@@ -1155,12 +1348,10 @@ let page_tail : String =
   #|    ctx.fillStyle = '#06101a';
   #|    ctx.textAlign = 'center';
   #|    ctx.textBaseline = 'middle';
-  #|    ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
-  #|    ctx.fillText(node.kind === 'milestone' ? 'GOAL' : meta.label, node.x, node.y - 9);
   #|    const lines = roundedTextLines(node.title || node.id, node.kind === 'milestone' ? 11 : 10);
-  #|    ctx.font = '650 10px Inter, system-ui, sans-serif';
-  #|    ctx.fillText(lines[0], node.x, node.y + 6);
-  #|    if (lines[1]) ctx.fillText(lines[1], node.x, node.y + 18);
+  #|    ctx.font = '700 11px Inter, system-ui, sans-serif';
+  #|    ctx.fillText(lines[0], node.x, lines[1] ? node.y - 5 : node.y + 1);
+  #|    if (lines[1]) ctx.fillText(lines[1], node.x, node.y + 10);
   #|    ctx.restore();
   #|  }
   #|
@@ -1204,36 +1395,45 @@ let page_tail : String =
   #|    const milestones = dagGoals.length;
   #|    const issues = dagTasks.length;
   #|    const depCount = state.edges.filter(e => e.kind === 'dep').length;
+  #|    const edgeCount = state.edges.length;
   #|    const done = dagTasks.filter(i => i.status === 'done').length;
   #|    const pct = issues > 0 ? Math.round((done / issues) * 100) : 0;
-  #|    document.getElementById('title').textContent = dag.project?.name || 'vibe-map';
+  #|    document.getElementById('title').textContent = dag.project?.name || localized(CONFIG.ui?.title, 'vibe-map');
   #|    document.getElementById('desc').textContent = dag.project?.description || '';
   #|    document.getElementById('metric-progress').textContent = pct + '%';
   #|    document.getElementById('metric-milestones').textContent = String(milestones);
   #|    document.getElementById('metric-issues').textContent = String(issues);
-  #|    document.getElementById('metric-deps').textContent = String(depCount);
+  #|    document.getElementById('metric-deps').textContent = String(edgeCount);
   #|    document.getElementById('overall-progress-label').textContent = done + '/' + issues;
   #|    document.getElementById('overall-progress-bar').style.width = pct + '%';
-  #|    document.getElementById('overview-subtitle').textContent = milestones + ' 个目标，' + issues + ' 个任务';
-  #|    document.getElementById('canvas-subtitle').textContent = 'n=' + state.nodes.length + ' e=' + depCount;
+  #|    const closureSummary = CONFIG.closure_tiers
+  #|      .map(tier => {
+  #|        const n = state.nodes.filter(node => node.closure === tier.key).length;
+  #|        return n ? localized(tier.label, tier.key) + ' ' + n : '';
+  #|      })
+  #|      .filter(Boolean)
+  #|      .join(' / ');
+  #|    document.getElementById('overview-subtitle').textContent = milestones + ' 个目标，' + issues + ' 个任务' + (closureSummary ? ' · ' + closureSummary : '');
+  #|    document.getElementById('canvas-subtitle').textContent = 'n=' + state.nodes.length + ' e=' + edgeCount + ' dep=' + depCount;
   #|  }
   #|
   #|  function renderMilestoneList() {
   #|    const list = document.getElementById('milestone-list');
-  #|    const milestones = state.nodes.filter(n => n.kind === 'milestone');
+  #|    const milestones = state.visibleNodes.filter(n => n.kind === 'milestone');
   #|    if (milestones.length === 0) {
-  #|      list.innerHTML = '<div class="detail-empty">暂无目标</div>';
+  #|      list.innerHTML = '<div class="detail-empty">无匹配目标</div>';
   #|      return;
   #|    }
   #|    list.innerHTML = milestones.map(node => {
-  #|      const meta = statusMeta(node.status);
   #|      const progress = node.progress ? node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%' : '';
   #|      return `
   #|        <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}">
   #|          <div class="node-row-title">${escapeHtml(node.title)}</div>
   #|          <div class="node-row-meta">
-  #|            <i class="status-dot" style="--dot:${meta.color};--dot-glow:${meta.glow}"></i>
-  #|            <span>${escapeHtml(meta.label)}</span>
+  #|            <i class="status-dot" style="--dot:${node.color};--dot-glow:${node.glow}"></i>
+  #|            <span>${escapeHtml(node.closureLabel)}</span>
+  #|            <span>${escapeHtml(node.productLabel)}</span>
+  #|            ${node.owner ? '<span>@' + escapeHtml(node.owner) + '</span>' : ''}
   #|            <span>${escapeHtml(progress)}</span>
   #|          </div>
   #|        </button>`;
@@ -1241,6 +1441,27 @@ let page_tail : String =
   #|    list.querySelectorAll('[data-node-id]').forEach(button => {
   #|      button.addEventListener('click', () => selectNode(button.getAttribute('data-node-id'), true));
   #|    });
+  #|  }
+  #|
+  #|  function renderProductFilter() {
+  #|    const select = document.getElementById('product-filter');
+  #|    const used = new Set(state.nodes.map(node => node.product));
+  #|    const options = ['<option value="all">全部产品</option>'];
+  #|    for (const product of CONFIG.products) {
+  #|      if (used.has(product.key)) {
+  #|        options.push('<option value="' + escapeHtml(product.key) + '">' + escapeHtml(localized(product.label, product.key)) + '</option>');
+  #|      }
+  #|    }
+  #|    select.innerHTML = options.join('');
+  #|    select.value = state.productFilter;
+  #|  }
+  #|
+  #|  function renderLegend() {
+  #|    const closure = document.getElementById('legend-closure');
+  #|    closure.innerHTML = CONFIG.closure_tiers.map(tier => {
+  #|      const color = tier.color || '#94a3b8';
+  #|      return '<span class="legend-chip"><i class="legend-shape circle" style="--legend-color:' + escapeHtml(color) + ';--legend-glow:' + escapeHtml(hexToRgba(color, 0.45)) + '"></i>' + escapeHtml(localized(tier.label, tier.key)) + '</span>';
+  #|    }).join('');
   #|  }
   #|
   #|  function relatedIds(id, direction) {
@@ -1254,6 +1475,45 @@ let page_tail : String =
   #|    return '<div class="chip-list">' + items.map(item => '<span class="chip" title="' + escapeHtml(item) + '">' + escapeHtml(item) + '</span>').join('') + '</div>';
   #|  }
   #|
+  #|  function taskDetails(tasks) {
+  #|    if (!tasks || tasks.length === 0) return '<span>暂无任务</span>';
+  #|    return '<div class="task-detail-list">' + tasks.map(task => {
+  #|      const meta = statusMeta(task.status);
+  #|      const title = task.title || task.id;
+  #|      const notes = task.notes || '未记录';
+  #|      return `
+  #|        <details class="task-detail">
+  #|          <summary>
+  #|            <div class="task-summary-main">
+  #|              <span class="task-title">${escapeHtml(title)}</span>
+  #|              <span class="task-status" style="--task-color:${meta.border}">
+  #|                <i class="status-dot" style="--dot:${meta.color};--dot-glow:${meta.glow}"></i>${escapeHtml(meta.label)}
+  #|              </span>
+  #|            </div>
+  #|            <div class="task-id">${escapeHtml(task.id)}</div>
+  #|          </summary>
+  #|          <div class="task-detail-body">
+  #|            <div class="task-field"><strong>依赖</strong>${chips(task.deps, '无')}</div>
+  #|            <div class="task-field"><strong>Notes</strong><span>${escapeHtml(notes)}</span></div>
+  #|            <div class="task-field"><strong>测试</strong>${chips(task.tests, '未记录')}</div>
+  #|            <div class="task-field"><strong>文档</strong>${chips(task.docs, '未记录')}</div>
+  #|            <div class="task-field"><strong>质量</strong><span>${task.regressionTestable ? 'regression-testable' : '未标记'}</span></div>
+  #|          </div>
+  #|        </details>`;
+  #|    }).join('') + '</div>';
+  #|  }
+  #|
+  #|  function promotedTimeline(node) {
+  #|    const promoted = node.promotedAt || {};
+  #|    const pieces = [];
+  #|    for (const tier of CONFIG.closure_tiers) {
+  #|      if (promoted[tier.key]) {
+  #|        pieces.push(localized(tier.label, tier.key) + ' ' + promoted[tier.key]);
+  #|      }
+  #|    }
+  #|    return pieces;
+  #|  }
+  #|
   #|  function renderDetails() {
   #|    const panel = document.getElementById('details-panel');
   #|    const subtitle = document.getElementById('detail-subtitle');
@@ -1264,14 +1524,12 @@ let page_tail : String =
   #|      return;
   #|    }
   #|
-  #|    const meta = statusMeta(node.status);
+  #|    const status = statusMeta(node.status);
   #|    const inbound = relatedIds(node.id, 'in');
   #|    const outbound = relatedIds(node.id, 'out');
-  #|    const memberIssues = node.kind === 'milestone'
-  #|      ? state.nodes.filter(n => n.kind === 'issue' && n.milestone === node.id).map(n => n.id)
-  #|      : [];
-  #|    const milestone = node.kind === 'issue' ? state.nodeById.get(node.milestone) : null;
-  #|    subtitle.textContent = node.kind === 'milestone' ? '目标' : '任务';
+  #|    const goalTasks = node.tasks || [];
+  #|    const timeline = promotedTimeline(node);
+  #|    subtitle.textContent = node.closureLabel + (node.owner ? ' · @' + node.owner : '');
   #|
   #|    panel.innerHTML = `
   #|      <div class="detail-stack">
@@ -1280,18 +1538,28 @@ let page_tail : String =
   #|          <h3 class="detail-title">${escapeHtml(node.title)}</h3>
   #|        </div>
   #|        <div class="badge-row">
-  #|          <span class="badge">${node.kind === 'milestone' ? '目标' : '任务'}</span>
-  #|          <span class="badge" style="border-color:${meta.border};color:${meta.border}">${escapeHtml(meta.label)}</span>
+  #|          <span class="badge" style="border-color:${node.border};color:${node.border}">${escapeHtml(node.closureLabel)}</span>
+  #|          <span class="badge">${escapeHtml(node.formalLabel)}</span>
+  #|          <span class="badge">${escapeHtml(node.productLabel)}</span>
+  #|          <span class="badge" style="border-color:${status.border};color:${status.border}">${escapeHtml(status.label)}</span>
+  #|          ${node.focus ? '<span class="badge" style="border-color:#f43f5e;color:#fda4af">当前焦点</span>' : ''}
+  #|          ${node.archived ? '<span class="badge">封档</span>' : ''}
   #|          ${node.regressionTestable ? '<span class="badge">regression-testable</span>' : ''}
   #|        </div>
   #|        ${node.description ? '<div class="notes">' + escapeHtml(node.description) + '</div>' : ''}
   #|        ${node.progress ? '<div class="progress-row"><label><span>完成</span><span>' + node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%</span></label><div class="progress"><span style="width:' + node.progress.pct + '%"></span></div></div>' : ''}
-  #|        ${milestone ? '<div class="kv"><strong>所属</strong><span>' + escapeHtml(milestone.title) + '</span></div>' : ''}
+  #|        <div class="kv"><strong>Owner</strong><span>${escapeHtml(node.owner || '未记录')}</span></div>
+  #|        <div class="kv"><strong>产品</strong><span>${escapeHtml(node.productLabel)}</span></div>
+  #|        <div class="kv"><strong>Milestone</strong><span>${escapeHtml(node.milestone || '未记录')}</span></div>
+  #|        <div class="kv"><strong>Issue 数</strong><span>${escapeHtml(String(node.issueCount || 0))}</span></div>
+  #|        <div class="kv"><strong>Trigger</strong><span>${escapeHtml(node.closureTrigger || '未记录')}</span></div>
+  #|        <div class="kv"><strong>推进</strong>${chips(timeline, '未记录')}</div>
   #|        <div class="kv"><strong>依赖</strong>${chips(inbound, '无')}</div>
   #|        <div class="kv"><strong>被依赖</strong>${chips(outbound, '无')}</div>
-  #|        ${memberIssues.length ? '<div class="kv"><strong>任务</strong>' + chips(memberIssues, '无') + '</div>' : ''}
+  #|        <div class="kv kv-wide"><strong>任务详情</strong>${taskDetails(goalTasks)}</div>
   #|        <div class="kv"><strong>测试</strong>${chips(node.tests, '未记录')}</div>
   #|        <div class="kv"><strong>文档</strong>${chips(node.docs, '未记录')}</div>
+  #|        <div class="kv"><strong>GitHub</strong><span>${escapeHtml(node.ghQuery || '未记录')}</span></div>
   #|      </div>`;
   #|  }
   #|
@@ -1304,7 +1572,69 @@ let page_tail : String =
   #|    if (state.selectedId && !state.visibleNodes.some(n => n.id === state.selectedId)) {
   #|      selectNode(null, false);
   #|    }
+  #|    renderStats();
+  #|    renderMilestoneList();
   #|    fitView(true);
+  #|  }
+  #|
+  #|  function updateSearch(value) {
+  #|    state.search = String(value || '').trim().toLowerCase();
+  #|    applyFilter();
+  #|    if (state.selectedId && !state.visibleNodes.some(n => n.id === state.selectedId)) {
+  #|      selectNode(null, false);
+  #|    }
+  #|    renderStats();
+  #|    renderMilestoneList();
+  #|    fitView(true);
+  #|  }
+  #|
+  #|  function updateProductFilter(value) {
+  #|    state.productFilter = value || 'all';
+  #|    applyFilter();
+  #|    if (state.selectedId && !state.visibleNodes.some(n => n.id === state.selectedId)) {
+  #|      selectNode(null, false);
+  #|    }
+  #|    renderStats();
+  #|    renderMilestoneList();
+  #|    fitView(true);
+  #|  }
+  #|
+  #|  function resetLayout() {
+  #|    state.filter = 'all';
+  #|    state.productFilter = 'all';
+  #|    state.search = '';
+  #|    state.selectedId = null;
+  #|    state.hoveredId = null;
+  #|    state.focusIds = null;
+  #|    state.pointer = { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null };
+  #|    document.querySelectorAll('.filter-button').forEach(button => {
+  #|      button.classList.toggle('active', button.getAttribute('data-filter') === 'all');
+  #|    });
+  #|    const search = document.getElementById('goal-search');
+  #|    const product = document.getElementById('product-filter');
+  #|    if (search) search.value = '';
+  #|    if (product) product.value = 'all';
+  #|    seedLayout();
+  #|    applyFilter();
+  #|    renderStats();
+  #|    renderDetails();
+  #|    renderMilestoneList();
+  #|    fitView(true);
+  #|  }
+  #|
+  #|  function isTypingTarget(target) {
+  #|    if (!target || !(target instanceof Element)) return false;
+  #|    const tag = target.tagName.toLowerCase();
+  #|    const role = target.getAttribute('role');
+  #|    return tag === 'input' ||
+  #|      tag === 'textarea' ||
+  #|      tag === 'select' ||
+  #|      target.isContentEditable ||
+  #|      role === 'textbox';
+  #|  }
+  #|
+  #|  function matchesShortcut(event, shortcut) {
+  #|    return shortcut.keys.includes(String(event.key || '').toLowerCase());
   #|  }
   #|
   #|  function zoomAt(screenX, screenY, factor) {
@@ -1320,11 +1650,28 @@ let page_tail : String =
   #|    document.querySelectorAll('.filter-button').forEach(button => {
   #|      button.addEventListener('click', () => setFilter(button.getAttribute('data-filter') || 'all'));
   #|    });
+  #|    document.getElementById('goal-search').addEventListener('input', event => updateSearch(event.target.value));
+  #|    document.getElementById('product-filter').addEventListener('change', event => updateProductFilter(event.target.value));
   #|
+  #|    const resetButton = document.getElementById('reset-layout');
+  #|    const resetShortcut = SHORTCUTS.resetLayout;
+  #|    resetButton.setAttribute('aria-label', resetShortcut.actionLabel + ' (' + shortcutHint(resetShortcut) + ')');
+  #|    resetButton.setAttribute('aria-keyshortcuts', shortcutHint(resetShortcut));
+  #|    resetButton.addEventListener('click', resetLayout);
   #|    document.getElementById('zoom-in').addEventListener('click', () => zoomAt((canvas.clientWidth || 800) / 2, (canvas.clientHeight || 600) / 2, 1.18));
   #|    document.getElementById('zoom-out').addEventListener('click', () => zoomAt((canvas.clientWidth || 800) / 2, (canvas.clientHeight || 600) / 2, 1 / 1.18));
   #|    document.getElementById('fit-view').addEventListener('click', () => fitView(true));
   #|    document.getElementById('clear-focus').addEventListener('click', () => selectNode(null, false));
+  #|
+  #|    window.addEventListener('keydown', event => {
+  #|      if (event.defaultPrevented || event.isComposing || event.repeat) return;
+  #|      if (event.ctrlKey || event.altKey || event.metaKey) return;
+  #|      if (isTypingTarget(event.target)) return;
+  #|      if (matchesShortcut(event, resetShortcut)) {
+  #|        event.preventDefault();
+  #|        resetLayout();
+  #|      }
+  #|    });
   #|
   #|    canvas.addEventListener('wheel', event => {
   #|      event.preventDefault();
@@ -1393,6 +1740,8 @@ let page_tail : String =
   #|    state.nodeById = graph.nodeById;
   #|    seedLayout();
   #|    applyFilter();
+  #|    renderProductFilter();
+  #|    renderLegend();
   #|    renderStats();
   #|    renderMilestoneList();
   #|    renderDetails();

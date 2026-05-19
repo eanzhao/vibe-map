@@ -10,42 +10,31 @@ test "Status round-trip via JSON" {
 ///|
 test "Dag::empty serializes to a stable shape" {
   let dag = @core.Dag::empty("demo")
-  json_inspect(dag, content={
-    "project": { "name": "demo", "description": "" },
-    "goals": [],
-    "tasks": [],
-  })
+  assert_true(dag.config is Some(_))
+  assert_eq(dag.project.name, "demo")
+  assert_eq(dag.goals.length(), 0)
+  assert_eq(dag.tasks.length(), 0)
+  assert_true(dag.to_json().stringify().contains("\"closure_tiers\""))
 }
 
 ///|
 test "Dag round-trip with one goal and one task" {
-  let dag : @core.Dag = {
-    project: { name: "demo", description: "vibe coding DAG" },
-    goals: [
-      {
-        id: "m1",
-        title: "用户能登录",
-        description: "",
-        deps: [],
-        regression_testable: false,
-        tests: [],
-        docs: [],
-      },
-    ],
-    tasks: [
-      {
-        id: "i1",
-        goal: "m1",
-        title: "写 auth middleware",
-        status: @core.Done,
-        deps: [],
-        notes: "",
-        regression_testable: true,
-        tests: ["src/auth/middleware_test.mbt"],
-        docs: ["docs/auth.md"],
-      },
-    ],
-  }
+  let dag = @core.Dag::empty("demo")
+  dag.add_goal(
+    id="m1",
+    title="用户能登录",
+    owner="eanzhao",
+    gh_query="repo:x/y auth",
+  )
+  dag.add_task(
+    id="i1",
+    goal="m1",
+    title="写 auth middleware",
+    regression_testable=true,
+    tests=["src/auth/middleware_test.mbt"],
+    docs=["docs/auth.md"],
+  )
+  dag.update_status("i1", @core.Done)
   let encoded = dag.to_json()
   let decoded : @core.Dag = @json.from_json(encoded)
   assert_eq(dag, decoded)

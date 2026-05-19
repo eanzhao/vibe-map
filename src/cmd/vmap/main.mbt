@@ -61,6 +61,18 @@ fn build_cli() -> @argparse.Command {
                 negatable=true,
                 about="Mark as backed by regression tests (or use --no-regression-testable).",
               ),
+              @argparse.FlagArg::new(
+                "focus",
+                long="focus",
+                negatable=true,
+                about="Mark this goal as a current focus region.",
+              ),
+              @argparse.FlagArg::new(
+                "archived",
+                long="archived",
+                negatable=true,
+                about="Mark this goal as archived.",
+              ),
             ],
             options=[
               @argparse.OptionArg::new("id", long="id", required=true),
@@ -80,6 +92,38 @@ fn build_cli() -> @argparse.Command {
                 "docs",
                 long="docs",
                 about="Comma-separated documentation paths",
+              ),
+              @argparse.OptionArg::new(
+                "closure",
+                long="closure",
+                about="Region closure stage (default: seed).",
+              ),
+              @argparse.OptionArg::new(
+                "formal",
+                long="formal",
+                about="Automation/evidence level (default: none or checked).",
+              ),
+              @argparse.OptionArg::new(
+                "product",
+                long="product",
+                about="Product key from config.products (default: default).",
+              ),
+              @argparse.OptionArg::new("milestone", long="milestone"),
+              @argparse.OptionArg::new("owner", long="owner"),
+              @argparse.OptionArg::new(
+                "issue-count",
+                long="issue-count",
+                about="Issue/task count used for node size.",
+              ),
+              @argparse.OptionArg::new(
+                "promoted-at",
+                long="promoted-at",
+                about="Comma-separated promotion timeline, e.g. scoped=2026-05-01,public=2026-05-10.",
+              ),
+              @argparse.OptionArg::new(
+                "gh-query",
+                long="gh-query",
+                about="GitHub search query used by drift tooling.",
               ),
               @argparse.OptionArg::new("file", long="file", default_values=[
                 @core.default_path,
@@ -135,6 +179,18 @@ fn build_cli() -> @argparse.Command {
             negatable=true,
             about="Mark/unmark as backed by regression tests.",
           ),
+          @argparse.FlagArg::new(
+            "focus",
+            long="focus",
+            negatable=true,
+            about="Mark/unmark a goal as current focus.",
+          ),
+          @argparse.FlagArg::new(
+            "archived",
+            long="archived",
+            negatable=true,
+            about="Mark/unmark a goal as archived.",
+          ),
         ],
         options=[
           @argparse.OptionArg::new(
@@ -153,6 +209,14 @@ fn build_cli() -> @argparse.Command {
             long="docs",
             about="Replace the docs list (comma-separated; empty string clears).",
           ),
+          @argparse.OptionArg::new("closure", long="closure"),
+          @argparse.OptionArg::new("formal", long="formal"),
+          @argparse.OptionArg::new("product", long="product"),
+          @argparse.OptionArg::new("milestone", long="milestone"),
+          @argparse.OptionArg::new("owner", long="owner"),
+          @argparse.OptionArg::new("issue-count", long="issue-count"),
+          @argparse.OptionArg::new("promoted-at", long="promoted-at"),
+          @argparse.OptionArg::new("gh-query", long="gh-query"),
           @argparse.OptionArg::new("file", long="file", default_values=[
             @core.default_path,
           ]),
@@ -351,6 +415,51 @@ fn parse_csv(raw : String) -> Array[String] {
 }
 
 ///|
+fn parse_int_arg(raw : String, name : String) -> Int raise {
+  @strconv.parse_int(raw) catch {
+    _ => fail("invalid \{name}: \{raw} (want integer)")
+  }
+}
+
+///|
+fn parse_optional_int_arg(
+  raw : String,
+  name : String,
+  default? : Int = 0,
+) -> Int raise {
+  if raw == "" {
+    default
+  } else {
+    parse_int_arg(raw, name)
+  }
+}
+
+///|
+fn parse_kv_csv(raw : String, name : String) -> Map[String, String] raise {
+  let out : Map[String, String] = {}
+  if raw == "" {
+    return out
+  }
+  for part in raw.split(",") {
+    let trimmed = part.trim().to_string()
+    if trimmed == "" {
+      continue
+    }
+    let pieces = trimmed.split("=").to_array()
+    if pieces.length() != 2 {
+      fail("invalid \{name} item: \{trimmed} (want key=value)")
+    }
+    let key = pieces[0].trim().to_string()
+    let value = pieces[1].trim().to_string()
+    if key == "" || value == "" {
+      fail("invalid \{name} item: \{trimmed} (key and value are required)")
+    }
+    out[key] = value
+  }
+  out
+}
+
+///|
 fn parse_status(raw : String) -> @core.Status raise {
   match raw {
     "todo" => @core.Todo
@@ -381,6 +490,16 @@ fn cmd_add_goal(m : @argparse.Matches) -> Unit raise {
     title~,
     description=opt(m, "description"),
     deps=parse_csv(opt(m, "deps")),
+    closure=opt(m, "closure"),
+    formal=opt(m, "formal"),
+    product=opt(m, "product"),
+    milestone=opt(m, "milestone"),
+    owner=opt(m, "owner"),
+    issue_count=parse_optional_int_arg(opt(m, "issue-count"), "issue-count"),
+    focus=m.flags.get("focus").unwrap_or(false),
+    archived=m.flags.get("archived").unwrap_or(false),
+    promoted_at=parse_kv_csv(opt(m, "promoted-at"), "promoted-at"),
+    gh_query=opt(m, "gh-query"),
     regression_testable=m.flags.get("regression-testable").unwrap_or(false),
     tests=parse_csv(opt(m, "tests")),
     docs=parse_csv(opt(m, "docs")),
@@ -446,9 +565,69 @@ fn cmd_update(m : @argparse.Matches) -> Unit raise {
     println("~ \{id} docs -> [\{ds.length()}]")
     touched = true
   }
+  if provided(m, "closure") {
+    let value = opt(m, "closure")
+    dag.set_goal_closure(id, value)
+    println("~ \{id} closure -> \{value}")
+    touched = true
+  }
+  if provided(m, "formal") {
+    let value = opt(m, "formal")
+    dag.set_goal_formal(id, value)
+    println("~ \{id} formal -> \{value}")
+    touched = true
+  }
+  if provided(m, "product") {
+    let value = opt(m, "product")
+    dag.set_goal_product(id, value)
+    println("~ \{id} product -> \{value}")
+    touched = true
+  }
+  if provided(m, "milestone") {
+    let value = opt(m, "milestone")
+    dag.set_goal_milestone(id, value)
+    println("~ \{id} milestone -> \{value}")
+    touched = true
+  }
+  if provided(m, "owner") {
+    let value = opt(m, "owner")
+    dag.set_goal_owner(id, value)
+    println("~ \{id} owner -> \{value}")
+    touched = true
+  }
+  if provided(m, "issue-count") {
+    let value = parse_int_arg(opt(m, "issue-count"), "issue-count")
+    dag.set_goal_issue_count(id, value)
+    println("~ \{id} issue_count -> \{value}")
+    touched = true
+  }
+  if provided(m, "focus") {
+    let value = m.flags.get("focus").unwrap_or(false)
+    dag.set_goal_focus(id, value)
+    println("~ \{id} focus -> \{value}")
+    touched = true
+  }
+  if provided(m, "archived") {
+    let value = m.flags.get("archived").unwrap_or(false)
+    dag.set_goal_archived(id, value)
+    println("~ \{id} archived -> \{value}")
+    touched = true
+  }
+  if provided(m, "promoted-at") {
+    let value = parse_kv_csv(opt(m, "promoted-at"), "promoted-at")
+    dag.set_goal_promoted_at(id, value)
+    println("~ \{id} promoted_at -> [\{value.length()}]")
+    touched = true
+  }
+  if provided(m, "gh-query") {
+    let value = opt(m, "gh-query")
+    dag.set_goal_gh_query(id, value)
+    println("~ \{id} gh_query -> \{value}")
+    touched = true
+  }
   if not(touched) {
     fail(
-      "update needs at least one of --status / --title / --regression-testable / --tests / --docs",
+      "update needs at least one changed field (status/title/tests/docs or region metadata)",
     )
   }
   @core.save(dag, path)
