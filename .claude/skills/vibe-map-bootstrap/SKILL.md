@@ -36,17 +36,19 @@ Trigger words / situations:
 
 | User says or you observe | First move |
 |---|---|
+| **`.vmap/` 不存在 + 代码已经一大坨**（冷启动场景） | Read `skills/playbooks/bootstrap-existing-codebase.md`. **Do not** blindly run `vmap backfill` — it gives a package-shaped DAG, which is not what we want. |
 | "加一个 feature / 接到新需求 / 帮我做 X" | Read `skills/playbooks/new-feature.md`, run `vmap add goal ...` (semantic, not package) |
 | "做完了 X" / "finished X" | `vmap update <id> --status done` (also `--add-test`, `--add-doc` if applicable) |
 | "现在做到哪了" / "what's the status" / "where are we" | Read `skills/playbooks/daily-progress.md`, run `vmap status` or `vmap list goals --focus` |
 | `vmap audit` reports violations (exit 3) | Read `skills/playbooks/audit-fix-loop.md`, fix each violation, re-audit |
-| "准备发 0.X.0 / ship a release" | Read `skills/playbooks/release-shipping.md` |
+| "准备发版 / ship a release" | Read `skills/playbooks/release-shipping.md` |
 | You just finished a goal's last task | Bump `vmap update <goal-id> --closure scoped` (or further, per current stage) |
 
 Also activate proactively when:
 
 - After any non-trivial change to the codebase, **before reporting back to the user**, record the work as a task and mark it done.
 - When the user describes their goal at the start of a session — capture it as a goal before writing code.
+- When the user gives you a new project that has no `.vmap/` yet — trigger the cold-start playbook before doing anything else.
 
 ## Canonical playbooks
 
@@ -57,6 +59,7 @@ Detailed step-by-step guides — read on demand:
 | `skills/SKILL.md` | Full work mode + 5-min quickstart + anti-patterns (this file is a summary; that one is the source) |
 | `skills/cheatsheet.md` | Complete CLI flag reference |
 | `skills/vibe-map-bootstrap.md` | The bootstrap prompt itself (mostly user-facing) |
+| `skills/playbooks/bootstrap-existing-codebase.md` | **Cold start**: existing codebase, no `.vmap/` yet, need to build initial semantic DAG |
 | `skills/playbooks/new-feature.md` | Adding a new feature/goal from a PRD-shaped request |
 | `skills/playbooks/audit-fix-loop.md` | Audit-driven fix loop (missing_tests / missing_docs / missing_region_metadata) |
 | `skills/playbooks/release-shipping.md` | Closing a release (status → closed, audit, tag) |
@@ -118,4 +121,7 @@ vmap list goals --focus | head -10
 vmap release list | head -5
 ```
 
-If any of those error out, the project isn't initialized — run `vmap init --name "<project>"` first (and remind the user to add `.vmap/` to `.gitignore`).
+If any of those error out, the project isn't initialized:
+
+- **If the codebase already has code in it** (most common case for existing projects): run the cold-start playbook → `skills/playbooks/bootstrap-existing-codebase.md`. Do NOT default to `vmap init` + start adding goals from scratch; first read the code + README so the initial DAG is semantic, not blank.
+- **If the codebase is empty / brand new**: `vmap init --name "<project>"` is fine. Remind user to add `.vmap/` to `.gitignore`.

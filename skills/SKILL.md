@@ -11,6 +11,7 @@
 
 每次接到一个用户任务，按这个顺序走：
 
+0. **如果项目里还没有 `.vmap/`**——这是**冷启动**场景，先读 `skills/playbooks/bootstrap-existing-codebase.md`，建一份初版 DAG 让用户审视，再继续。**不要默认跑 backfill 就完事**——出来的是 package 镜像不是语义 DAG。
 1. **从 PRD/README/issue 提语义 goal**——不是按文件、不是按 package
 2. **vmap add goal** 加进图，标 `--focus` 表示当前在做
 3. **拆 task** 用 vmap add task，把实现路径写下来（多个文件 / 跨多 package 都没关系）
@@ -82,6 +83,7 @@ planned → open → closed
 
 | 场景 | 看这份 |
 |---|---|
+| **`.vmap/` 还没初始化 + 代码已经一大坨**（冷启动） | `skills/playbooks/bootstrap-existing-codebase.md` |
 | 接到一个新需求，要把它放进图 | `skills/playbooks/new-feature.md` |
 | audit 报红，按它修 tests / docs | `skills/playbooks/audit-fix-loop.md` |
 | 推一个 release 收尾 | `skills/playbooks/release-shipping.md` |
