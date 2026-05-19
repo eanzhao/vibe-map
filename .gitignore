@@ -33,3 +33,6 @@ __pycache__/
 # Root-level vmap artifacts (anything committed lives under examples/)
 /vibe-map.json
 /dag.html
+
+# vmap working state (DAG json + rendered html)
+.vmap/

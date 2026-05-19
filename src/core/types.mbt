@@ -86,6 +86,18 @@ pub(all) struct UiConfig {
 } derive(Eq, Show, ToJson, FromJson)
 
 ///|
+/// A release lane (e.g. "0.4.0") groups goals around a shipped version.
+/// `status` flows planned → open → closed monotonically.
+pub(all) struct ReleaseConfig {
+  key : String
+  label : LocalizedText
+  target : String?
+  status : String
+  notes : String?
+  closed_at : String?
+} derive(Eq, Show, ToJson, FromJson)
+
+///|
 pub(all) struct VmapConfig {
   version : Int
   products : Array[ProductConfig]
@@ -244,6 +256,10 @@ pub(all) struct Dag {
   project : Project
   goals : Array[Goal]
   tasks : Array[Task]
+  /// Optional release lanes (versioned goal groupings). `mut` because the
+  /// array reference itself may be initialized on first `add_release`; the
+  /// underlying Array can be mutated in place once present.
+  mut releases : Array[ReleaseConfig]?
 } derive(Eq, Show, ToJson, FromJson)
 
 ///|
@@ -254,6 +270,7 @@ pub fn Dag::empty(name : String) -> Dag {
     project: { name, description: "" },
     goals: [],
     tasks: [],
+    releases: None,
   }
 }
 

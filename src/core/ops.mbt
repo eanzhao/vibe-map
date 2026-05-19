@@ -263,6 +263,7 @@ pub fn Dag::add_goal(
   let closure_value = if closure == "" { "seed" } else { closure }
   let formal_value = default_formal(regression_testable, formal)
   let product_value = default_product(cfg, product)
+  self.validate_release_reference(milestone)
   check_goal_region(
     cfg,
     id,
@@ -366,6 +367,7 @@ pub fn Dag::set_goal_milestone(
   id : String,
   milestone : String,
 ) -> Unit raise DagError {
+  self.validate_release_reference(milestone)
   match self.find_goal(id) {
     Some((idx, goal)) =>
       self.goals[idx] = { ..goal, milestone: non_empty_or_none(milestone) }
@@ -665,6 +667,7 @@ pub fn Dag::validate(self : Dag) -> Unit raise DagError {
       m.promoted_at,
     )
   }
+  self.validate_releases()
   self.assert_acyclic()
 }
 
@@ -739,4 +742,824 @@ pub fn Dag::progress(self : Dag, goal_id : String) -> (Int, Int) {
     }
   }
   (done, total)
+}
+
+///|
+/// Rank a release status for monotonic transition checks.
+fn release_status_rank(status : String) -> Int? {
+  match status {
+    "planned" => Some(0)
+    "open" => Some(1)
+    "closed" => Some(2)
+    _ => None
+  }
+}
+
+///|
+/// Reject statuses outside the known set.
+fn validate_release_status(status : String) -> Unit raise DagError {
+  if release_status_rank(status) is None {
+    raise InvalidMetadata(
+      "release status '\{status}' must be one of: planned, open, closed",
+    )
+  }
+}
+
+///|
+/// When releases are configured, goal.milestone must point at one of them.
+fn Dag::validate_release_reference(
+  self : Dag,
+  release_key : String,
+) -> Unit raise DagError {
+  if release_key == "" {
+    return
+  }
+  match self.releases {
+    Some(arr) =>
+      if arr.length() > 0 && not(self.has_release(release_key)) {
+        raise UnknownRelease(release_key)
+      }
+    None => ()
+  }
+}
+
+///|
+/// Validate release lane metadata and, once releases exist, goal membership.
+fn Dag::validate_releases(self : Dag) -> Unit raise DagError {
+  match self.releases {
+    Some(arr) => {
+      let seen : Map[String, Bool] = {}
+      for r in arr {
+        if r.key == "" {
+          raise InvalidMetadata("release key must not be empty")
+        }
+        if seen.contains(r.key) {
+          raise DuplicateRelease(r.key)
+        }
+        seen[r.key] = true
+        validate_release_status(r.status)
+      }
+      if arr.length() > 0 {
+        for g in self.goals {
+          match g.milestone {
+            Some(m) => self.validate_release_reference(m)
+            None => ()
+          }
+        }
+      }
+    }
+    None => ()
+  }
+}
+
+///|
+/// True if any release entry exists in this DAG.
+pub fn Dag::has_any_release(self : Dag) -> Bool {
+  match self.releases {
+    Some(arr) => arr.length() > 0
+    None => false
+  }
+}
+
+///|
+/// Find a release by key.
+pub fn Dag::find_release(self : Dag, key : String) -> (Int, ReleaseConfig)? {
+  match self.releases {
+    Some(arr) =>
+      for idx, r in arr {
+        if r.key == key {
+          return Some((idx, r))
+        }
+      }
+    None => ()
+  }
+  None
+}
+
+///|
+/// True if `key` names a release in the DAG.
+pub fn Dag::has_release(self : Dag, key : String) -> Bool {
+  self.find_release(key) is Some(_)
+}
+
+///|
+/// Append a new release lane. `status` defaults to "planned"; raises
+/// `DuplicateRelease` if `key` already exists.
+pub fn Dag::add_release(
+  self : Dag,
+  key~ : String,
+  label_en~ : String,
+  label_zh~ : String,
+  target? : String = "",
+  status? : String = "planned",
+  notes? : String = "",
+) -> Unit raise DagError {
+  if key == "" {
+    raise InvalidMetadata("release key must not be empty")
+  }
+  validate_release_status(status)
+  if self.has_release(key) {
+    raise DuplicateRelease(key)
+  }
+  let new_release : ReleaseConfig = {
+    key,
+    label: { en: label_en, zh: label_zh },
+    target: non_empty_or_none(target),
+    status,
+    notes: non_empty_or_none(notes),
+    closed_at: None,
+  }
+  match self.releases {
+    Some(arr) => arr.push(new_release)
+    None => self.releases = Some([new_release])
+  }
+}
+
+///|
+/// Modify an existing release lane in place. Each argument is treated as
+/// "unset" when it equals its sentinel (empty string for strings); pass only
+/// the fields you want to change. Status transitions cannot move backward
+/// (planned → open → closed only).
+pub fn Dag::update_release(
+  self : Dag,
+  key : String,
+  label_en? : String = "",
+  label_zh? : String = "",
+  target? : String = "",
+  status? : String = "",
+  notes? : String = "",
+  clear_target? : Bool = false,
+  clear_notes? : Bool = false,
+) -> Unit raise DagError {
+  match self.releases {
+    Some(arr) =>
+      match self.find_release(key) {
+        Some((idx, old)) => {
+          let mut new_status = old.status
+          let new_closed_at = old.closed_at
+          if status != "" {
+            validate_release_status(status)
+            match
+              (release_status_rank(old.status), release_status_rank(status)) {
+              (Some(old_rank), Some(new_rank)) =>
+                if new_rank < old_rank {
+                  raise ReleaseStatusRegression(key, old.status, status)
+                }
+              _ => ()
+            }
+            new_status = status
+            // Closing or unclosing leaves closed_at to the close op; we only
+            // clear closed_at if a release is moved back from closed (which
+            // is currently forbidden anyway).
+          }
+          let new_label_en = if label_en != "" {
+            label_en
+          } else {
+            old.label.en
+          }
+          let new_label_zh = if label_zh != "" {
+            label_zh
+          } else {
+            old.label.zh
+          }
+          let new_target = if clear_target {
+            None
+          } else if target != "" {
+            Some(target)
+          } else {
+            old.target
+          }
+          let new_notes = if clear_notes {
+            None
+          } else if notes != "" {
+            Some(notes)
+          } else {
+            old.notes
+          }
+          arr[idx] = {
+            ..old,
+            label: { en: new_label_en, zh: new_label_zh },
+            target: new_target,
+            status: new_status,
+            notes: new_notes,
+            closed_at: new_closed_at,
+          }
+        }
+        None => raise UnknownRelease(key)
+      }
+    None => raise UnknownRelease(key)
+  }
+}
+
+///|
+/// Set `closed_at` on a release (used by `release close`). Caller is
+/// responsible for transitioning status separately.
+pub fn Dag::set_release_closed_at(
+  self : Dag,
+  key : String,
+  closed_at : String,
+) -> Unit raise DagError {
+  match self.releases {
+    Some(arr) =>
+      match self.find_release(key) {
+        Some((idx, old)) =>
+          arr[idx] = { ..old, closed_at: non_empty_or_none(closed_at) }
+        None => raise UnknownRelease(key)
+      }
+    None => raise UnknownRelease(key)
+  }
+}
+
+///|
+/// Remove a release. By default refuses if any goal still points at it;
+/// `force=true` clears the milestone on each member first.
+pub fn Dag::remove_release(
+  self : Dag,
+  key : String,
+  force? : Bool = false,
+) -> Unit raise DagError {
+  match self.releases {
+    Some(arr) =>
+      match self.find_release(key) {
+        Some(_) => {
+          let members = self.release_member_ids(key)
+          if members.length() > 0 && not(force) {
+            raise ReleaseHasMembers(key, members)
+          }
+          if force {
+            for idx, g in self.goals {
+              match g.milestone {
+                Some(m) =>
+                  if m == key {
+                    self.goals[idx] = { ..g, milestone: None }
+                  }
+                None => ()
+              }
+            }
+          }
+          arr.retain(r => r.key != key)
+        }
+        None => raise UnknownRelease(key)
+      }
+    None => raise UnknownRelease(key)
+  }
+}
+
+///|
+/// Set `goal.milestone` to `release_key`, validating against the release
+/// list. Raises `UnknownGoal` if the goal does not exist or
+/// `UnknownRelease` if the release is not registered.
+pub fn Dag::assign_release(
+  self : Dag,
+  goal_id : String,
+  release_key : String,
+) -> Unit raise DagError {
+  if not(self.has_release(release_key)) {
+    raise UnknownRelease(release_key)
+  }
+  match self.find_goal(goal_id) {
+    Some((idx, g)) => self.goals[idx] = { ..g, milestone: Some(release_key) }
+    None => raise UnknownGoal(goal_id)
+  }
+}
+
+///|
+/// Goal ids currently pointing at this release via their `milestone` field.
+pub fn Dag::release_member_ids(self : Dag, key : String) -> Array[String] {
+  let out = []
+  for g in self.goals {
+    match g.milestone {
+      Some(m) => if m == key { out.push(g.id) }
+      None => ()
+    }
+  }
+  out
+}
+
+///|
+/// Goals currently pointing at this release.
+pub fn Dag::release_members(self : Dag, key : String) -> Array[Goal] {
+  let out = []
+  for g in self.goals {
+    match g.milestone {
+      Some(m) => if m == key { out.push(g) }
+      None => ()
+    }
+  }
+  out
+}
+
+///|
+/// Derived snapshot of a release: tally goals by closure stage, list any
+/// goals whose closure is still below `public` (the ship gate), and surface
+/// `ready_to_close` when no blockers remain.
+pub(all) struct ReleaseProgress {
+  release : ReleaseConfig
+  total_goals : Int
+  by_closure : Map[String, Int]
+  blocked : Array[String]
+  ready_to_close : Bool
+} derive(Show, ToJson)
+
+///|
+/// Compute the snapshot. Raises `UnknownRelease` if the key is not registered.
+pub fn Dag::release_progress(
+  self : Dag,
+  key : String,
+) -> ReleaseProgress raise DagError {
+  let release = match self.find_release(key) {
+    Some((_, r)) => r
+    None => raise UnknownRelease(key)
+  }
+  let cfg = self.effective_config()
+  let public_idx = match closure_index(cfg, "public") {
+    Some(i) => i
+    None => raise InvalidMetadata("config.closure_tiers must contain 'public'")
+  }
+  let members = self.release_members(key)
+  let by_closure : Map[String, Int] = {}
+  let blocked = []
+  for g in members {
+    let c = match g.closure {
+      Some(x) => x
+      None => "seed"
+    }
+    let prev = match by_closure.get(c) {
+      Some(n) => n
+      None => 0
+    }
+    by_closure[c] = prev + 1
+    let goal_idx = match closure_index(cfg, c) {
+      Some(i) => i
+      None => -1
+    }
+    if goal_idx < public_idx {
+      blocked.push(g.id)
+    }
+  }
+  {
+    release,
+    total_goals: members.length(),
+    by_closure,
+    blocked,
+    ready_to_close: blocked.length() == 0,
+  }
+}
+
+///|
+fn array_has(arr : Array[String], needle : String) -> Bool {
+  for s in arr {
+    if s == needle {
+      return true
+    }
+  }
+  false
+}
+
+///|
+/// `"goal"` if `id` names a goal, `"task"` if a task, `None` otherwise.
+pub fn Dag::kind_of(self : Dag, id : String) -> String? {
+  if self.has_goal(id) {
+    return Some("goal")
+  }
+  if self.has_task(id) {
+    return Some("task")
+  }
+  None
+}
+
+///|
+/// Replace `deps` on a goal or task. Validates each dep id exists at the
+/// correct layer (goal→goal, task→task), refuses self-deps, and re-runs
+/// the cycle check.
+pub fn Dag::set_deps(
+  self : Dag,
+  id : String,
+  deps : Array[String],
+) -> Unit raise DagError {
+  for d in deps {
+    if d == id {
+      raise InvalidMetadata("\{id} cannot depend on itself")
+    }
+  }
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      for d in deps {
+        if not(self.has_goal(d)) {
+          raise UnknownId("goal dep \{d}")
+        }
+      }
+      self.goals[idx] = { ..g, deps, }
+      self.assert_acyclic()
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      for d in deps {
+        if not(self.has_task(d)) {
+          raise UnknownId("task dep \{d}")
+        }
+      }
+      self.tasks[idx] = { ..t, deps, }
+      self.assert_acyclic()
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Add a single dep. No-op if already present. Validates layer and cycles.
+pub fn Dag::add_dep(
+  self : Dag,
+  id : String,
+  dep : String,
+) -> Unit raise DagError {
+  if dep == id {
+    raise InvalidMetadata("\{id} cannot depend on itself")
+  }
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      if not(self.has_goal(dep)) {
+        raise UnknownId("goal dep \{dep}")
+      }
+      if array_has(g.deps, dep) {
+        return
+      }
+      let next = g.deps.copy()
+      next.push(dep)
+      self.goals[idx] = { ..g, deps: next }
+      self.assert_acyclic()
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      if not(self.has_task(dep)) {
+        raise UnknownId("task dep \{dep}")
+      }
+      if array_has(t.deps, dep) {
+        return
+      }
+      let next = t.deps.copy()
+      next.push(dep)
+      self.tasks[idx] = { ..t, deps: next }
+      self.assert_acyclic()
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Remove a single dep. No-op if not present.
+pub fn Dag::remove_dep(
+  self : Dag,
+  id : String,
+  dep : String,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      let next = g.deps.copy()
+      next.retain(d => d != dep)
+      self.goals[idx] = { ..g, deps: next }
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      let next = t.deps.copy()
+      next.retain(d => d != dep)
+      self.tasks[idx] = { ..t, deps: next }
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Move a task under a different goal. Validates the destination goal
+/// exists. Task→task deps are unaffected.
+pub fn Dag::set_task_goal(
+  self : Dag,
+  task_id : String,
+  new_goal : String,
+) -> Unit raise DagError {
+  if not(self.has_goal(new_goal)) {
+    raise UnknownGoal(new_goal)
+  }
+  match self.find_task(task_id) {
+    Some((idx, t)) => self.tasks[idx] = { ..t, goal: new_goal }
+    None => raise UnknownId("task \{task_id}")
+  }
+}
+
+///|
+/// Replace a task's free-form `notes`. Goals don't have `notes` — use
+/// `set_description` for goals.
+pub fn Dag::set_task_notes(
+  self : Dag,
+  id : String,
+  notes : String,
+) -> Unit raise DagError {
+  match self.find_task(id) {
+    Some((idx, t)) => self.tasks[idx] = { ..t, notes, }
+    None => raise UnknownId("task \{id}")
+  }
+}
+
+///|
+/// Replace a goal's `description`. Tasks don't have `description` — use
+/// `set_task_notes` for tasks.
+pub fn Dag::set_description(
+  self : Dag,
+  id : String,
+  description : String,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, g)) => self.goals[idx] = { ..g, description, }
+    None => raise UnknownId("goal \{id}")
+  }
+}
+
+///|
+/// Add a single test path to a goal or task. No-op if already present.
+pub fn Dag::add_test(
+  self : Dag,
+  id : String,
+  path : String,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      if array_has(g.tests, path) {
+        return
+      }
+      let next = g.tests.copy()
+      next.push(path)
+      self.goals[idx] = { ..g, tests: next }
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      if array_has(t.tests, path) {
+        return
+      }
+      let next = t.tests.copy()
+      next.push(path)
+      self.tasks[idx] = { ..t, tests: next }
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Remove a single test path. No-op if not present.
+pub fn Dag::remove_test(
+  self : Dag,
+  id : String,
+  path : String,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      let next = g.tests.copy()
+      next.retain(p => p != path)
+      self.goals[idx] = { ..g, tests: next }
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      let next = t.tests.copy()
+      next.retain(p => p != path)
+      self.tasks[idx] = { ..t, tests: next }
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Add a single doc path. No-op if already present.
+pub fn Dag::add_doc(
+  self : Dag,
+  id : String,
+  path : String,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      if array_has(g.docs, path) {
+        return
+      }
+      let next = g.docs.copy()
+      next.push(path)
+      self.goals[idx] = { ..g, docs: next }
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      if array_has(t.docs, path) {
+        return
+      }
+      let next = t.docs.copy()
+      next.push(path)
+      self.tasks[idx] = { ..t, docs: next }
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Remove a single doc path. No-op if not present.
+pub fn Dag::remove_doc(
+  self : Dag,
+  id : String,
+  path : String,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, g)) => {
+      let next = g.docs.copy()
+      next.retain(p => p != path)
+      self.goals[idx] = { ..g, docs: next }
+      return
+    }
+    None => ()
+  }
+  match self.find_task(id) {
+    Some((idx, t)) => {
+      let next = t.docs.copy()
+      next.retain(p => p != path)
+      self.tasks[idx] = { ..t, docs: next }
+    }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Rename a goal or task id and rewrite every reference: cross-goal deps,
+/// task→goal pointer, task→task deps. `release.milestone` references the
+/// release key, not a goal id, so it's untouched here.
+pub fn Dag::rename(
+  self : Dag,
+  old_id : String,
+  new_id : String,
+) -> Unit raise DagError {
+  if old_id == new_id {
+    return
+  }
+  if new_id == "" {
+    raise InvalidMetadata("new id must not be empty")
+  }
+  if self.has_id(new_id) {
+    raise DuplicateId(new_id)
+  }
+  if self.has_goal(old_id) {
+    match self.find_goal(old_id) {
+      Some((idx, g)) => self.goals[idx] = { ..g, id: new_id }
+      None => raise UnknownId(old_id)
+    }
+    for idx, g in self.goals {
+      if array_has(g.deps, old_id) {
+        let next = g.deps.copy()
+        for i, d in next {
+          if d == old_id {
+            next[i] = new_id
+          }
+        }
+        self.goals[idx] = { ..g, deps: next }
+      }
+    }
+    for idx, t in self.tasks {
+      if t.goal == old_id {
+        self.tasks[idx] = { ..t, goal: new_id }
+      }
+    }
+  } else if self.has_task(old_id) {
+    match self.find_task(old_id) {
+      Some((idx, t)) => self.tasks[idx] = { ..t, id: new_id }
+      None => raise UnknownId(old_id)
+    }
+    for idx, t in self.tasks {
+      if array_has(t.deps, old_id) {
+        let next = t.deps.copy()
+        for i, d in next {
+          if d == old_id {
+            next[i] = new_id
+          }
+        }
+        self.tasks[idx] = { ..t, deps: next }
+      }
+    }
+  } else {
+    raise UnknownId(old_id)
+  }
+}
+
+///|
+/// Clear `milestone` on goals pointing at `release_key`. When `only` is
+/// non-empty, restrict to just those goal ids. Raises if the release
+/// itself is not registered.
+pub fn Dag::unassign_release(
+  self : Dag,
+  release_key : String,
+  only : Array[String],
+) -> Unit raise DagError {
+  if not(self.has_release(release_key)) {
+    raise UnknownRelease(release_key)
+  }
+  let only_set : Map[String, Bool] = {}
+  for g in only {
+    only_set[g] = true
+  }
+  let limit_to_subset = only.length() > 0
+  for idx, g in self.goals {
+    match g.milestone {
+      Some(m) =>
+        if m == release_key && (not(limit_to_subset) || only_set.contains(g.id)) {
+          self.goals[idx] = { ..g, milestone: None }
+        }
+      None => ()
+    }
+  }
+}
+
+///|
+/// Transitive upstream — all ids that `id` depends on (directly or
+/// indirectly), in pre-order discovery order. Crosses layer: starting from a
+/// goal walks goal→goal edges; starting from a task walks task→task edges.
+pub fn Dag::upstream(self : Dag, id : String) -> Array[String] {
+  let visited : Map[String, Bool] = {}
+  let order : Array[String] = []
+  fn deps_of(node : String) -> Array[String] {
+    match self.find_goal(node) {
+      Some((_, g)) => return g.deps
+      None => ()
+    }
+    match self.find_task(node) {
+      Some((_, t)) => t.deps
+      None => []
+    }
+  }
+
+  fn visit(node : String) -> Unit {
+    for d in deps_of(node) {
+      if not(visited.contains(d)) {
+        visited[d] = true
+        order.push(d)
+        visit(d)
+      }
+    }
+  }
+
+  visit(id)
+  order
+}
+
+///|
+/// Transitive downstream — all ids that depend on `id` (directly or
+/// indirectly). Uses a reverse-edge index built once per call.
+pub fn Dag::downstream(self : Dag, id : String) -> Array[String] {
+  let reverse : Map[String, Array[String]] = {}
+  for g in self.goals {
+    for d in g.deps {
+      let arr = match reverse.get(d) {
+        Some(a) => a
+        None => []
+      }
+      arr.push(g.id)
+      reverse[d] = arr
+    }
+  }
+  for t in self.tasks {
+    for d in t.deps {
+      let arr = match reverse.get(d) {
+        Some(a) => a
+        None => []
+      }
+      arr.push(t.id)
+      reverse[d] = arr
+    }
+  }
+  let visited : Map[String, Bool] = {}
+  let order : Array[String] = []
+  fn visit(node : String) -> Unit {
+    match reverse.get(node) {
+      Some(arr) =>
+        for x in arr {
+          if not(visited.contains(x)) {
+            visited[x] = true
+            order.push(x)
+            visit(x)
+          }
+        }
+      None => ()
+    }
+  }
+
+  visit(id)
+  order
 }

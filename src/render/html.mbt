@@ -385,6 +385,23 @@ fn page_head(title : String) -> String {
     $|
     $|  #map-canvas.dragging { cursor: grabbing; }
     $|
+    $|  .node-tooltip {
+    $|    position: fixed;
+    $|    z-index: 40;
+    $|    max-width: min(360px, calc(100vw - 24px));
+    $|    padding: 8px 10px;
+    $|    border: 1px solid rgba(125, 211, 252, 0.38);
+    $|    border-radius: 7px;
+    $|    background: rgba(8, 13, 22, 0.94);
+    $|    color: var(--text-secondary);
+    $|    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38), 0 0 18px rgba(125, 211, 252, 0.12);
+    $|    font-size: 12px;
+    $|    font-weight: 650;
+    $|    line-height: 1.35;
+    $|    overflow-wrap: anywhere;
+    $|    pointer-events: none;
+    $|  }
+    $|
     $|  .legend {
     $|    justify-content: space-between;
     $|    padding: 9px 12px;
@@ -731,6 +748,7 @@ fn page_head(title : String) -> String {
     $|    </aside>
     $|  </main>
     $|</div>
+    $|<div class="node-tooltip" id="node-tooltip" role="tooltip" hidden></div>
     $|<script type="application/json" id="dag-data">
     $|
   head
@@ -745,6 +763,7 @@ let page_tail : String =
   #|
   #|  const dag = JSON.parse(document.getElementById('dag-data').textContent || '{}');
   #|  const canvas = document.getElementById('map-canvas');
+  #|  const nodeTooltip = document.getElementById('node-tooltip');
   #|  const ctx = canvas.getContext('2d');
   #|  const dpr = window.devicePixelRatio || 1;
   #|
@@ -793,6 +812,7 @@ let page_tail : String =
   #|    productFilter: 'all',
   #|    search: '',
   #|    focusIds: null,
+  #|    navigationPeerIds: null,
   #|    transform: { x: 0, y: 0, scale: 1 },
   #|    pointer: { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null },
   #|  };
@@ -804,10 +824,60 @@ let page_tail : String =
   #|      actionLabel: '刷新布局',
   #|      keys: ['r'],
   #|    },
+  #|    nodeNavigation: {
+  #|      id: 'map.node-navigation',
+  #|      label: '方向键',
+  #|      actionLabel: '切换节点',
+  #|      keys: ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'enter'],
+  #|    },
+  #|    sidebarNavigation: {
+  #|      id: 'map.sidebar-navigation',
+  #|      label: '⌘↑/⌘↓',
+  #|      actionLabel: '按左侧列表顺序切换',
+  #|      keys: ['meta+arrowup', 'meta+arrowdown', 'meta+home', 'meta+end'],
+  #|    },
   #|  };
   #|
+  #|  function shortcutKeyLabel(key) {
+  #|    const labels = {
+  #|      meta: '⌘',
+  #|      ctrl: 'Ctrl',
+  #|      alt: 'Alt',
+  #|      shift: 'Shift',
+  #|      arrowup: '↑',
+  #|      arrowdown: '↓',
+  #|      arrowleft: '←',
+  #|      arrowright: '→',
+  #|      home: 'Home',
+  #|      end: 'End',
+  #|      enter: 'Enter',
+  #|    };
+  #|    return String(key || '').toLowerCase().split('+').map(part => labels[part] || part.toUpperCase()).join('');
+  #|  }
+  #|
   #|  function shortcutHint(shortcut) {
-  #|    return shortcut.keys.map(key => key.toUpperCase()).join('/');
+  #|    return shortcut.keys.map(shortcutKeyLabel).join('/');
+  #|  }
+  #|
+  #|  function ariaShortcutKey(key) {
+  #|    const names = {
+  #|      meta: 'Meta',
+  #|      ctrl: 'Control',
+  #|      alt: 'Alt',
+  #|      shift: 'Shift',
+  #|      arrowup: 'ArrowUp',
+  #|      arrowdown: 'ArrowDown',
+  #|      arrowleft: 'ArrowLeft',
+  #|      arrowright: 'ArrowRight',
+  #|      home: 'Home',
+  #|      end: 'End',
+  #|      enter: 'Enter',
+  #|    };
+  #|    return String(key || '').toLowerCase().split('+').map(part => names[part] || part.toUpperCase()).join('+');
+  #|  }
+  #|
+  #|  function ariaShortcutKeys(shortcut) {
+  #|    return shortcut.keys.map(ariaShortcutKey).join(' ');
   #|  }
   #|
   #|  function normalizeConfig(raw) {
@@ -1015,26 +1085,130 @@ let page_tail : String =
   #|    const goals = [...state.nodes];
   #|    const levels = goalLevels(goals);
   #|    const byLevel = new Map();
-  #|    const levelGap = 230;
-  #|    const rowGap = 128;
+  #|    const levelOf = new Map();
+  #|    const originalOrder = new Map(goals.map((goal, index) => [goal.id, index]));
+  #|    const levelGap = 320;
+  #|    const rowGap = 126;
+  #|    const collisionGap = 108;
   #|
   #|    for (const goal of goals) {
   #|      const level = levels.get(goal.id) || 0;
+  #|      goal.level = level;
+  #|      levelOf.set(goal.id, level);
   #|      if (!byLevel.has(level)) byLevel.set(level, []);
   #|      byLevel.get(level).push(goal);
   #|    }
   #|
-  #|    for (const list of byLevel.values()) {
-  #|      list.sort((a, b) => {
-  #|        const score = (b.progress?.pct || 0) - (a.progress?.pct || 0);
-  #|        return score || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
-  #|      });
+  #|    const maxLevel = Math.max(0, ...goals.map(goal => levelOf.get(goal.id) || 0));
+  #|    const levelsList = [];
+  #|    for (let level = 0; level <= maxLevel; level += 1) {
+  #|      levelsList[level] = byLevel.get(level) || [];
   #|    }
   #|
-  #|    for (const [level, list] of byLevel.entries()) {
-  #|      list.forEach((goal, index) => {
+  #|    const incoming = new Map();
+  #|    const outgoing = new Map();
+  #|    for (const goal of goals) {
+  #|      incoming.set(goal.id, []);
+  #|      outgoing.set(goal.id, []);
+  #|    }
+  #|    for (const edge of state.edges.filter(edge => edge.kind === 'dep')) {
+  #|      if (!state.nodeById.has(edge.source) || !state.nodeById.has(edge.target)) continue;
+  #|      outgoing.get(edge.source)?.push(edge.target);
+  #|      incoming.get(edge.target)?.push(edge.source);
+  #|    }
+  #|
+  #|    function stableNodeSort(a, b) {
+  #|      return (originalOrder.get(a.id) ?? 0) - (originalOrder.get(b.id) ?? 0) ||
+  #|        a.title.localeCompare(b.title) ||
+  #|        a.id.localeCompare(b.id);
+  #|    }
+  #|
+  #|    for (const list of incoming.values()) list.sort((a, b) => stableNodeSort(state.nodeById.get(a), state.nodeById.get(b)));
+  #|    for (const list of outgoing.values()) list.sort((a, b) => stableNodeSort(state.nodeById.get(a), state.nodeById.get(b)));
+  #|
+  #|    function nearestParents(node) {
+  #|      const currentLevel = levelOf.get(node.id) || 0;
+  #|      const parents = (incoming.get(node.id) || [])
+  #|        .map(id => state.nodeById.get(id))
+  #|        .filter(Boolean)
+  #|        .filter(parent => (levelOf.get(parent.id) || 0) < currentLevel);
+  #|      if (parents.length === 0) return [];
+  #|      const nearestLevel = Math.max(...parents.map(parent => levelOf.get(parent.id) || 0));
+  #|      return parents
+  #|        .filter(parent => (levelOf.get(parent.id) || 0) === nearestLevel)
+  #|        .sort(stableNodeSort);
+  #|    }
+  #|
+  #|    function average(values) {
+  #|      const finite = values.filter(value => Number.isFinite(value));
+  #|      return finite.length
+  #|        ? finite.reduce((sum, value) => sum + value, 0) / finite.length
+  #|        : 0;
+  #|    }
+  #|
+  #|    const roots = goals
+  #|      .filter(goal => (levelOf.get(goal.id) || 0) === 0)
+  #|      .sort(stableNodeSort);
+  #|    let branchStarts = goals
+  #|      .filter(goal => {
+  #|        const level = levelOf.get(goal.id) || 0;
+  #|        if (level === 0) return (outgoing.get(goal.id) || []).length === 0;
+  #|        const parents = nearestParents(goal);
+  #|        return parents.length === 0 || parents.every(parent => (levelOf.get(parent.id) || 0) === 0);
+  #|      })
+  #|      .sort(stableNodeSort);
+  #|    if (branchStarts.length === 0) branchStarts = roots;
+  #|
+  #|    const idealRowById = new Map();
+  #|    branchStarts.forEach((node, index) => {
+  #|      idealRowById.set(node.id, (index - (branchStarts.length - 1) / 2) * rowGap);
+  #|    });
+  #|
+  #|    const topo = [...goals].sort((a, b) => {
+  #|      return (levelOf.get(a.id) || 0) - (levelOf.get(b.id) || 0) || stableNodeSort(a, b);
+  #|    });
+  #|    for (const goal of topo) {
+  #|      if (idealRowById.has(goal.id) || (levelOf.get(goal.id) || 0) === 0) continue;
+  #|      const parentRows = nearestParents(goal)
+  #|        .map(parent => idealRowById.get(parent.id))
+  #|        .filter(value => Number.isFinite(value));
+  #|      idealRowById.set(goal.id, parentRows.length ? average(parentRows) : 0);
+  #|    }
+  #|
+  #|    for (const root of roots) {
+  #|      const childRows = (outgoing.get(root.id) || [])
+  #|        .map(id => idealRowById.get(id))
+  #|        .filter(value => Number.isFinite(value));
+  #|      idealRowById.set(root.id, childRows.length ? average(childRows) : (idealRowById.get(root.id) || 0));
+  #|    }
+  #|
+  #|    function relaxedRows(list) {
+  #|      const sorted = [...list].sort((a, b) => {
+  #|        return (idealRowById.get(a.id) || 0) - (idealRowById.get(b.id) || 0) || stableNodeSort(a, b);
+  #|      });
+  #|      const rows = new Map();
+  #|      if (sorted.length === 0) return rows;
+  #|      const desiredCenter = average(sorted.map(node => idealRowById.get(node.id) || 0));
+  #|      let lastY = -Infinity;
+  #|      for (const node of sorted) {
+  #|        const desired = idealRowById.get(node.id) || 0;
+  #|        const y = Math.max(desired, lastY + collisionGap);
+  #|        rows.set(node.id, y);
+  #|        lastY = y;
+  #|      }
+  #|      const values = sorted.map(node => rows.get(node.id));
+  #|      const actualCenter = (values[0] + values[values.length - 1]) / 2;
+  #|      const shift = desiredCenter - actualCenter;
+  #|      for (const node of sorted) rows.set(node.id, rows.get(node.id) + shift);
+  #|      return rows;
+  #|    }
+  #|
+  #|    for (const [level, list] of levelsList.entries()) {
+  #|      const rows = relaxedRows(list);
+  #|      list.forEach(goal => {
   #|        goal.x = level * levelGap;
-  #|        goal.y = (index - (list.length - 1) / 2) * rowGap;
+  #|        goal.y = rows.get(goal.id) ?? (idealRowById.get(goal.id) || 0);
+  #|        goal.layoutRow = idealRowById.get(goal.id) || 0;
   #|      });
   #|    }
   #|
@@ -1196,6 +1370,29 @@ let page_tail : String =
   #|    return null;
   #|  }
   #|
+  #|  function hideNodeTooltip() {
+  #|    if (nodeTooltip) nodeTooltip.hidden = true;
+  #|  }
+  #|
+  #|  function showNodeTooltip(node, clientX, clientY) {
+  #|    if (!nodeTooltip || !node) return;
+  #|    nodeTooltip.textContent = node.title || node.id;
+  #|    nodeTooltip.hidden = false;
+  #|    const margin = 12;
+  #|    const offset = 14;
+  #|    const rect = nodeTooltip.getBoundingClientRect();
+  #|    let left = clientX + offset;
+  #|    let top = clientY + offset;
+  #|    if (left + rect.width + margin > window.innerWidth) {
+  #|      left = clientX - rect.width - offset;
+  #|    }
+  #|    if (top + rect.height + margin > window.innerHeight) {
+  #|      top = clientY - rect.height - offset;
+  #|    }
+  #|    nodeTooltip.style.left = Math.max(margin, left) + 'px';
+  #|    nodeTooltip.style.top = Math.max(margin, top) + 'px';
+  #|  }
+  #|
   #|  function drawGrid(width, height) {
   #|    const gap = 42;
   #|    const startX = -state.transform.x / state.transform.scale;
@@ -1245,10 +1442,17 @@ let page_tail : String =
   #|    const midX = forward
   #|      ? Math.max(startX + 42, (startX + endX) / 2)
   #|      : Math.min(startX - 42, (startX + endX) / 2);
+  #|    const levelSpan = Math.abs((target.level || 0) - (source.level || 0));
+  #|    const skipLevel = levelSpan > 1;
+  #|    const sameRow = Math.abs(endY - startY) < 8;
+  #|    const bendSign = sameRow
+  #|      ? (endY >= 0 ? -1 : 1)
+  #|      : (endY > startY ? -1 : 1);
+  #|    const bend = skipLevel ? bendSign * Math.min(88, 38 + (levelSpan - 1) * 24) : 0;
   #|    const control1X = midX;
-  #|    const control1Y = startY;
+  #|    const control1Y = startY + bend;
   #|    const control2X = midX;
-  #|    const control2Y = endY;
+  #|    const control2Y = endY + bend;
   #|    const color = edge.derived ? '#bae6fd' : '#fcd34d';
   #|    const glow = edge.derived ? 'rgba(186,230,253,0.58)' : 'rgba(252,211,77,0.75)';
   #|
@@ -1377,6 +1581,7 @@ let page_tail : String =
   #|
   #|  function selectNode(id, focusView) {
   #|    state.selectedId = id;
+  #|    state.navigationPeerIds = null;
   #|    state.focusIds = id ? dependencyClosure(id) : null;
   #|    renderDetails();
   #|    renderMilestoneList();
@@ -1606,6 +1811,7 @@ let page_tail : String =
   #|    state.selectedId = null;
   #|    state.hoveredId = null;
   #|    state.focusIds = null;
+  #|    state.navigationPeerIds = null;
   #|    state.pointer = { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null };
   #|    document.querySelectorAll('.filter-button').forEach(button => {
   #|      button.classList.toggle('active', button.getAttribute('data-filter') === 'all');
@@ -1634,7 +1840,158 @@ let page_tail : String =
   #|  }
   #|
   #|  function matchesShortcut(event, shortcut) {
-  #|    return shortcut.keys.includes(String(event.key || '').toLowerCase());
+  #|    const eventKey = shortcutEventKey(event);
+  #|    return shortcut.keys.some(rawKey => {
+  #|      const parts = String(rawKey || '').toLowerCase().split('+').filter(Boolean);
+  #|      const key = parts.pop();
+  #|      const want = {
+  #|        ctrl: parts.includes('ctrl') || parts.includes('control'),
+  #|        alt: parts.includes('alt') || parts.includes('option'),
+  #|        meta: parts.includes('meta') || parts.includes('cmd') || parts.includes('command'),
+  #|        shift: parts.includes('shift'),
+  #|      };
+  #|      return eventKey === key &&
+  #|        event.ctrlKey === want.ctrl &&
+  #|        event.altKey === want.alt &&
+  #|        event.metaKey === want.meta &&
+  #|        event.shiftKey === want.shift;
+  #|    });
+  #|  }
+  #|
+  #|  function shortcutEventKey(event) {
+  #|    const key = String(event.key || '').toLowerCase();
+  #|    if (key === 'up') return 'arrowup';
+  #|    if (key === 'down') return 'arrowdown';
+  #|    if (key === 'left') return 'arrowleft';
+  #|    if (key === 'right') return 'arrowright';
+  #|    if (key && key !== 'unidentified') return key;
+  #|    return String(event.code || '').toLowerCase();
+  #|  }
+  #|
+  #|  function nodeSortKey(a, b) {
+  #|    return a.y - b.y || a.x - b.x || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+  #|  }
+  #|
+  #|  function sidebarNodes() {
+  #|    return state.visibleNodes.filter(node => node.kind === 'milestone');
+  #|  }
+  #|
+  #|  function selectAndRevealNode(id, peerNodes) {
+  #|    selectNode(id, true);
+  #|    state.navigationPeerIds = Array.isArray(peerNodes) ? peerNodes.map(node => node.id) : null;
+  #|    requestAnimationFrame(() => {
+  #|      const list = document.getElementById('milestone-list');
+  #|      const row = list ? [...list.querySelectorAll('[data-node-id]')].find(item => item.getAttribute('data-node-id') === id) : null;
+  #|      if (row) row.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  #|    });
+  #|  }
+  #|
+  #|  function selectSidebarNodeByOrder(direction) {
+  #|    const nodes = sidebarNodes();
+  #|    if (nodes.length === 0) return false;
+  #|    let index = state.selectedId ? nodes.findIndex(node => node.id === state.selectedId) : -1;
+  #|    if (index === -1) {
+  #|      index = direction === 'up' ? nodes.length : -1;
+  #|    }
+  #|    const delta = direction === 'up' ? -1 : 1;
+  #|    const target = nodes[(index + delta + nodes.length) % nodes.length];
+  #|    selectAndRevealNode(target.id);
+  #|    return true;
+  #|  }
+  #|
+  #|  function relatedVisibleNodes(id, direction) {
+  #|    const seen = new Set();
+  #|    const nodes = [];
+  #|    for (const edge of state.visibleEdges) {
+  #|      if (edge.kind !== 'dep') continue;
+  #|      const relatedId = direction === 'out'
+  #|        ? (edge.source === id ? edge.target : null)
+  #|        : (edge.target === id ? edge.source : null);
+  #|      if (!relatedId || seen.has(relatedId)) continue;
+  #|      const node = state.nodeById.get(relatedId);
+  #|      if (!node) continue;
+  #|      seen.add(relatedId);
+  #|      nodes.push(node);
+  #|    }
+  #|    nodes.sort(nodeSortKey);
+  #|    return nodes;
+  #|  }
+  #|
+  #|  function visiblePeerNodes() {
+  #|    if (!Array.isArray(state.navigationPeerIds)) return [];
+  #|    const visibleIds = new Set(state.visibleNodes.map(node => node.id));
+  #|    return state.navigationPeerIds
+  #|      .filter(id => visibleIds.has(id))
+  #|      .map(id => state.nodeById.get(id))
+  #|      .filter(Boolean);
+  #|  }
+  #|
+  #|  function selectRelatedNode(direction) {
+  #|    if (!state.selectedId) return false;
+  #|    const candidates = relatedVisibleNodes(state.selectedId, direction);
+  #|    if (candidates.length === 0) return false;
+  #|    selectAndRevealNode(candidates[0].id, candidates);
+  #|    return true;
+  #|  }
+  #|
+  #|  function selectPeerNode(direction) {
+  #|    const current = state.selectedId ? state.nodeById.get(state.selectedId) : null;
+  #|    if (!current) return false;
+  #|    const peers = visiblePeerNodes();
+  #|    if (peers.length <= 1 || !peers.some(node => node.id === current.id)) {
+  #|      const outbound = relatedVisibleNodes(current.id, 'out');
+  #|      if (outbound.length > 0) {
+  #|        const target = direction === 'up' ? outbound[outbound.length - 1] : outbound[0];
+  #|        selectAndRevealNode(target.id, outbound);
+  #|        return true;
+  #|      }
+  #|      const inbound = relatedVisibleNodes(current.id, 'in');
+  #|      if (inbound.length > 0) {
+  #|        const target = direction === 'up' ? inbound[inbound.length - 1] : inbound[0];
+  #|        selectAndRevealNode(target.id, inbound);
+  #|        return true;
+  #|      }
+  #|      return false;
+  #|    }
+  #|    let index = peers.findIndex(node => node.id === current.id);
+  #|    const delta = direction === 'up' ? -1 : 1;
+  #|    const next = peers[(index + delta + peers.length) % peers.length];
+  #|    if (!next || next.id === current.id) return false;
+  #|    selectAndRevealNode(next.id, peers);
+  #|    return true;
+  #|  }
+  #|
+  #|  function selectFinalGoalNode() {
+  #|    const nodes = sidebarNodes();
+  #|    if (nodes.length === 0) return false;
+  #|    const outgoing = new Set(state.visibleEdges.filter(edge => edge.kind === 'dep').map(edge => edge.source));
+  #|    const candidates = nodes.filter(node => !outgoing.has(node.id));
+  #|    const pool = candidates.length > 0 ? candidates : nodes;
+  #|    const target = [...pool].sort((a, b) => b.x - a.x || a.y - b.y || a.title.localeCompare(b.title) || a.id.localeCompare(b.id))[0];
+  #|    if (!target) return false;
+  #|    selectAndRevealNode(target.id);
+  #|    return true;
+  #|  }
+  #|
+  #|  function handleNodeNavigation(event) {
+  #|    const key = shortcutEventKey(event);
+  #|    if ((key === 'arrowup' || key === 'arrowdown') && !state.selectedId) {
+  #|      return false;
+  #|    }
+  #|    if (key === 'arrowup' || key === 'arrowdown') {
+  #|      return selectPeerNode(key === 'arrowup' ? 'up' : 'down');
+  #|    }
+  #|    if (key === 'arrowright') return selectRelatedNode('out');
+  #|    if (key === 'arrowleft') return selectRelatedNode('in');
+  #|    if (key === 'enter') return selectFinalGoalNode();
+  #|    return false;
+  #|  }
+  #|
+  #|  function handleSidebarNavigation(event) {
+  #|    const key = shortcutEventKey(event);
+  #|    if (key === 'arrowup' || key === 'home') return selectSidebarNodeByOrder('up');
+  #|    if (key === 'arrowdown' || key === 'end') return selectSidebarNodeByOrder('down');
+  #|    return false;
   #|  }
   #|
   #|  function zoomAt(screenX, screenY, factor) {
@@ -1656,22 +2013,35 @@ let page_tail : String =
   #|    const resetButton = document.getElementById('reset-layout');
   #|    const resetShortcut = SHORTCUTS.resetLayout;
   #|    resetButton.setAttribute('aria-label', resetShortcut.actionLabel + ' (' + shortcutHint(resetShortcut) + ')');
-  #|    resetButton.setAttribute('aria-keyshortcuts', shortcutHint(resetShortcut));
+  #|    resetButton.setAttribute('aria-keyshortcuts', ariaShortcutKeys(resetShortcut));
   #|    resetButton.addEventListener('click', resetLayout);
+  #|    const nodeNavigationShortcut = SHORTCUTS.nodeNavigation;
+  #|    const sidebarNavigationShortcut = SHORTCUTS.sidebarNavigation;
+  #|    canvas.setAttribute('aria-label', 'DAG 节点图');
+  #|    canvas.setAttribute('aria-keyshortcuts', ariaShortcutKeys(nodeNavigationShortcut) + ' ' + ariaShortcutKeys(sidebarNavigationShortcut));
+  #|    canvas.setAttribute('tabindex', '0');
   #|    document.getElementById('zoom-in').addEventListener('click', () => zoomAt((canvas.clientWidth || 800) / 2, (canvas.clientHeight || 600) / 2, 1.18));
   #|    document.getElementById('zoom-out').addEventListener('click', () => zoomAt((canvas.clientWidth || 800) / 2, (canvas.clientHeight || 600) / 2, 1 / 1.18));
   #|    document.getElementById('fit-view').addEventListener('click', () => fitView(true));
   #|    document.getElementById('clear-focus').addEventListener('click', () => selectNode(null, false));
   #|
-  #|    window.addEventListener('keydown', event => {
+  #|    document.addEventListener('keydown', event => {
   #|      if (event.defaultPrevented || event.isComposing || event.repeat) return;
-  #|      if (event.ctrlKey || event.altKey || event.metaKey) return;
+  #|      if (event.ctrlKey || event.altKey) return;
+  #|      if (matchesShortcut(event, sidebarNavigationShortcut) && handleSidebarNavigation(event)) {
+  #|        event.preventDefault();
+  #|        return;
+  #|      }
   #|      if (isTypingTarget(event.target)) return;
   #|      if (matchesShortcut(event, resetShortcut)) {
   #|        event.preventDefault();
   #|        resetLayout();
+  #|        return;
   #|      }
-  #|    });
+  #|      if (matchesShortcut(event, nodeNavigationShortcut) && handleNodeNavigation(event)) {
+  #|        event.preventDefault();
+  #|      }
+  #|    }, { capture: true });
   #|
   #|    canvas.addEventListener('wheel', event => {
   #|      event.preventDefault();
@@ -1682,6 +2052,7 @@ let page_tail : String =
   #|
   #|    canvas.addEventListener('mousedown', event => {
   #|      if (event.button !== 0) return;
+  #|      hideNodeTooltip();
   #|      const rect = canvas.getBoundingClientRect();
   #|      const x = event.clientX - rect.left;
   #|      const y = event.clientY - rect.top;
@@ -1714,6 +2085,11 @@ let page_tail : String =
   #|      } else {
   #|        const hover = hitTest(x, y);
   #|        state.hoveredId = hover ? hover.id : null;
+  #|        if (hover) {
+  #|          showNodeTooltip(hover, event.clientX, event.clientY);
+  #|        } else {
+  #|          hideNodeTooltip();
+  #|        }
   #|      }
   #|    });
   #|
@@ -1730,6 +2106,7 @@ let page_tail : String =
   #|
   #|    canvas.addEventListener('mouseleave', () => {
   #|      state.hoveredId = null;
+  #|      hideNodeTooltip();
   #|    });
   #|  }
   #|

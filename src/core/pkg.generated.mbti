@@ -12,7 +12,15 @@ pub fn builtin_templates() -> Array[Template] raise DagError
 
 pub fn default_config() -> VmapConfig
 
+pub let default_dir : String
+
 pub let default_path : String
+
+pub let default_render_path : String
+
+pub fn ensure_dir(String) -> Unit raise DagError
+
+pub fn ensure_parent_dir(String) -> Unit raise DagError
 
 pub fn find_template_by_name(String) -> Template? raise DagError
 
@@ -31,6 +39,10 @@ pub(all) suberror DagError {
   DuplicateId(String)
   UnknownId(String)
   UnknownGoal(String)
+  UnknownRelease(String)
+  DuplicateRelease(String)
+  ReleaseHasMembers(String, Array[String])
+  ReleaseStatusRegression(String, String, String)
   CycleDetected(String)
   InvalidMetadata(String)
   IoError(String)
@@ -82,23 +94,44 @@ pub(all) struct Dag {
   project : Project
   goals : Array[Goal]
   tasks : Array[Task]
+  mut releases : Array[ReleaseConfig]?
 }
+pub fn Dag::add_dep(Self, String, String) -> Unit raise DagError
+pub fn Dag::add_doc(Self, String, String) -> Unit raise DagError
 pub fn Dag::add_goal(Self, id~ : String, title~ : String, description? : String, deps? : Array[String], closure? : String, formal? : String, product? : String, milestone? : String, owner? : String, issue_count? : Int, focus? : Bool, archived? : Bool, promoted_at? : Map[String, String], gh_query? : String, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
+pub fn Dag::add_release(Self, key~ : String, label_en~ : String, label_zh~ : String, target? : String, status? : String, notes? : String) -> Unit raise DagError
 pub fn Dag::add_task(Self, id~ : String, goal~ : String, title~ : String, deps? : Array[String], notes? : String, status? : Status, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
+pub fn Dag::add_test(Self, String, String) -> Unit raise DagError
 pub fn Dag::assert_acyclic(Self) -> Unit raise DagError
+pub fn Dag::assign_release(Self, String, String) -> Unit raise DagError
 pub fn Dag::audit(Self) -> AuditReport
 pub fn Dag::backfill(Self, String, Template) -> BackfillReport raise DagError
 pub fn Dag::backfill_moonbit(Self, String) -> BackfillReport raise DagError
+pub fn Dag::downstream(Self, String) -> Array[String]
 pub fn Dag::effective_config(Self) -> VmapConfig
 pub fn Dag::empty(String) -> Self
 pub fn Dag::find_goal(Self, String) -> (Int, Goal)?
+pub fn Dag::find_release(Self, String) -> (Int, ReleaseConfig)?
 pub fn Dag::find_task(Self, String) -> (Int, Task)?
+pub fn Dag::has_any_release(Self) -> Bool
 pub fn Dag::has_goal(Self, String) -> Bool
 pub fn Dag::has_id(Self, String) -> Bool
+pub fn Dag::has_release(Self, String) -> Bool
 pub fn Dag::has_task(Self, String) -> Bool
+pub fn Dag::kind_of(Self, String) -> String?
 pub fn Dag::plan_from_docs(Self, Array[String], format? : String) -> PlanReport raise DagError
 pub fn Dag::progress(Self, String) -> (Int, Int)
+pub fn Dag::release_member_ids(Self, String) -> Array[String]
+pub fn Dag::release_members(Self, String) -> Array[Goal]
+pub fn Dag::release_progress(Self, String) -> ReleaseProgress raise DagError
 pub fn Dag::remove(Self, String) -> Unit raise DagError
+pub fn Dag::remove_dep(Self, String, String) -> Unit raise DagError
+pub fn Dag::remove_doc(Self, String, String) -> Unit raise DagError
+pub fn Dag::remove_release(Self, String, force? : Bool) -> Unit raise DagError
+pub fn Dag::remove_test(Self, String, String) -> Unit raise DagError
+pub fn Dag::rename(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_deps(Self, String, Array[String]) -> Unit raise DagError
+pub fn Dag::set_description(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_docs(Self, String, Array[String]) -> Unit raise DagError
 pub fn Dag::set_goal_archived(Self, String, Bool) -> Unit raise DagError
 pub fn Dag::set_goal_closure(Self, String, String) -> Unit raise DagError
@@ -111,10 +144,16 @@ pub fn Dag::set_goal_owner(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_goal_product(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_goal_promoted_at(Self, String, Map[String, String]) -> Unit raise DagError
 pub fn Dag::set_regression_testable(Self, String, Bool) -> Unit raise DagError
+pub fn Dag::set_release_closed_at(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_task_goal(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_task_notes(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_tests(Self, String, Array[String]) -> Unit raise DagError
 pub fn Dag::tasks_of(Self, String) -> Array[Task]
+pub fn Dag::unassign_release(Self, String, Array[String]) -> Unit raise DagError
+pub fn Dag::update_release(Self, String, label_en? : String, label_zh? : String, target? : String, status? : String, notes? : String, clear_target? : Bool, clear_notes? : Bool) -> Unit raise DagError
 pub fn Dag::update_status(Self, String, Status) -> Unit raise DagError
 pub fn Dag::update_title(Self, String, String) -> Unit raise DagError
+pub fn Dag::upstream(Self, String) -> Array[String]
 pub fn Dag::validate(Self) -> Unit raise DagError
 pub impl Eq for Dag
 pub impl Show for Dag
@@ -262,6 +301,29 @@ pub impl Eq for Project
 pub impl Show for Project
 pub impl ToJson for Project
 pub impl @json.FromJson for Project
+
+pub(all) struct ReleaseConfig {
+  key : String
+  label : LocalizedText
+  target : String?
+  status : String
+  notes : String?
+  closed_at : String?
+}
+pub impl Eq for ReleaseConfig
+pub impl Show for ReleaseConfig
+pub impl ToJson for ReleaseConfig
+pub impl @json.FromJson for ReleaseConfig
+
+pub(all) struct ReleaseProgress {
+  release : ReleaseConfig
+  total_goals : Int
+  by_closure : Map[String, Int]
+  blocked : Array[String]
+  ready_to_close : Bool
+}
+pub impl Show for ReleaseProgress
+pub impl ToJson for ReleaseProgress
 
 pub(all) struct SourceRule {
   globs : Array[String]
