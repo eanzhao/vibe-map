@@ -10,6 +10,19 @@
 
 不是问"这要改哪个文件"，是问"用户能多做一件什么事"。
 
+**如果需求来自 GitHub issue** —— 先用 `gh` 拉完整对话，可能比用户口头转述的还全：
+
+```bash
+# 用户引用了一个 #号
+gh issue view <number>
+gh issue view <number> --comments
+
+# 或者去 repo 翻最近 open 的看背景
+gh issue list --state open --label enhancement --limit 10
+```
+
+让 issue 的 `<number>` 落进 vmap：goal 的 `--gh-query "is:issue repo:owner/repo <ref>"` 或 task 的 `--docs "https://github.com/.../issues/<num>"`。
+
 举例：
 
 | 用户说 | 错的 goal | 对的 goal |

@@ -13,7 +13,8 @@
 
 0. **如果项目里还没有 `.vmap/`**——这是**冷启动**场景，先读 `skills/playbooks/bootstrap-existing-codebase.md`，建一份初版 DAG 让用户审视，再继续。**不要默认跑 backfill 就完事**——出来的是 package 镜像不是语义 DAG。
 1. **从 PRD/README/issue 提语义 goal**——不是按文件、不是按 package
-2. **vmap add goal** 加进图，标 `--focus` 表示当前在做
+   - 如果是 GitHub repo（`git remote -v` 含 github.com）且 `gh auth status` ok，**先 `gh issue list --state open`** 扫一眼活的需求作为 PRD 信号
+2. **vmap add goal** 加进图，标 `--focus` 表示当前在做；如果来自 issue，把 `--gh-query "is:issue ..."` 和 `--docs "https://github.com/.../issues/N"` 都写上
 3. **拆 task** 用 vmap add task，把实现路径写下来（多个文件 / 跨多 package 都没关系）
 4. **每完成一步** vmap update --status done（auto-render 会立刻刷新 .vmap/vibe-map.html）
 5. **closure 单调推进** 用 vmap update --closure scoped/public/bridged/mature 标"做到哪个阶段了"

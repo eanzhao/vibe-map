@@ -159,6 +159,23 @@ python3 tools/audit_github.py --file .vmap/vibe-map.json --strict
 python3 tools/audit_github.py --file .vmap/vibe-map.json --markdown   # 适合 PR comment
 ```
 
+GitHub issues 当 PRD 来源（需要 `gh` CLI + `gh auth login`）：
+```bash
+# 判断 + 列 open issues
+git remote -v | grep -q github.com && gh issue list --state open --limit 50
+gh issue list --state open --label "enhancement"
+gh issue list --state open --label "bug"
+gh issue list --state open --milestone "v1.0"
+
+# 看具体 issue 的完整对话
+gh issue view <number>
+gh issue view <number> --comments
+
+# 把 issue 关联进 vmap
+vmap add goal --id goal-... --gh-query "is:issue repo:<owner>/<repo> <ref>"
+vmap update <task> --add-doc "https://github.com/<owner>/<repo>/issues/<num>"
+```
+
 ## 救援工具（对老 codebase）
 
 ```bash

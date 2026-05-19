@@ -59,8 +59,8 @@ Trigger words / situations:
 
 | User says or you observe | First move |
 |---|---|
-| **`.vmap/` 不存在 + 代码已经一大坨**（冷启动场景） | Read `skills/playbooks/bootstrap-existing-codebase.md`. **Do not** blindly run `vmap backfill` — it gives a package-shaped DAG, which is not what we want. |
-| "加一个 feature / 接到新需求 / 帮我做 X" | Read `skills/playbooks/new-feature.md`, run `vmap add goal ...` (semantic, not package) |
+| **`.vmap/` 不存在 + 代码已经一大坨**（冷启动场景） | Read `skills/playbooks/bootstrap-existing-codebase.md`. **Do not** blindly run `vmap backfill` — it gives a package-shaped DAG, which is not what we want. **If the repo is on GitHub**, also run `gh issue list --state open` early — open issues are the freshest PRD signal. |
+| "加一个 feature / 接到新需求 / 帮我做 X" | Read `skills/playbooks/new-feature.md`, run `vmap add goal ...` (semantic, not package). If the request references a GitHub issue (`#N`), `gh issue view N` first for the full context. |
 | "做完了 X" / "finished X" | `vmap update <id> --status done` (also `--add-test`, `--add-doc` if applicable) |
 | "现在做到哪了" / "what's the status" / "where are we" | Read `skills/playbooks/daily-progress.md`, run `vmap status` or `vmap list goals --focus` |
 | `vmap audit` reports violations (exit 3) | Read `skills/playbooks/audit-fix-loop.md`, fix each violation, re-audit |
@@ -72,6 +72,7 @@ Also activate proactively when:
 - After any non-trivial change to the codebase, **before reporting back to the user**, record the work as a task and mark it done.
 - When the user describes their goal at the start of a session — capture it as a goal before writing code.
 - When the user gives you a new project that has no `.vmap/` yet — trigger the cold-start playbook before doing anything else.
+- **When `git remote` points at github.com**: keep `gh issue list --state open` in your toolkit as an ongoing PRD signal — refresh it when starting new work or when the user references an issue number.
 
 ## Canonical playbooks
 

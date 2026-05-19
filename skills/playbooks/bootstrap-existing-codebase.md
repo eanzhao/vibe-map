@@ -42,6 +42,66 @@ find . -type f -name "*.md" \
 | 主入口文件顶部注释 / 模块 docstring | 项目自述 |
 | CLI 项目：`<binary> --help` 列出的命令族 | 每条命令 ≈ 一个 user-facing 能力 |
 | Web 项目：`routes/`、`pages/`、`controllers/` 的命名 | URL 路径揭示能力 |
+| **GitHub Issues**（如果 repo 在 github） | **当前活的需求/痛点；比 README 更新** |
+
+### 如果是 GitHub repo，跑一遍 issues
+
+最常被 vibe-map 漏掉的 PRD 来源——issues 通常代表用户**正在表达的需求**，比静态文档更接近"现在该做什么"。
+
+判断 + 拉取：
+
+```bash
+# 是 GitHub repo 吗？
+git remote -v | grep -q github.com && echo "yes" || echo "no"
+
+# gh 装了且登录了吗？
+gh auth status 2>&1 | head -1
+
+# 拉 open issues（标题 + body 摘要 + labels）
+gh issue list --state open --limit 50 --json number,title,labels,body \
+  | head -200
+
+# 按标签分组看
+gh issue list --state open --label "enhancement" --limit 30
+gh issue list --state open --label "bug" --limit 30
+gh issue list --state open --milestone "v1.0" --limit 30   # 如果有 milestone
+
+# 已 closed 的也扫一眼（"已交付的能力"反向追溯）
+gh issue list --state closed --limit 30
+```
+
+如果没装 `gh` 或没登录，跳过这一步并告诉用户："建议装 gh CLI 并登录，issues 是接最 fresh 的 PRD 信号；这次先跳过"。
+
+每条 issue 怎么处理：
+
+| Issue 类型 | 处理 |
+|---|---|
+| 用户视角的**新能力**（"add support for X"、"希望能 Y"） | 候选 goal。`vmap add goal --id goal-<slug> --gh-query "is:issue <num>"` |
+| **bug 修复**（"X 不工作"） | 通常归到现有 goal 下的 task，**不是新 goal**。如果是大 bug 才单独抽 |
+| **内部重构 / 技术债** | 不抽 goal。AI 可以 `vmap add task` 在某 goal 下，或者标 `--notes` 提一句 |
+| **问问题 / 求助** | 跳过，不是 PRD |
+| **重复或已实现** | 跳过 |
+
+把 issue 编号带进 vmap：
+
+```bash
+# 单个 issue 落到 goal
+vmap add goal --id goal-graphql-api \
+  --title "用户能用 GraphQL 查询数据" \
+  --description "原始需求：#42 + #51" \
+  --gh-query "is:issue repo:owner/repo label:graphql" \
+  --issue-count 2 \
+  --closure obligation \
+  --owner alice
+
+# 已有 goal，issue 作为 task
+vmap add task --id t-fix-pagination-bug \
+  --goal goal-graphql-api \
+  --title "修分页 bug (#73)" \
+  --docs "https://github.com/owner/repo/issues/73"
+```
+
+`--gh-query` 字段后续会被 `tools/audit_github.py` 用来检查 issue 数漂移——和 release 的 closed/open 状态对得上。
 
 **快速跳过**（这一步别陷进去）：
 - 实现细节文件（`utils/`、`helpers/`、`internal/`、`_lib/`）
@@ -159,9 +219,12 @@ vmap plan --docs README.md docs/ROADMAP.md
 # TODO 注释（不是每条都该是 goal，挑用户可感知的）
 grep -rn "TODO\|FIXME\|XXX" --include="*.<ext>" -- . | head -30
 
-# 已有的 GitHub Issues（如果有）
-gh issue list --limit 30
+# 已有的 GitHub Issues（如果 step 2 还没扫过）
+gh issue list --state open --limit 30
+gh issue list --state open --label "good first issue"
 ```
+
+如果 step 2 已经过了 issues，这里只补"step 2 时不确定要不要抽 goal 的边角"。
 
 新发现的能力，补成 `vmap add goal`：
 - 还没开干：`--closure seed`
