@@ -121,30 +121,53 @@ fn page_head(title : String) -> String {
     $|  .top-stats {
     $|    display: flex;
     $|    align-items: center;
-    $|    gap: 8px;
+    $|    gap: 16px;
     $|    flex-wrap: wrap;
     $|    justify-content: flex-end;
     $|  }
     $|
-    $|  .metric {
-    $|    min-width: 74px;
-    $|    padding: 7px 9px;
-    $|    border: 1px solid var(--border-subtle);
-    $|    border-radius: var(--radius);
-    $|    background: rgba(17, 23, 34, 0.72);
+    $|  .top-progress {
+    $|    display: grid;
+    $|    grid-template-columns: minmax(0, 1fr);
+    $|    gap: 6px;
+    $|    min-width: 168px;
     $|  }
     $|
-    $|  .metric b {
-    $|    display: block;
-    $|    color: var(--text-primary);
-    $|    font: 700 14px ui-monospace, SFMono-Regular, Menlo, monospace;
-    $|  }
-    $|
-    $|  .metric span {
-    $|    display: block;
-    $|    margin-top: 2px;
+    $|  .top-progress-text {
+    $|    display: flex;
+    $|    align-items: baseline;
+    $|    justify-content: space-between;
+    $|    gap: 10px;
     $|    color: var(--text-muted);
-    $|    font-size: 10px;
+    $|    font-size: 11px;
+    $|  }
+    $|
+    $|  .top-progress-text b {
+    $|    color: var(--text-primary);
+    $|    font: 700 18px ui-monospace, SFMono-Regular, Menlo, monospace;
+    $|    letter-spacing: -0.01em;
+    $|  }
+    $|
+    $|  .top-progress .progress {
+    $|    height: 4px;
+    $|  }
+    $|
+    $|  .top-meta {
+    $|    display: flex;
+    $|    align-items: center;
+    $|    gap: 8px;
+    $|    color: var(--text-muted);
+    $|    font-size: 11px;
+    $|  }
+    $|
+    $|  .top-meta b {
+    $|    margin-right: 4px;
+    $|    color: var(--text-primary);
+    $|    font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+    $|  }
+    $|
+    $|  .top-meta-sep {
+    $|    color: var(--text-dimmed);
     $|  }
     $|
     $|  .workspace {
@@ -312,18 +335,6 @@ fn page_head(title : String) -> String {
     $|    min-width: 0;
     $|  }
     $|
-    $|  .canvas-title-mark {
-    $|    width: 34px;
-    $|    height: 34px;
-    $|    border: 1px solid rgba(134, 239, 172, 0.5);
-    $|    border-radius: var(--radius);
-    $|    background: rgba(134, 239, 172, 0.1);
-    $|    color: var(--green);
-    $|    display: grid;
-    $|    place-items: center;
-    $|    box-shadow: 0 0 24px rgba(134, 239, 172, 0.13);
-    $|  }
-    $|
     $|  .filter-bar, .toolbar, .legend {
     $|    display: flex;
     $|    align-items: center;
@@ -331,7 +342,7 @@ fn page_head(title : String) -> String {
     $|    flex-wrap: wrap;
     $|  }
     $|
-    $|  .filter-button, .icon-button {
+    $|  .icon-button {
     $|    border: 1px solid var(--border-subtle);
     $|    border-radius: 7px;
     $|    background: rgba(15, 23, 42, 0.72);
@@ -339,17 +350,43 @@ fn page_head(title : String) -> String {
     $|    transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
     $|  }
     $|
-    $|  .filter-button {
-    $|    min-width: 54px;
-    $|    padding: 6px 9px;
-    $|    font-size: 11px;
-    $|  }
-    $|
-    $|  .filter-button:hover, .filter-button.active,
     $|  .icon-button:hover {
     $|    border-color: rgba(125, 211, 252, 0.5);
     $|    background: rgba(14, 165, 233, 0.12);
     $|    color: var(--cyan);
+    $|  }
+    $|
+    $|  .filter-button {
+    $|    position: relative;
+    $|    min-width: 42px;
+    $|    padding: 6px 4px;
+    $|    border: 0;
+    $|    background: transparent;
+    $|    color: var(--text-dimmed);
+    $|    font-size: 11px;
+    $|    transition: color 140ms ease;
+    $|  }
+    $|
+    $|  .filter-button::after {
+    $|    content: '';
+    $|    position: absolute;
+    $|    left: 4px;
+    $|    right: 4px;
+    $|    bottom: 0;
+    $|    height: 2px;
+    $|    border-radius: 2px;
+    $|    background: transparent;
+    $|    transition: background 140ms ease;
+    $|  }
+    $|
+    $|  .filter-button:hover { color: var(--text-secondary); }
+    $|
+    $|  .filter-button.active {
+    $|    color: var(--text-primary);
+    $|  }
+    $|
+    $|  .filter-button.active::after {
+    $|    background: var(--cyan);
     $|  }
     $|
     $|  .icon-button {
@@ -370,10 +407,10 @@ fn page_head(title : String) -> String {
     $|    position: relative;
     $|    min-height: 0;
     $|    background:
-    $|      linear-gradient(rgba(125, 211, 252, 0.05) 1px, transparent 1px),
-    $|      linear-gradient(90deg, rgba(125, 211, 252, 0.05) 1px, transparent 1px),
+    $|      radial-gradient(rgba(148, 163, 184, 0.10) 1px, transparent 1.4px),
     $|      #080c12;
-    $|    background-size: 44px 44px;
+    $|    background-size: 28px 28px;
+    $|    background-position: 0 0, 0 0;
     $|  }
     $|
     $|  #map-canvas {
@@ -383,6 +420,7 @@ fn page_head(title : String) -> String {
     $|    cursor: grab;
     $|  }
     $|
+    $|  #map-canvas.node-grab { cursor: move; }
     $|  #map-canvas.dragging { cursor: grabbing; }
     $|
     $|  .node-tooltip {
@@ -489,16 +527,16 @@ fn page_head(title : String) -> String {
     $|
     $|  .legend {
     $|    justify-content: space-between;
-    $|    padding: 9px 12px;
+    $|    padding: 7px 12px;
     $|    border-top: 1px solid var(--border-subtle);
-    $|    color: var(--text-muted);
-    $|    font-size: 11px;
+    $|    color: var(--text-dimmed);
+    $|    font-size: 10px;
     $|  }
     $|
     $|  .legend-group {
     $|    display: flex;
     $|    align-items: center;
-    $|    gap: 10px;
+    $|    gap: 12px;
     $|    flex-wrap: wrap;
     $|  }
     $|
@@ -510,10 +548,9 @@ fn page_head(title : String) -> String {
     $|  }
     $|
     $|  .legend-shape {
-    $|    width: 10px;
-    $|    height: 10px;
+    $|    width: 8px;
+    $|    height: 8px;
     $|    background: var(--legend-color);
-    $|    box-shadow: 0 0 12px var(--legend-glow, transparent);
     $|  }
     $|
     $|  .legend-shape.circle { border-radius: 999px; }
@@ -723,7 +760,8 @@ fn page_head(title : String) -> String {
     $|    .canvas-head { align-items: stretch; flex-direction: column; }
     $|    .filter-bar, .toolbar { width: 100%; }
     $|    .filter-button { flex: 1 1 0; min-width: 0; }
-    $|    .metric { flex: 1 1 calc(50% - 8px); }
+    $|    .top-stats { width: 100%; justify-content: flex-start; gap: 12px; }
+    $|    .top-progress { flex: 1 1 100%; }
     $|    .legend { align-items: flex-start; flex-direction: column; }
     $|    .node-modal-backdrop { padding: 10px; }
     $|    .node-modal { width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
@@ -743,10 +781,20 @@ fn page_head(title : String) -> String {
     $|      </div>
     $|    </div>
     $|    <div class="top-stats" aria-label="DAG summary">
-    $|      <div class="metric"><b id="metric-progress">0%</b><span>完成度</span></div>
-    $|      <div class="metric"><b id="metric-milestones">0</b><span>目标</span></div>
-    $|      <div class="metric"><b id="metric-issues">0</b><span>任务</span></div>
-    $|      <div class="metric"><b id="metric-deps">0</b><span>连线</span></div>
+    $|      <div class="top-progress" aria-label="整体完成度">
+    $|        <div class="top-progress-text">
+    $|          <b id="metric-progress">0%</b>
+    $|          <span id="overall-progress-label">0/0</span>
+    $|        </div>
+    $|        <div class="progress"><span id="overall-progress-bar"></span></div>
+    $|      </div>
+    $|      <div class="top-meta">
+    $|        <span><b id="metric-milestones">0</b>目标</span>
+    $|        <span class="top-meta-sep" aria-hidden="true">·</span>
+    $|        <span><b id="metric-issues">0</b>任务</span>
+    $|        <span class="top-meta-sep" aria-hidden="true">·</span>
+    $|        <span><b id="metric-deps">0</b>依赖</span>
+    $|      </div>
     $|    </div>
     $|  </header>
     $|  <main class="workspace">
@@ -758,10 +806,6 @@ fn page_head(title : String) -> String {
     $|        </div>
     $|      </div>
     $|      <div class="panel-body">
-    $|        <div class="progress-row">
-    $|          <label><span>整体完成</span><span id="overall-progress-label">0/0</span></label>
-    $|          <div class="progress"><span id="overall-progress-bar"></span></div>
-    $|        </div>
     $|        <div class="control-stack">
     $|          <input class="search-input" id="goal-search" type="search" placeholder="搜索 goal / owner / milestone" aria-label="搜索 goal" />
     $|          <select class="select-input" id="product-filter" aria-label="产品筛选">
@@ -775,15 +819,6 @@ fn page_head(title : String) -> String {
     $|    <section class="canvas-shell">
     $|      <div class="canvas-head">
     $|        <div class="canvas-title">
-    $|          <div class="canvas-title-mark" aria-hidden="true">
-    $|            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    $|              <path d="M7 7h.01M17 7h.01M12 17h.01" />
-    $|              <path d="M8 7h8M7.5 8l4 8M16.5 8l-4 8" />
-    $|              <circle cx="7" cy="7" r="3" />
-    $|              <circle cx="17" cy="7" r="3" />
-    $|              <circle cx="12" cy="17" r="3" />
-    $|            </svg>
-    $|          </div>
     $|          <div>
     $|            <h2 class="panel-title">拓扑图</h2>
     $|            <p class="panel-subtitle" id="canvas-subtitle"></p>
@@ -886,12 +921,12 @@ let page_tail : String =
   #|  const DEFAULT_CONFIG = {
   #|    products: [{ key: 'default', label: { en: 'Default', zh: '默认' } }],
   #|    closure_tiers: [
-  #|      { key: 'seed', label: { en: 'Proposed', zh: '提出' }, color: '#94a3b8', trigger: { en: 'issue / discussion created', zh: 'issue / discussion 已创建' } },
-  #|      { key: 'obligation', label: { en: 'Claimed', zh: '接手' }, color: '#38bdf8', trigger: { en: 'assignee set', zh: 'assignee 字段非空' } },
-  #|      { key: 'scoped', label: { en: 'Designed', zh: '设计完' }, color: '#a78bfa', trigger: { en: 'RFC / ADR / design doc merged', zh: 'RFC / ADR / 设计 doc merged' } },
-  #|      { key: 'public', label: { en: 'Committed', zh: '已承诺' }, color: '#fdba74', trigger: { en: 'external commitment published', zh: '对外承诺已发' } },
-  #|      { key: 'bridged', label: { en: 'Integrated', zh: '已集成' }, color: '#2dd4bf', trigger: { en: 'up/downstream closed + smoke passed', zh: '上下游 closed + smoke 通过' } },
-  #|      { key: 'mature', label: { en: 'Operating', zh: '运行中' }, color: '#34d399', trigger: { en: '30 days incident-free', zh: '30 天无 incident' } },
+  #|      { key: 'seed', label: { en: 'Proposed', zh: '提出' }, color: '#475569', trigger: { en: 'issue / discussion created', zh: 'issue / discussion 已创建' } },
+  #|      { key: 'obligation', label: { en: 'Claimed', zh: '接手' }, color: '#2563eb', trigger: { en: 'assignee set', zh: 'assignee 字段非空' } },
+  #|      { key: 'scoped', label: { en: 'Designed', zh: '设计完' }, color: '#6366f1', trigger: { en: 'RFC / ADR / design doc merged', zh: 'RFC / ADR / 设计 doc merged' } },
+  #|      { key: 'public', label: { en: 'Committed', zh: '已承诺' }, color: '#f59e0b', trigger: { en: 'external commitment published', zh: '对外承诺已发' } },
+  #|      { key: 'bridged', label: { en: 'Integrated', zh: '已集成' }, color: '#16a34a', trigger: { en: 'up/downstream closed + smoke passed', zh: '上下游 closed + smoke 通过' } },
+  #|      { key: 'mature', label: { en: 'Operating', zh: '运行中' }, color: '#4ade80', trigger: { en: '30 days incident-free', zh: '30 天无 incident' } },
   #|    ],
   #|    formal_levels: [
   #|      { key: 'none', label: { en: 'No automation', zh: '无自动化' } },
@@ -1542,6 +1577,9 @@ let page_tail : String =
   #|    if (!source || !target) return;
   #|    const isFocused = state.focusIds && state.focusIds.has(source.id) && state.focusIds.has(target.id);
   #|    const isDimmed = state.focusIds && !isFocused;
+  #|    const touchesSelected = state.selectedId && (source.id === state.selectedId || target.id === state.selectedId);
+  #|    const touchesHovered = state.hoveredId && (source.id === state.hoveredId || target.id === state.hoveredId);
+  #|    const highlight = isFocused || touchesSelected || touchesHovered;
   #|    const forward = target.x >= source.x;
   #|    const sourceSide = forward ? 1 : -1;
   #|    const targetSide = forward ? -1 : 1;
@@ -1563,24 +1601,31 @@ let page_tail : String =
   #|    const control1Y = startY + bend;
   #|    const control2X = midX;
   #|    const control2Y = endY + bend;
-  #|    const color = edge.derived ? '#bae6fd' : '#fcd34d';
-  #|    const glow = edge.derived ? 'rgba(186,230,253,0.58)' : 'rgba(252,211,77,0.75)';
+  #|    const idleColor = edge.derived ? 'rgba(125,211,252,0.22)' : 'rgba(148,163,184,0.28)';
+  #|    const hotColor = edge.derived ? '#7dd3fc' : '#fcd34d';
+  #|    const hotGlow = edge.derived ? 'rgba(125,211,252,0.7)' : 'rgba(252,211,77,0.85)';
   #|
   #|    ctx.save();
-  #|    ctx.globalAlpha = isDimmed ? 0.12 : 0.95;
-  #|    ctx.lineWidth = isFocused ? 4 : 2.8;
-  #|    ctx.strokeStyle = isFocused ? '#fcd34d' : color;
-  #|    ctx.shadowColor = isFocused ? 'rgba(252,211,77,0.9)' : glow;
-  #|    ctx.shadowBlur = isFocused ? 20 : 14;
+  #|    if (isDimmed) {
+  #|      ctx.globalAlpha = 0.08;
+  #|    } else if (highlight) {
+  #|      ctx.globalAlpha = 0.95;
+  #|    } else {
+  #|      ctx.globalAlpha = 0.55;
+  #|    }
+  #|    ctx.lineWidth = highlight ? 2.6 : 1.4;
+  #|    ctx.strokeStyle = highlight ? hotColor : idleColor;
+  #|    ctx.shadowColor = highlight ? hotGlow : 'transparent';
+  #|    ctx.shadowBlur = highlight ? 16 : 0;
   #|    ctx.beginPath();
   #|    ctx.moveTo(startX, startY);
   #|    ctx.bezierCurveTo(control1X, control1Y, control2X, control2Y, endX, endY);
   #|    ctx.stroke();
   #|    ctx.setLineDash([]);
   #|
-  #|    const pulse = isFocused ? 1 + Math.sin(time / 190) * 0.12 : 1;
-  #|    const arrowSize = 11 * pulse;
-  #|    drawArrow(endX, endY, Math.atan2(endY - control2Y, endX - control2X), arrowSize, isFocused ? '#fcd34d' : color);
+  #|    const pulse = highlight ? 1 + Math.sin(time / 220) * 0.08 : 1;
+  #|    const arrowSize = (highlight ? 10 : 7) * pulse;
+  #|    drawArrow(endX, endY, Math.atan2(endY - control2Y, endX - control2X), arrowSize, highlight ? hotColor : idleColor);
   #|    ctx.restore();
   #|  }
   #|
@@ -1614,47 +1659,82 @@ let page_tail : String =
   #|    const focused = state.focusIds ? state.focusIds.has(node.id) : true;
   #|    const archiveOpacity = node.archived ? (CONFIG.archive_rule?.opacity ?? 0.35) : 1;
   #|    const dim = state.focusIds && !focused ? 0.16 : archiveOpacity;
-  #|    const pulse = (node.status === 'in-progress' || selected) ? (1 + Math.sin(time / 260) * 0.055) : 1;
+  #|    const isActive = node.status === 'in-progress';
+  #|    const isBlocked = node.status === 'blocked';
+  #|    const pulse = (isActive || selected) ? (1 + Math.sin(time / 260) * 0.045) : 1;
   #|    const radius = node.radius * pulse;
   #|
   #|    ctx.save();
   #|    ctx.globalAlpha = dim;
-  #|    ctx.shadowColor = selected ? 'rgba(252,211,77,0.82)' : meta.glow;
-  #|    ctx.shadowBlur = selected ? 30 : (node.status === 'in-progress' ? 24 : 15);
   #|
-  #|    const gradient = ctx.createRadialGradient(node.x - radius * 0.28, node.y - radius * 0.32, radius * 0.1, node.x, node.y, radius);
-  #|    gradient.addColorStop(0, '#f8fafc');
-  #|    gradient.addColorStop(0.13, meta.border);
-  #|    gradient.addColorStop(1, meta.color);
+  #|    // soft halo only for selected / blocked / active — keeps idle nodes calm
+  #|    if (selected) {
+  #|      ctx.shadowColor = 'rgba(252,211,77,0.55)';
+  #|      ctx.shadowBlur = 22;
+  #|    } else if (isBlocked) {
+  #|      ctx.shadowColor = 'rgba(251,113,133,0.45)';
+  #|      ctx.shadowBlur = 18;
+  #|    } else if (isActive) {
+  #|      ctx.shadowColor = hexToRgba(meta.color, 0.55);
+  #|      ctx.shadowBlur = 16;
+  #|    } else {
+  #|      ctx.shadowColor = 'transparent';
+  #|      ctx.shadowBlur = 0;
+  #|    }
   #|
+  #|    // flat fill — no white center highlight
   #|    drawNodePath(node, radius);
-  #|    ctx.fillStyle = gradient;
+  #|    ctx.fillStyle = meta.color;
   #|    ctx.fill();
   #|    ctx.shadowBlur = 0;
-  #|    ctx.strokeStyle = node.focus ? (CONFIG.focus_quarter?.border_color || '#f43f5e') : (selected ? '#fcd34d' : meta.border);
-  #|    ctx.lineWidth = node.focus ? (CONFIG.focus_quarter?.border_width || 3) : (selected ? 3.2 : 2);
+  #|
+  #|    // border layered by importance: focus > selected > status > closure
+  #|    let borderColor;
+  #|    let borderWidth;
+  #|    if (node.focus) {
+  #|      borderColor = CONFIG.focus_quarter?.border_color || '#f43f5e';
+  #|      borderWidth = CONFIG.focus_quarter?.border_width || 3;
+  #|    } else if (selected) {
+  #|      borderColor = '#fcd34d';
+  #|      borderWidth = 3;
+  #|    } else if (isBlocked) {
+  #|      borderColor = '#fda4af';
+  #|      borderWidth = 2;
+  #|    } else if (isActive) {
+  #|      borderColor = 'rgba(255,255,255,0.7)';
+  #|      borderWidth = 2;
+  #|    } else {
+  #|      borderColor = hexToRgba(meta.color, 0.55);
+  #|      borderWidth = 1;
+  #|    }
+  #|    ctx.strokeStyle = borderColor;
+  #|    ctx.lineWidth = borderWidth;
   #|    ctx.stroke();
   #|
-  #|    if (selected || hovered) {
-  #|      ctx.globalAlpha = selected ? 0.88 : 0.5;
-  #|      ctx.strokeStyle = selected ? '#fcd34d' : 'rgba(248,250,252,0.7)';
-  #|      ctx.lineWidth = selected ? 2.4 : 1.5;
-  #|      drawNodePath(node, radius + (selected ? 9 : 6));
+  #|    if (hovered && !selected) {
+  #|      ctx.globalAlpha = 0.4;
+  #|      ctx.strokeStyle = 'rgba(248,250,252,0.65)';
+  #|      ctx.lineWidth = 1.2;
+  #|      drawNodePath(node, radius + 6);
   #|      ctx.stroke();
   #|    }
   #|
+  #|    // milestone progress ring — thin, white-tinted instead of bright mint
   #|    if (node.kind === 'milestone' && node.progress && node.progress.total > 0) {
+  #|      ctx.globalAlpha = dim * 0.7;
+  #|      ctx.lineCap = 'round';
+  #|      ctx.strokeStyle = 'rgba(148,163,184,0.18)';
+  #|      ctx.lineWidth = 2.5;
+  #|      ctx.beginPath();
+  #|      ctx.arc(node.x, node.y, radius + 8, -Math.PI / 2, Math.PI * 1.5);
+  #|      ctx.stroke();
+  #|      ctx.strokeStyle = node.progress.pct >= 100 ? 'rgba(134,239,172,0.85)' : 'rgba(248,250,252,0.7)';
+  #|      ctx.lineWidth = 2.5;
+  #|      ctx.beginPath();
+  #|      ctx.arc(node.x, node.y, radius + 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (node.progress.pct / 100));
+  #|      ctx.stroke();
+  #|      ctx.lineCap = 'butt';
   #|      ctx.globalAlpha = dim;
-  #|      ctx.strokeStyle = 'rgba(15,23,42,0.58)';
-  #|      ctx.lineWidth = 5;
-  #|      ctx.beginPath();
-  #|      ctx.arc(node.x, node.y, radius + 13, -Math.PI / 2, Math.PI * 1.5);
-  #|      ctx.stroke();
-  #|      ctx.strokeStyle = '#86efac';
-  #|      ctx.lineWidth = 5;
-  #|      ctx.beginPath();
-  #|      ctx.arc(node.x, node.y, radius + 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (node.progress.pct / 100));
-  #|      ctx.stroke();
   #|    }
   #|
   #|    ctx.globalAlpha = Math.min(1, dim + 0.2);
@@ -1662,11 +1742,72 @@ let page_tail : String =
   #|    ctx.fillStyle = '#06101a';
   #|    ctx.textAlign = 'center';
   #|    ctx.textBaseline = 'middle';
-  #|    const lines = roundedTextLines(node.title || node.id, node.kind === 'milestone' ? 11 : 10);
-  #|    ctx.font = '700 11px Inter, system-ui, sans-serif';
-  #|    ctx.fillText(lines[0], node.x, lines[1] ? node.y - 5 : node.y + 1);
-  #|    if (lines[1]) ctx.fillText(lines[1], node.x, node.y + 10);
+  #|    const fontSize = Math.max(9, Math.min(12, Math.round(radius * 0.21)));
+  #|    const fontSpec = '700 ' + fontSize + 'px Inter, system-ui, sans-serif';
+  #|    ctx.font = fontSpec;
+  #|    const innerPad = Math.max(8, radius * 0.22);
+  #|    const halfH = fontSize * 0.65;
+  #|    const usableHalfWidth = Math.max(16, Math.sqrt(Math.max(1, radius * radius - halfH * halfH)) - innerPad);
+  #|    const maxWidth = usableHalfWidth * 2;
+  #|    const lines = fitNodeText(node.title || node.id, maxWidth, fontSpec);
+  #|    const lineGap = fontSize + 2;
+  #|    if (lines[1]) {
+  #|      ctx.fillText(lines[0], node.x, node.y - lineGap / 2);
+  #|      ctx.fillText(lines[1], node.x, node.y + lineGap / 2);
+  #|    } else {
+  #|      ctx.fillText(lines[0], node.x, node.y);
+  #|    }
   #|    ctx.restore();
+  #|  }
+  #|
+  #|  function fitNodeText(text, maxWidth, fontSpec) {
+  #|    const str = String(text == null ? '' : text);
+  #|    if (!str) return ['', ''];
+  #|    ctx.save();
+  #|    ctx.font = fontSpec;
+  #|    if (ctx.measureText(str).width <= maxWidth) {
+  #|      ctx.restore();
+  #|      return [str, ''];
+  #|    }
+  #|    // Tokenize by latin word, CJK char, or other char so we can wrap mixed text
+  #|    const tokens = str.match(/[A-Za-z0-9]+|\s+|[^\sA-Za-z0-9]/g) || [str];
+  #|    function fitOneLine(tokenList, startIdx, budget) {
+  #|      let line = '';
+  #|      let i = startIdx;
+  #|      while (i < tokenList.length) {
+  #|        const tok = tokenList[i];
+  #|        if (!line && /^\s+$/.test(tok)) { i++; continue; }
+  #|        const trial = line + tok;
+  #|        if (ctx.measureText(trial).width <= budget) {
+  #|          line = trial;
+  #|          i++;
+  #|        } else if (!line) {
+  #|          // single token too wide — keep it, will get ellipsised later
+  #|          line = tok;
+  #|          i++;
+  #|          break;
+  #|        } else {
+  #|          break;
+  #|        }
+  #|      }
+  #|      return { line, next: i };
+  #|    }
+  #|    const ellipsis = '…';
+  #|    const first = fitOneLine(tokens, 0, maxWidth);
+  #|    if (first.next >= tokens.length) {
+  #|      ctx.restore();
+  #|      return [first.line.trim(), ''];
+  #|    }
+  #|    const second = fitOneLine(tokens, first.next, maxWidth);
+  #|    let line2 = second.line;
+  #|    if (second.next < tokens.length) {
+  #|      while (line2.length > 0 && ctx.measureText(line2 + ellipsis).width > maxWidth) {
+  #|        line2 = line2.slice(0, -1);
+  #|      }
+  #|      line2 = line2 + ellipsis;
+  #|    }
+  #|    ctx.restore();
+  #|    return [first.line.trim(), line2.trim()];
   #|  }
   #|
   #|  function render(time) {
@@ -2215,7 +2356,17 @@ let page_tail : String =
   #|      const x = event.clientX - rect.left;
   #|      const y = event.clientY - rect.top;
   #|      const node = hitTest(x, y);
-  #|      state.pointer = { down: true, mode: node ? 'node' : 'pan', moved: false, lastX: x, lastY: y, node };
+  #|      // first click on an unselected node = select only; drag pans the canvas
+  #|      // second click on the already-selected node = enables dragging that node
+  #|      let mode;
+  #|      if (!node) {
+  #|        mode = 'pan';
+  #|      } else if (node.id === state.selectedId) {
+  #|        mode = 'node';
+  #|      } else {
+  #|        mode = 'node-pending';
+  #|      }
+  #|      state.pointer = { down: true, mode, moved: false, lastX: x, lastY: y, node };
   #|      canvas.classList.add('dragging');
   #|    });
   #|
@@ -2247,7 +2398,8 @@ let page_tail : String =
   #|          state.pointer.node.y = point.y;
   #|          state.pointer.node.vx = 0;
   #|          state.pointer.node.vy = 0;
-  #|        } else if (state.pointer.mode === 'pan') {
+  #|        } else if (state.pointer.mode === 'pan' || state.pointer.mode === 'node-pending') {
+  #|          // node-pending also pans — only the click-without-move will select on mouseup
   #|          state.transform.x += dx;
   #|          state.transform.y += dy;
   #|        }
@@ -2256,6 +2408,7 @@ let page_tail : String =
   #|      } else {
   #|        const hover = hitTest(x, y);
   #|        state.hoveredId = hover ? hover.id : null;
+  #|        canvas.classList.toggle('node-grab', !!(hover && hover.id === state.selectedId));
   #|        if (hover) {
   #|          showNodeTooltip(hover, event.clientX, event.clientY);
   #|        } else {
@@ -2266,17 +2419,20 @@ let page_tail : String =
   #|
   #|    window.addEventListener('mouseup', () => {
   #|      if (!state.pointer.down) return;
-  #|      if (state.pointer.mode === 'node' && state.pointer.node && !state.pointer.moved) {
+  #|      if (state.pointer.mode === 'node-pending' && state.pointer.node && !state.pointer.moved) {
+  #|        // first click on an unselected node → just select
   #|        selectNode(state.pointer.node.id, false);
   #|      } else if (state.pointer.mode === 'pan' && !state.pointer.moved) {
   #|        selectNode(null, false);
   #|      }
+  #|      // node-mode click without movement keeps selection unchanged (no-op)
   #|      state.pointer.down = false;
   #|      canvas.classList.remove('dragging');
   #|    });
   #|
   #|    canvas.addEventListener('mouseleave', () => {
   #|      state.hoveredId = null;
+  #|      canvas.classList.remove('node-grab');
   #|      hideNodeTooltip();
   #|    });
   #|  }
