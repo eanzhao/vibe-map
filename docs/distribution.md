@@ -78,7 +78,7 @@ jobs:
 放在 repo 根，URL 是稳定的：
 
 ```
-https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh
+https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh
 ```
 
 脚本职责：
@@ -142,7 +142,7 @@ echo "next: tell your coding agent to read $INSTALL_SKILLS/SKILL.md"
 请在当前项目里用 vibe-map 帮我推进工作。
 
 1. 装 vmap CLI（如果还没装）：
-   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
 
 2. 读这份指南，理解 vmap 的工作模式：
    cat ~/.vmap/skills/SKILL.md

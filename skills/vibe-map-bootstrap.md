@@ -11,7 +11,7 @@
 
 1. 安装 vmap CLI（如果还没装）：
 
-   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
 
    这一步会下载 vmap 二进制到 ~/.local/bin/，把 skills 放到 ~/.vmap/skills/。
    如果 ~/.local/bin 不在 $PATH，安装脚本会提示加。
@@ -65,7 +65,7 @@ go.
 帮我用 vibe-map（vmap）维护这个项目的进度。
 
 第一次的话：
-1. 装 vmap：curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh | bash
+1. 装 vmap：curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
 2. 读懂规则：cat ~/.vmap/skills/SKILL.md
 3. 初始化：vmap init --name "我的项目"（把 .vmap/ 加 .gitignore）
 
