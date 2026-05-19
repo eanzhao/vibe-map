@@ -402,6 +402,91 @@ fn page_head(title : String) -> String {
     $|    pointer-events: none;
     $|  }
     $|
+    $|  .node-modal-backdrop {
+    $|    position: fixed;
+    $|    inset: 0;
+    $|    z-index: 50;
+    $|    display: grid;
+    $|    place-items: center;
+    $|    padding: 22px;
+    $|    background: rgba(2, 6, 12, 0.48);
+    $|    backdrop-filter: blur(12px) saturate(130%);
+    $|  }
+    $|
+    $|  .node-modal-backdrop[hidden] {
+    $|    display: none;
+    $|  }
+    $|
+    $|  .node-modal {
+    $|    display: grid;
+    $|    grid-template-rows: auto minmax(0, 1fr);
+    $|    width: min(740px, calc(100vw - 32px));
+    $|    max-height: min(820px, calc(100vh - 44px));
+    $|    overflow: hidden;
+    $|    border: 1px solid rgba(125, 211, 252, 0.28);
+    $|    border-radius: var(--radius);
+    $|    background: rgba(10, 16, 26, 0.78);
+    $|    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52), 0 0 36px rgba(125, 211, 252, 0.14);
+    $|    backdrop-filter: blur(18px) saturate(145%);
+    $|  }
+    $|
+    $|  .node-modal:focus {
+    $|    outline: 1px solid rgba(125, 211, 252, 0.55);
+    $|    outline-offset: 3px;
+    $|  }
+    $|
+    $|  .node-modal-head {
+    $|    display: flex;
+    $|    align-items: center;
+    $|    justify-content: space-between;
+    $|    gap: 14px;
+    $|    min-width: 0;
+    $|    padding: 15px 16px;
+    $|    border-bottom: 1px solid var(--border-subtle);
+    $|    background: rgba(15, 23, 42, 0.46);
+    $|  }
+    $|
+    $|  .node-modal-heading {
+    $|    min-width: 0;
+    $|  }
+    $|
+    $|  .node-modal-title {
+    $|    margin: 0;
+    $|    overflow: hidden;
+    $|    text-overflow: ellipsis;
+    $|    white-space: nowrap;
+    $|    color: var(--text-primary);
+    $|    font-size: 15px;
+    $|    font-weight: 700;
+    $|  }
+    $|
+    $|  .node-modal-subtitle {
+    $|    margin: 4px 0 0;
+    $|    overflow: hidden;
+    $|    text-overflow: ellipsis;
+    $|    white-space: nowrap;
+    $|    color: var(--text-muted);
+    $|    font-size: 11px;
+    $|  }
+    $|
+    $|  .node-modal-close {
+    $|    flex: 0 0 auto;
+    $|  }
+    $|
+    $|  .node-modal-body {
+    $|    min-height: 0;
+    $|    overflow: auto;
+    $|    padding: 16px;
+    $|  }
+    $|
+    $|  .node-modal-body .detail-title {
+    $|    font-size: 17px;
+    $|  }
+    $|
+    $|  .node-modal-body .kv {
+    $|    grid-template-columns: 92px minmax(0, 1fr);
+    $|  }
+    $|
     $|  .legend {
     $|    justify-content: space-between;
     $|    padding: 9px 12px;
@@ -640,6 +725,10 @@ fn page_head(title : String) -> String {
     $|    .filter-button { flex: 1 1 0; min-width: 0; }
     $|    .metric { flex: 1 1 calc(50% - 8px); }
     $|    .legend { align-items: flex-start; flex-direction: column; }
+    $|    .node-modal-backdrop { padding: 10px; }
+    $|    .node-modal { width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
+    $|    .node-modal-body { padding: 12px; }
+    $|    .node-modal-body .kv { grid-template-columns: minmax(0, 1fr); gap: 4px; }
     $|  }
     $|</style>
     $|</head>
@@ -749,6 +838,20 @@ fn page_head(title : String) -> String {
     $|  </main>
     $|</div>
     $|<div class="node-tooltip" id="node-tooltip" role="tooltip" hidden></div>
+    $|<div class="node-modal-backdrop" id="node-detail-modal" hidden>
+    $|  <section class="node-modal" role="dialog" aria-modal="true" aria-labelledby="node-modal-title" tabindex="-1">
+    $|    <div class="node-modal-head">
+    $|      <div class="node-modal-heading">
+    $|        <h2 class="node-modal-title" id="node-modal-title">节点详情</h2>
+    $|        <p class="node-modal-subtitle" id="node-modal-subtitle"></p>
+    $|      </div>
+    $|      <button class="icon-button node-modal-close" id="node-modal-close" type="button" aria-label="关闭详情">
+    $|        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    $|      </button>
+    $|    </div>
+    $|    <div class="node-modal-body" id="node-modal-body"></div>
+    $|  </section>
+    $|</div>
     $|<script type="application/json" id="dag-data">
     $|
   head
@@ -764,6 +867,12 @@ let page_tail : String =
   #|  const dag = JSON.parse(document.getElementById('dag-data').textContent || '{}');
   #|  const canvas = document.getElementById('map-canvas');
   #|  const nodeTooltip = document.getElementById('node-tooltip');
+  #|  const nodeModal = document.getElementById('node-detail-modal');
+  #|  const nodeModalPanel = nodeModal ? nodeModal.querySelector('.node-modal') : null;
+  #|  const nodeModalTitle = document.getElementById('node-modal-title');
+  #|  const nodeModalSubtitle = document.getElementById('node-modal-subtitle');
+  #|  const nodeModalBody = document.getElementById('node-modal-body');
+  #|  const nodeModalClose = document.getElementById('node-modal-close');
   #|  const ctx = canvas.getContext('2d');
   #|  const dpr = window.devicePixelRatio || 1;
   #|
@@ -813,6 +922,7 @@ let page_tail : String =
   #|    search: '',
   #|    focusIds: null,
   #|    navigationPeerIds: null,
+  #|    modalNodeId: null,
   #|    transform: { x: 0, y: 0, scale: 1 },
   #|    pointer: { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null },
   #|  };
@@ -1719,24 +1829,18 @@ let page_tail : String =
   #|    return pieces;
   #|  }
   #|
-  #|  function renderDetails() {
-  #|    const panel = document.getElementById('details-panel');
-  #|    const subtitle = document.getElementById('detail-subtitle');
-  #|    const node = state.selectedId ? state.nodeById.get(state.selectedId) : null;
-  #|    if (!node) {
-  #|      subtitle.textContent = '未选择节点';
-  #|      panel.innerHTML = '<div class="detail-empty">未选择节点</div>';
-  #|      return;
-  #|    }
+  #|  function nodeDetailSubtitle(node) {
+  #|    return node.closureLabel + (node.owner ? ' · @' + node.owner : '');
+  #|  }
   #|
+  #|  function nodeDetailsHtml(node) {
   #|    const status = statusMeta(node.status);
   #|    const inbound = relatedIds(node.id, 'in');
   #|    const outbound = relatedIds(node.id, 'out');
   #|    const goalTasks = node.tasks || [];
   #|    const timeline = promotedTimeline(node);
-  #|    subtitle.textContent = node.closureLabel + (node.owner ? ' · @' + node.owner : '');
   #|
-  #|    panel.innerHTML = `
+  #|    return `
   #|      <div class="detail-stack">
   #|        <div>
   #|          <div class="detail-id">${escapeHtml(node.id)}</div>
@@ -1766,6 +1870,48 @@ let page_tail : String =
   #|        <div class="kv"><strong>文档</strong>${chips(node.docs, '未记录')}</div>
   #|        <div class="kv"><strong>GitHub</strong><span>${escapeHtml(node.ghQuery || '未记录')}</span></div>
   #|      </div>`;
+  #|  }
+  #|
+  #|  function renderDetails() {
+  #|    const panel = document.getElementById('details-panel');
+  #|    const subtitle = document.getElementById('detail-subtitle');
+  #|    const node = state.selectedId ? state.nodeById.get(state.selectedId) : null;
+  #|    if (!node) {
+  #|      subtitle.textContent = '未选择节点';
+  #|      panel.innerHTML = '<div class="detail-empty">未选择节点</div>';
+  #|      return;
+  #|    }
+  #|    subtitle.textContent = nodeDetailSubtitle(node);
+  #|    panel.innerHTML = nodeDetailsHtml(node);
+  #|  }
+  #|
+  #|  function isNodeModalOpen() {
+  #|    return !!nodeModal && !nodeModal.hidden;
+  #|  }
+  #|
+  #|  function openNodeModal(id) {
+  #|    const node = id ? state.nodeById.get(id) : null;
+  #|    if (!node || !nodeModal || !nodeModalBody) return;
+  #|    state.modalNodeId = node.id;
+  #|    if (nodeModalTitle) nodeModalTitle.textContent = node.title || node.id;
+  #|    if (nodeModalSubtitle) nodeModalSubtitle.textContent = nodeDetailSubtitle(node);
+  #|    nodeModalBody.innerHTML = nodeDetailsHtml(node);
+  #|    nodeModal.hidden = false;
+  #|    requestAnimationFrame(() => {
+  #|      if (nodeModalPanel) {
+  #|        try {
+  #|          nodeModalPanel.focus({ preventScroll: true });
+  #|        } catch (_) {
+  #|          nodeModalPanel.focus();
+  #|        }
+  #|      }
+  #|    });
+  #|  }
+  #|
+  #|  function closeNodeModal() {
+  #|    state.modalNodeId = null;
+  #|    if (nodeModal) nodeModal.hidden = true;
+  #|    if (nodeModalBody) nodeModalBody.innerHTML = '';
   #|  }
   #|
   #|  function setFilter(filter) {
@@ -1812,6 +1958,7 @@ let page_tail : String =
   #|    state.hoveredId = null;
   #|    state.focusIds = null;
   #|    state.navigationPeerIds = null;
+  #|    closeNodeModal();
   #|    state.pointer = { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null };
   #|    document.querySelectorAll('.filter-button').forEach(button => {
   #|      button.classList.toggle('active', button.getAttribute('data-filter') === 'all');
@@ -2024,9 +2171,20 @@ let page_tail : String =
   #|    document.getElementById('zoom-out').addEventListener('click', () => zoomAt((canvas.clientWidth || 800) / 2, (canvas.clientHeight || 600) / 2, 1 / 1.18));
   #|    document.getElementById('fit-view').addEventListener('click', () => fitView(true));
   #|    document.getElementById('clear-focus').addEventListener('click', () => selectNode(null, false));
+  #|    if (nodeModalClose) nodeModalClose.addEventListener('click', closeNodeModal);
+  #|    if (nodeModal) {
+  #|      nodeModal.addEventListener('mousedown', event => {
+  #|        if (event.target === nodeModal) closeNodeModal();
+  #|      });
+  #|    }
   #|
   #|    document.addEventListener('keydown', event => {
   #|      if (event.defaultPrevented || event.isComposing || event.repeat) return;
+  #|      if (shortcutEventKey(event) === 'escape' && isNodeModalOpen()) {
+  #|        event.preventDefault();
+  #|        closeNodeModal();
+  #|        return;
+  #|      }
   #|      if (event.ctrlKey || event.altKey) return;
   #|      if (matchesShortcut(event, sidebarNavigationShortcut) && handleSidebarNavigation(event)) {
   #|        event.preventDefault();
@@ -2059,6 +2217,19 @@ let page_tail : String =
   #|      const node = hitTest(x, y);
   #|      state.pointer = { down: true, mode: node ? 'node' : 'pan', moved: false, lastX: x, lastY: y, node };
   #|      canvas.classList.add('dragging');
+  #|    });
+  #|
+  #|    canvas.addEventListener('dblclick', event => {
+  #|      if (event.button !== 0) return;
+  #|      const rect = canvas.getBoundingClientRect();
+  #|      const x = event.clientX - rect.left;
+  #|      const y = event.clientY - rect.top;
+  #|      const node = hitTest(x, y);
+  #|      if (!node) return;
+  #|      event.preventDefault();
+  #|      hideNodeTooltip();
+  #|      selectNode(node.id, false);
+  #|      openNodeModal(node.id);
   #|    });
   #|
   #|    window.addEventListener('mousemove', event => {

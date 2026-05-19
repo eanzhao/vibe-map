@@ -1,0 +1,86 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.5.0-alpha.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14,         target: darwin-arm64,  install: unix }
+          - { os: macos-13,         target: darwin-x86_64, install: unix }
+          - { os: ubuntu-22.04,     target: linux-x86_64,  install: unix }
+          - { os: ubuntu-22.04-arm, target: linux-arm64,   install: unix }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit toolchain
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/${{ matrix.install }}.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Verify toolchain
+        run: |
+          moon version --all
+          moon install
+
+      - name: Build native release
+        run: moon build --target native --release
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          DIR="vmap-${{ matrix.target }}"
+          mkdir -p "dist/${DIR}"
+          cp _build/native/release/build/cmd/vmap/vmap.exe "dist/${DIR}/vmap"
+          chmod +x "dist/${DIR}/vmap"
+          cp -R skills                "dist/${DIR}/skills"
+          cp README.md                "dist/${DIR}/README.md"
+          [ -f LICENSE ] && cp LICENSE "dist/${DIR}/LICENSE" || true
+          ( cd dist && tar czf "${DIR}.tar.gz" "${DIR}" )
+          shasum -a 256 "dist/${DIR}.tar.gz" | tee "dist/${DIR}.tar.gz.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vmap-${{ matrix.target }}
+          path: |
+            dist/vmap-${{ matrix.target }}.tar.gz
+            dist/vmap-${{ matrix.target }}.tar.gz.sha256
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/vmap-*.tar.gz
+            dist/vmap-*.tar.gz.sha256

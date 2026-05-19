@@ -6,6 +6,29 @@
 
 > 上图是 vibe-map 自己 dogfood 出来的 self-map（`examples/dag.html` 是 live 版本，本地 `open` 可看）。
 
+## 安装
+
+```bash
+# 装最新 release（macOS arm64 / x86_64、Linux x86_64 / arm64）
+curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh | bash
+```
+
+会把 `vmap` 放到 `~/.local/bin/`，skills 放到 `~/.vmap/skills/`。如果 `~/.local/bin` 不在 `$PATH`，脚本会提示你加。
+
+**从源码装**（已有 MoonBit 工具链 + 想本地改）：
+
+```bash
+git clone https://github.com/eanzhao/vibe-map && cd vibe-map
+moon install && moon build --target native --release
+./install.sh --local "$PWD"
+```
+
+详细分发设计见 [`docs/distribution.md`](docs/distribution.md)。
+
+## 让你的 coding agent 用 vmap
+
+把 [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md) 里的 prompt 复制给 Claude Code / Codex / Cursor 即可。Agent 会自动装 vmap、读懂工作模式、开始在你项目里维护 DAG。
+
 ## 这是个什么
 
 vibe coding 时代，AI 是主驱动写代码，人在旁边看。但 "AI 写到哪一步了 / 还差多远 / 哪些路径被堵着 / 这一版边界在哪 / AI 该停在哪" 这些事情，传统 todo list / 工单系统都看不出。
@@ -233,7 +256,7 @@ vmap release rm <key> [--force]        删 release（有成员需 --force）
 
 | Goal | 内容 |
 |---|---|
-| **goal-agent-bootstrap** | README 顶部一段安装 prompt：用户复制给 Claude Code / Codex / Cursor，agent 自动装 vmap 二进制 + 配套 skills（何时 add goal vs add task / 何时 audit / closure 升级判断准则） |
+| **goal-vibe-map-bootstrap** | README 顶部一段安装 prompt：用户复制给 Claude Code / Codex / Cursor，agent 自动装 vmap 二进制 + 配套 skills（何时 add goal vs add task / 何时 audit / closure 升级判断准则） |
 | **goal-auto-render** | `add` / `update` / `rm` / `release *` 命令后**自动**重渲 `.vmap/vibe-map.html`；批量操作时 `--no-render` 跳过。不引入 HTTP server / SSE，只是命令时同步 |
 | **goal-vmap-dir** | 默认数据路径从 `./vibe-map.json` 改成 `./.vmap/vibe-map.json`；`vmap init` 自动 `mkdir .vmap` 并打印一条 `.gitignore` 提示行 |
 
