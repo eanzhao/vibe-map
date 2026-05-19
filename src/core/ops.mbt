@@ -242,6 +242,47 @@ pub fn Dag::remove(self : Dag, id : String) -> Unit raise DagError {
 }
 
 ///|
+/// Run every structural validator against this DAG: id uniqueness across
+/// milestones+issues, issue→milestone references resolve, dep references
+/// resolve at their layer (milestone deps point at milestones, issue deps at
+/// issues), and the dep graph is acyclic. Raises on the first violation.
+pub fn Dag::validate(self : Dag) -> Unit raise DagError {
+  let seen : Map[String, Bool] = {}
+  for m in self.milestones {
+    if seen.contains(m.id) {
+      raise DuplicateId(m.id)
+    }
+    seen[m.id] = true
+  }
+  for i in self.issues {
+    if seen.contains(i.id) {
+      raise DuplicateId(i.id)
+    }
+    seen[i.id] = true
+  }
+  for i in self.issues {
+    if not(self.has_milestone(i.milestone)) {
+      raise UnknownMilestone("issue \{i.id} -> \{i.milestone}")
+    }
+  }
+  for m in self.milestones {
+    for d in m.deps {
+      if not(self.has_milestone(d)) {
+        raise UnknownId("milestone \{m.id} dep -> \{d}")
+      }
+    }
+  }
+  for i in self.issues {
+    for d in i.deps {
+      if not(self.has_issue(d)) {
+        raise UnknownId("issue \{i.id} dep -> \{d}")
+      }
+    }
+  }
+  self.assert_acyclic()
+}
+
+///|
 /// Run depth-first cycle detection across milestones and issues. Edges go
 /// from a node to each of its deps; a back-edge means a cycle.
 pub fn Dag::assert_acyclic(self : Dag) -> Unit raise DagError {

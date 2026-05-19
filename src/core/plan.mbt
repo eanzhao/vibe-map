@@ -8,9 +8,14 @@ pub(all) struct PlanReport {
 } derive(Show, ToJson)
 
 ///|
-/// Scan markdown files for `- [ ]` checklist items and synthesize `todo`
-/// nodes. Each `.md` (or `.mbt.md`) file becomes a milestone (file stem →
-/// title); each unchecked item becomes an issue.
+/// Scan markdown files for planning items and synthesize nodes. `format`
+/// selects the parser:
+///   - `"checklist"` (default): `- [ ]` unchecked items. Each `.md` file
+///     becomes a milestone; each item becomes a todo issue.
+///   - `"tlist"`: chengsheng-style `## T<N> — <title>` headings with a
+///     `**Status:** ✅|open|partially resolved|blocked` line below. Each
+///     `.md` file is a milestone; each T-section is an issue with status
+///     mapped from the Status line.
 ///
 /// `paths` accepts both files and directories. Directories are walked
 /// recursively, skipping dot-dirs and `_build`. Re-running on the same DAG
@@ -18,6 +23,7 @@ pub(all) struct PlanReport {
 pub fn Dag::plan_from_docs(
   self : Dag,
   paths : Array[String],
+  format? : String = "checklist",
 ) -> PlanReport raise DagError {
   let md_files = []
   for p in paths {
@@ -34,36 +40,226 @@ pub fn Dag::plan_from_docs(
     let raw = @fs.read_file_to_string(md_path) catch {
       err => raise IoError("read \{md_path}: \{err}")
     }
-    let items = parse_checklist_items(raw)
-    if items.length() == 0 {
-      continue
-    }
-    let stem = doc_stem(md_path)
-    let m_id = "plan-" + slugify(stem)
-    if self.has_milestone(m_id) {
-      report.skipped_milestones.push(m_id)
-    } else {
-      self.add_milestone(
-        id=m_id,
-        title=stem,
-        description="Planned items extracted from \{md_path}",
-        docs=[md_path],
-      )
-      report.added_milestones.push(m_id)
-    }
-    for item in items {
-      let i_id = m_id + "-" + slug_short(item)
-      if self.has_issue(i_id) {
-        report.skipped_issues.push(i_id)
-      } else {
-        self.add_issue(id=i_id, milestone=m_id, title=item, status=Todo, docs=[
-          md_path,
-        ])
-        report.added_issues.push(i_id)
-      }
+    match format {
+      "checklist" => self.ingest_checklist(md_path, raw, report)
+      "tlist" => self.ingest_tlist(md_path, raw, report)
+      other =>
+        raise ParseError(
+          "unknown plan format: \{other} (expected checklist | tlist)",
+        )
     }
   }
   report
+}
+
+///|
+fn Dag::ingest_checklist(
+  self : Dag,
+  md_path : String,
+  raw : String,
+  report : PlanReport,
+) -> Unit raise DagError {
+  let items = parse_checklist_items(raw)
+  if items.length() == 0 {
+    return
+  }
+  let stem = doc_stem(md_path)
+  let m_id = "plan-" + slugify(stem)
+  if self.has_milestone(m_id) {
+    report.skipped_milestones.push(m_id)
+  } else {
+    self.add_milestone(
+      id=m_id,
+      title=stem,
+      description="Planned items extracted from \{md_path}",
+      docs=[md_path],
+    )
+    report.added_milestones.push(m_id)
+  }
+  for item in items {
+    let i_id = m_id + "-" + slug_short(item)
+    if self.has_issue(i_id) {
+      report.skipped_issues.push(i_id)
+    } else {
+      self.add_issue(id=i_id, milestone=m_id, title=item, status=Todo, docs=[
+        md_path,
+      ])
+      report.added_issues.push(i_id)
+    }
+  }
+}
+
+///|
+fn Dag::ingest_tlist(
+  self : Dag,
+  md_path : String,
+  raw : String,
+  report : PlanReport,
+) -> Unit raise DagError {
+  let items = parse_tlist_items(raw)
+  if items.length() == 0 {
+    return
+  }
+  let stem = doc_stem(md_path)
+  let m_id = "plan-" + slugify(stem)
+  if self.has_milestone(m_id) {
+    report.skipped_milestones.push(m_id)
+  } else {
+    self.add_milestone(
+      id=m_id,
+      title=stem,
+      description="T-items extracted from \{md_path}",
+      docs=[md_path],
+    )
+    report.added_milestones.push(m_id)
+  }
+  for item in items {
+    let i_id = m_id + "-t" + item.number
+    if self.has_issue(i_id) {
+      report.skipped_issues.push(i_id)
+    } else {
+      self.add_issue(
+        id=i_id,
+        milestone=m_id,
+        title="T\{item.number} — \{item.title}",
+        status=item.status,
+        docs=[md_path],
+      )
+      report.added_issues.push(i_id)
+    }
+  }
+}
+
+///|
+/// One parsed T-section.
+priv struct TlistItem {
+  number : String
+  title : String
+  status : Status
+}
+
+///|
+/// Parse `## T<N> — <title>` headings with their `**Status:**` lines.
+/// Headings whose title starts with `~~` (struck-through) are skipped.
+fn parse_tlist_items(raw : String) -> Array[TlistItem] {
+  let out : Array[TlistItem] = []
+  let mut in_code = false
+  let mut current_number = ""
+  let mut current_title = ""
+  let mut waiting_for_status = false
+  for line_view in raw.split("\n") {
+    let line = line_view.to_string()
+    let trimmed = line.trim().to_string()
+    if trimmed.has_prefix("```") || trimmed.has_prefix("~~~") {
+      in_code = not(in_code)
+      continue
+    }
+    if in_code {
+      continue
+    }
+    match parse_t_header(trimmed) {
+      Some(parsed) => {
+        // Flush a pending T-section that never got a Status line.
+        if waiting_for_status && not(current_title.has_prefix("~~")) {
+          out.push({
+            number: current_number,
+            title: current_title,
+            status: Todo,
+          })
+        }
+        current_number = parsed.0
+        current_title = parsed.1
+        waiting_for_status = true
+        continue
+      }
+      None => ()
+    }
+    if waiting_for_status {
+      match parse_status_line(trimmed) {
+        Some(status) => {
+          if not(current_title.has_prefix("~~")) {
+            out.push({ number: current_number, title: current_title, status })
+          }
+          waiting_for_status = false
+        }
+        None => ()
+      }
+    }
+  }
+  if waiting_for_status && not(current_title.has_prefix("~~")) {
+    out.push({ number: current_number, title: current_title, status: Todo })
+  }
+  out
+}
+
+///|
+/// Match `## T<N> — <title>` (em-dash) or `## T<N> - <title>` (hyphen).
+/// Returns `Some((number, title))` if matched.
+fn parse_t_header(line : String) -> (String, String)? {
+  if not(line.has_prefix("## T")) {
+    return None
+  }
+  let rest = line[4:line.length()].to_string()
+  let sb = StringBuilder::new()
+  let mut consumed = 0
+  for ch in rest {
+    if ch >= '0' && ch <= '9' {
+      sb.write_char(ch)
+      consumed = consumed + 1
+    } else {
+      break
+    }
+  }
+  let number = sb.to_string()
+  if number == "" {
+    return None
+  }
+  let after = rest[consumed:rest.length()].to_string().trim().to_string()
+  let title = if after.has_prefix("—") {
+    after[1:after.length()].to_string().trim().to_string()
+  } else if after.has_prefix("-") {
+    after[1:after.length()].to_string().trim().to_string()
+  } else {
+    return None
+  }
+  Some((number, title))
+}
+
+///|
+/// Match `**Status:** <text>` and map text to a vmap Status.
+fn parse_status_line(line : String) -> Status? {
+  let prefix = "**Status:**"
+  let rest = if line.has_prefix(prefix) {
+    line[prefix.length():line.length()].to_string().trim().to_string()
+  } else {
+    let prefix2 = "**Status**:"
+    if line.has_prefix(prefix2) {
+      line[prefix2.length():line.length()].to_string().trim().to_string()
+    } else {
+      return None
+    }
+  }
+  Some(map_status_text(rest))
+}
+
+///|
+/// Map free-text status to a vmap Status enum. Lenient: substring match.
+fn map_status_text(text : String) -> Status {
+  // Check `partial` before `resolved` because "partially resolved" contains
+  // both — and we want the more specific match to win.
+  if text.contains("partial") ||
+    text.contains("in progress") ||
+    text.contains("in-progress") {
+    InProgress
+  } else if text.contains("blocked") || text.contains("阻塞") {
+    Blocked
+  } else if text.contains("✅") ||
+    text.contains("resolved") ||
+    text.contains("done") {
+    Done
+  } else {
+    Todo
+  }
 }
 
 ///|

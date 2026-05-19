@@ -221,7 +221,7 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "backfill",
-        about="Synthesize milestones (per package) and issues (per source file) from an existing MoonBit source tree. Merges into the existing DAG; existing ids are left alone.",
+        about="Synthesize milestones (per package) and issues (per source file) from an existing source tree. Merges into the DAG; existing ids are left alone. Auto-detects the template when --template / --template-file is omitted.",
         flags=[
           @argparse.FlagArg::new(
             "json",
@@ -236,6 +236,31 @@ fn build_cli() -> @argparse.Command {
             default_values=["src"],
             about="Source tree root to scan.",
           ),
+          @argparse.OptionArg::new(
+            "template",
+            long="template",
+            about="Built-in template name: moonbit | typescript | dotnet.",
+          ),
+          @argparse.OptionArg::new(
+            "template-file",
+            long="template-file",
+            about="Path to a JSON template file (overrides --template).",
+          ),
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
+        "import",
+        about="Validate a hand-crafted vibe-map.json (ids unique, deps resolve, no cycles) and write it to the target file. Useful for AI bulk-loading.",
+        options=[
+          @argparse.OptionArg::new(
+            "in",
+            long="in",
+            required=true,
+            about="Path to the source JSON file.",
+          ),
           @argparse.OptionArg::new("file", long="file", default_values=[
             @core.default_path,
           ]),
@@ -243,7 +268,7 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "plan",
-        about="Scan markdown files for `- [ ]` checklist items and synthesize `todo` nodes. Each .md file becomes a milestone; each unchecked item becomes an issue.",
+        about="Scan markdown files and synthesize nodes. --format selects the parser: `checklist` (default) for `- [ ]` items, `tlist` for `## T<N> — title` + `**Status:**` lines.",
         flags=[
           @argparse.FlagArg::new(
             "json",
@@ -257,6 +282,12 @@ fn build_cli() -> @argparse.Command {
             long="docs",
             required=true,
             about="Comma-separated list of files or directories to scan.",
+          ),
+          @argparse.OptionArg::new(
+            "format",
+            long="format",
+            default_values=["checklist"],
+            about="Parser to use: checklist | tlist.",
           ),
           @argparse.OptionArg::new("file", long="file", default_values=[
             @core.default_path,
@@ -286,6 +317,7 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
     "status" => cmd_status(sub)
     "audit" => cmd_audit(sub)
     "backfill" => cmd_backfill(sub)
+    "import" => cmd_import(sub)
     "plan" => cmd_plan(sub)
     _ => fail("unknown subcommand: \{name}")
   }
@@ -515,17 +547,49 @@ fn cmd_audit(m : @argparse.Matches) -> Unit raise {
 }
 
 ///|
+fn cmd_import(m : @argparse.Matches) -> Unit raise {
+  let in_path = opt(m, "in")
+  let target = opt(m, "file", default=@core.default_path)
+  let dag = @core.import_dag(in_path)
+  @core.save(dag, target)
+  println(
+    "imported \{dag.milestones.length()} milestone(s), \{dag.issues.length()} issue(s) -> \{target}",
+  )
+}
+
+///|
 fn cmd_backfill(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let src = opt(m, "src", default="src")
+  let template_name = opt(m, "template")
+  let template_file = opt(m, "template-file")
+  let template = if template_file != "" {
+    @core.load_template_file(template_file)
+  } else if template_name != "" {
+    match @core.find_template_by_name(template_name) {
+      Some(t) => t
+      None =>
+        fail(
+          "unknown template: \{template_name} (built-in names: moonbit | typescript | dotnet)",
+        )
+    }
+  } else {
+    match @core.auto_detect_template(src) {
+      Some(t) => t
+      None =>
+        fail(
+          "could not auto-detect a template at \{src}; pass --template <name> or --template-file <path>",
+        )
+    }
+  }
   let dag = @core.load(path, default_name="untitled")
-  let report = dag.backfill_moonbit(src)
+  let report = dag.backfill(src, template)
   @core.save(dag, path)
   if m.flags.get("json").unwrap_or(false) {
     println(report.to_json().stringify(indent=2))
   } else {
     println(
-      "backfill from \{src}: +\{report.added_milestones.length()} milestone(s), +\{report.added_issues.length()} issue(s)",
+      "backfill[\{report.template}] from \{src}: +\{report.added_milestones.length()} milestone(s), +\{report.added_issues.length()} issue(s)",
     )
     if report.skipped_milestones.length() > 0 ||
       report.skipped_issues.length() > 0 {
@@ -540,11 +604,12 @@ fn cmd_backfill(m : @argparse.Matches) -> Unit raise {
 fn cmd_plan(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let docs = parse_csv(opt(m, "docs"))
+  let format = opt(m, "format", default="checklist")
   if docs.length() == 0 {
     fail("plan needs --docs <path1,path2,...>")
   }
   let dag = @core.load(path, default_name="untitled")
-  let report = dag.plan_from_docs(docs)
+  let report = dag.plan_from_docs(docs, format~)
   @core.save(dag, path)
   if m.flags.get("json").unwrap_or(false) {
     println(report.to_json().stringify(indent=2))
