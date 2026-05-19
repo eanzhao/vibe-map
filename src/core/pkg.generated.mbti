@@ -6,9 +6,19 @@ import {
 }
 
 // Values
+pub fn auto_detect_template(String) -> Template? raise DagError
+
+pub fn builtin_templates() -> Array[Template] raise DagError
+
 pub let default_path : String
 
+pub fn find_template_by_name(String) -> Template? raise DagError
+
+pub fn import_dag(String) -> Dag raise DagError
+
 pub fn load(String, default_name? : String) -> Dag raise DagError
+
+pub fn load_template_file(String) -> Template raise DagError
 
 pub fn save(Dag, String) -> Unit raise DagError
 
@@ -18,7 +28,7 @@ pub fn write_text(String, String) -> Unit raise DagError
 pub(all) suberror DagError {
   DuplicateId(String)
   UnknownId(String)
-  UnknownMilestone(String)
+  UnknownGoal(String)
   CycleDetected(String)
   IoError(String)
   ParseError(String)
@@ -26,53 +36,140 @@ pub(all) suberror DagError {
 pub impl Show for DagError
 
 // Types and methods
+pub(all) struct AuditReport {
+  ok : Bool
+  violations : Array[Violation]
+}
+pub impl Eq for AuditReport
+pub impl Show for AuditReport
+pub impl ToJson for AuditReport
+
+pub(all) struct BackfillReport {
+  template : String
+  added_goals : Array[String]
+  added_tasks : Array[String]
+  skipped_goals : Array[String]
+  skipped_tasks : Array[String]
+}
+pub impl Show for BackfillReport
+pub impl ToJson for BackfillReport
+
 pub(all) struct Dag {
   project : Project
-  milestones : Array[Milestone]
-  issues : Array[Issue]
+  goals : Array[Goal]
+  tasks : Array[Task]
 }
-pub fn Dag::add_issue(Self, id~ : String, milestone~ : String, title~ : String, deps? : Array[String], notes? : String) -> Unit raise DagError
-pub fn Dag::add_milestone(Self, id~ : String, title~ : String, description? : String, deps? : Array[String]) -> Unit raise DagError
+pub fn Dag::add_goal(Self, id~ : String, title~ : String, description? : String, deps? : Array[String], regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
+pub fn Dag::add_task(Self, id~ : String, goal~ : String, title~ : String, deps? : Array[String], notes? : String, status? : Status, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
 pub fn Dag::assert_acyclic(Self) -> Unit raise DagError
+pub fn Dag::audit(Self) -> AuditReport
+pub fn Dag::backfill(Self, String, Template) -> BackfillReport raise DagError
+pub fn Dag::backfill_moonbit(Self, String) -> BackfillReport raise DagError
 pub fn Dag::empty(String) -> Self
-pub fn Dag::find_issue(Self, String) -> (Int, Issue)?
-pub fn Dag::find_milestone(Self, String) -> (Int, Milestone)?
+pub fn Dag::find_goal(Self, String) -> (Int, Goal)?
+pub fn Dag::find_task(Self, String) -> (Int, Task)?
+pub fn Dag::has_goal(Self, String) -> Bool
 pub fn Dag::has_id(Self, String) -> Bool
-pub fn Dag::has_issue(Self, String) -> Bool
-pub fn Dag::has_milestone(Self, String) -> Bool
-pub fn Dag::issues_of(Self, String) -> Array[Issue]
+pub fn Dag::has_task(Self, String) -> Bool
+pub fn Dag::plan_from_docs(Self, Array[String], format? : String) -> PlanReport raise DagError
 pub fn Dag::progress(Self, String) -> (Int, Int)
 pub fn Dag::remove(Self, String) -> Unit raise DagError
+pub fn Dag::set_docs(Self, String, Array[String]) -> Unit raise DagError
+pub fn Dag::set_regression_testable(Self, String, Bool) -> Unit raise DagError
+pub fn Dag::set_tests(Self, String, Array[String]) -> Unit raise DagError
+pub fn Dag::tasks_of(Self, String) -> Array[Task]
 pub fn Dag::update_status(Self, String, Status) -> Unit raise DagError
 pub fn Dag::update_title(Self, String, String) -> Unit raise DagError
+pub fn Dag::validate(Self) -> Unit raise DagError
 pub impl Eq for Dag
 pub impl Show for Dag
 pub impl ToJson for Dag
 pub impl @json.FromJson for Dag
 
-pub(all) struct Issue {
-  id : String
-  milestone : String
-  title : String
-  status : Status
-  deps : Array[String]
-  notes : String
+pub(all) struct DetectRules {
+  files : Array[String]
+  globs : Array[String]
 }
-pub impl Eq for Issue
-pub impl Show for Issue
-pub impl ToJson for Issue
-pub impl @json.FromJson for Issue
+pub impl Show for DetectRules
+pub impl ToJson for DetectRules
+pub impl @json.FromJson for DetectRules
 
-pub(all) struct Milestone {
+pub(all) struct DiscoveredPackage {
+  rel_path : String
+  title : String
+  docs : Array[String]
+  tasks : Array[DiscoveredTask]
+}
+pub impl Show for DiscoveredPackage
+
+pub(all) struct DiscoveredTask {
+  stem : String
+  title : String
+  tests : Array[String]
+  docs : Array[String]
+}
+pub impl Show for DiscoveredTask
+
+pub(all) struct FileRules {
+  source : SourceRule
+  test_colocated : PatternList
+  task_doc : PatternList
+  package_doc : NameList
+}
+pub impl Show for FileRules
+pub impl ToJson for FileRules
+pub impl @json.FromJson for FileRules
+
+pub(all) struct Goal {
   id : String
   title : String
   description : String
   deps : Array[String]
+  regression_testable : Bool
+  tests : Array[String]
+  docs : Array[String]
 }
-pub impl Eq for Milestone
-pub impl Show for Milestone
-pub impl ToJson for Milestone
-pub impl @json.FromJson for Milestone
+pub impl Eq for Goal
+pub impl Show for Goal
+pub impl ToJson for Goal
+pub impl @json.FromJson for Goal
+
+pub(all) struct NameList {
+  names : Array[String]
+}
+pub impl Show for NameList
+pub impl ToJson for NameList
+pub impl @json.FromJson for NameList
+
+pub(all) struct PackageDiscovery {
+  marker_files : Array[String]
+  marker_extensions : Array[String]
+  skip_dirs : Array[String]
+  strip_path_prefix : String
+  min_source_files : Int
+  stop_at_package : Bool
+  group_by : String
+  group_depth : Int
+}
+pub impl Show for PackageDiscovery
+pub impl ToJson for PackageDiscovery
+pub impl @json.FromJson for PackageDiscovery
+
+pub(all) struct PatternList {
+  patterns : Array[String]
+}
+pub impl Show for PatternList
+pub impl ToJson for PatternList
+pub impl @json.FromJson for PatternList
+
+pub(all) struct PlanReport {
+  added_goals : Array[String]
+  added_tasks : Array[String]
+  skipped_goals : Array[String]
+  skipped_tasks : Array[String]
+}
+pub impl Show for PlanReport
+pub impl ToJson for PlanReport
 
 pub(all) struct Project {
   name : String
@@ -82,6 +179,14 @@ pub impl Eq for Project
 pub impl Show for Project
 pub impl ToJson for Project
 pub impl @json.FromJson for Project
+
+pub(all) struct SourceRule {
+  globs : Array[String]
+  excludes : Array[String]
+}
+pub impl Show for SourceRule
+pub impl ToJson for SourceRule
+pub impl @json.FromJson for SourceRule
 
 pub(all) enum Status {
   Todo
@@ -93,6 +198,44 @@ pub impl Eq for Status
 pub impl Show for Status
 pub impl ToJson for Status
 pub impl @json.FromJson for Status
+
+pub(all) struct Task {
+  id : String
+  goal : String
+  title : String
+  status : Status
+  deps : Array[String]
+  notes : String
+  regression_testable : Bool
+  tests : Array[String]
+  docs : Array[String]
+}
+pub impl Eq for Task
+pub impl Show for Task
+pub impl ToJson for Task
+pub impl @json.FromJson for Task
+
+pub(all) struct Template {
+  name : String
+  detect : DetectRules
+  package_discovery : PackageDiscovery
+  files : FileRules
+}
+pub fn Template::detect_at(Self, String) -> Bool raise DagError
+pub fn Template::discover(Self, String) -> Array[DiscoveredPackage] raise DagError
+pub impl Show for Template
+pub impl ToJson for Template
+pub impl @json.FromJson for Template
+
+pub(all) struct Violation {
+  kind : String
+  node_id : String
+  node_kind : String
+  message : String
+}
+pub impl Eq for Violation
+pub impl Show for Violation
+pub impl ToJson for Violation
 
 // Type aliases
 

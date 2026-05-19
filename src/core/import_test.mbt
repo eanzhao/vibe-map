@@ -4,21 +4,21 @@ test "import: valid DAG round-trips" {
   let body =
     #|{
     #|  "project": { "name": "demo", "description": "" },
-    #|  "milestones": [
+    #|  "goals": [
     #|    { "id": "m1", "title": "A", "description": "", "deps": [],
     #|      "regression_testable": false, "tests": [], "docs": [] }
     #|  ],
-    #|  "issues": [
-    #|    { "id": "i1", "milestone": "m1", "title": "x", "status": "todo",
+    #|  "tasks": [
+    #|    { "id": "i1", "goal": "m1", "title": "x", "status": "todo",
     #|      "deps": [], "notes": "", "regression_testable": false,
     #|      "tests": [], "docs": [] }
     #|  ]
     #|}
   @fs.write_string_to_file(src, body)
   let dag = @core.import_dag(src)
-  assert_eq(dag.milestones.length(), 1)
-  assert_eq(dag.issues.length(), 1)
-  assert_eq(dag.milestones[0].id, "m1")
+  assert_eq(dag.goals.length(), 1)
+  assert_eq(dag.tasks.length(), 1)
+  assert_eq(dag.goals[0].id, "m1")
 }
 
 ///|
@@ -27,12 +27,12 @@ test "import: duplicate id is rejected" {
   let body =
     #|{
     #|  "project": { "name": "demo", "description": "" },
-    #|  "milestones": [
+    #|  "goals": [
     #|    { "id": "x", "title": "A", "description": "", "deps": [],
     #|      "regression_testable": false, "tests": [], "docs": [] }
     #|  ],
-    #|  "issues": [
-    #|    { "id": "x", "milestone": "x", "title": "y", "status": "todo",
+    #|  "tasks": [
+    #|    { "id": "x", "goal": "x", "title": "y", "status": "todo",
     #|      "deps": [], "notes": "", "regression_testable": false,
     #|      "tests": [], "docs": [] }
     #|  ]
@@ -45,22 +45,22 @@ test "import: duplicate id is rejected" {
 }
 
 ///|
-test "import: unknown milestone on issue is rejected" {
+test "import: unknown goal on task is rejected" {
   let src = "/tmp/vmap-import-orphan.json"
   let body =
     #|{
     #|  "project": { "name": "demo", "description": "" },
-    #|  "milestones": [],
-    #|  "issues": [
-    #|    { "id": "i1", "milestone": "nope", "title": "x", "status": "todo",
+    #|  "goals": [],
+    #|  "tasks": [
+    #|    { "id": "i1", "goal": "nope", "title": "x", "status": "todo",
     #|      "deps": [], "notes": "", "regression_testable": false,
     #|      "tests": [], "docs": [] }
     #|  ]
     #|}
   @fs.write_string_to_file(src, body)
   let r : Result[@core.Dag, @core.DagError] = try? @core.import_dag(src)
-  guard r is Err(UnknownMilestone(_)) else {
-    fail("expected UnknownMilestone, got: \{r}")
+  guard r is Err(UnknownGoal(_)) else {
+    fail("expected UnknownGoal, got: \{r}")
   }
 }
 
@@ -70,13 +70,13 @@ test "import: cycle in deps is rejected" {
   let body =
     #|{
     #|  "project": { "name": "demo", "description": "" },
-    #|  "milestones": [
+    #|  "goals": [
     #|    { "id": "a", "title": "A", "description": "", "deps": ["b"],
     #|      "regression_testable": false, "tests": [], "docs": [] },
     #|    { "id": "b", "title": "B", "description": "", "deps": ["a"],
     #|      "regression_testable": false, "tests": [], "docs": [] }
     #|  ],
-    #|  "issues": []
+    #|  "tasks": []
     #|}
   @fs.write_string_to_file(src, body)
   let r : Result[@core.Dag, @core.DagError] = try? @core.import_dag(src)

@@ -1,5 +1,5 @@
 ///|
-test "plan: synthesizes milestone + todo issues from a markdown file" {
+test "plan: synthesizes goal + todo tasks from a markdown file" {
   // Lay down a fixture in /tmp so we don't depend on this repo's own docs.
   let dir = "/tmp/vmap-plan-test"
   let _ = try? @fs.remove_dir(dir)
@@ -10,12 +10,12 @@ test "plan: synthesizes milestone + todo issues from a markdown file" {
   )
   let dag = @core.Dag::empty("demo")
   let report = dag.plan_from_docs([dir])
-  assert_eq(report.added_milestones.length(), 1)
-  assert_eq(report.added_milestones[0], "plan-auth")
-  assert_eq(report.added_issues.length(), 2)
-  let issue = dag.find_issue(report.added_issues[0]).unwrap().1
-  assert_eq(issue.status, @core.Todo)
-  assert_eq(issue.docs[0], "\{dir}/auth.md")
+  assert_eq(report.added_goals.length(), 1)
+  assert_eq(report.added_goals[0], "plan-auth")
+  assert_eq(report.added_tasks.length(), 2)
+  let task = dag.find_task(report.added_tasks[0]).unwrap().1
+  assert_eq(task.status, @core.Todo)
+  assert_eq(task.docs[0], "\{dir}/auth.md")
 }
 
 ///|
@@ -29,7 +29,7 @@ test "plan: skips checklist items inside fenced code blocks" {
   )
   let dag = @core.Dag::empty("demo")
   let report = dag.plan_from_docs([dir])
-  assert_eq(report.added_issues.length(), 1)
+  assert_eq(report.added_tasks.length(), 1)
 }
 
 ///|
@@ -41,9 +41,9 @@ test "plan: re-running on the same DAG is idempotent" {
   let dag = @core.Dag::empty("demo")
   let _ = dag.plan_from_docs([dir])
   let report2 = dag.plan_from_docs([dir])
-  assert_eq(report2.added_milestones.length(), 0)
-  assert_eq(report2.added_issues.length(), 0)
-  assert_eq(report2.skipped_issues.length(), 2)
+  assert_eq(report2.added_goals.length(), 0)
+  assert_eq(report2.added_tasks.length(), 0)
+  assert_eq(report2.skipped_tasks.length(), 2)
 }
 
 ///|
@@ -75,14 +75,14 @@ test "plan tlist: parses chengsheng-style T-headers and Status lines" {
   let dag = @core.Dag::empty("demo")
   let report = dag.plan_from_docs([dir], format="tlist")
   // T2 is struck through and skipped.
-  assert_eq(report.added_milestones.length(), 1)
-  assert_eq(report.added_issues.length(), 3)
-  let t1 = dag.find_issue("plan-todos-t1").unwrap().1
+  assert_eq(report.added_goals.length(), 1)
+  assert_eq(report.added_tasks.length(), 3)
+  let t1 = dag.find_task("plan-todos-t1").unwrap().1
   assert_eq(t1.status, @core.Done)
-  let t3 = dag.find_issue("plan-todos-t3").unwrap().1
+  let t3 = dag.find_task("plan-todos-t3").unwrap().1
   assert_eq(t3.status, @core.InProgress)
-  let t4 = dag.find_issue("plan-todos-t4").unwrap().1
+  let t4 = dag.find_task("plan-todos-t4").unwrap().1
   assert_eq(t4.status, @core.Todo)
   // T2 must not have been emitted.
-  assert_true(dag.find_issue("plan-todos-t2") is None)
+  assert_true(dag.find_task("plan-todos-t2") is None)
 }

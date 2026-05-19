@@ -1,20 +1,20 @@
 ///|
 /// Summary of what `Dag::plan_from_docs` did.
 pub(all) struct PlanReport {
-  added_milestones : Array[String]
-  added_issues : Array[String]
-  skipped_milestones : Array[String]
-  skipped_issues : Array[String]
+  added_goals : Array[String]
+  added_tasks : Array[String]
+  skipped_goals : Array[String]
+  skipped_tasks : Array[String]
 } derive(Show, ToJson)
 
 ///|
 /// Scan markdown files for planning items and synthesize nodes. `format`
 /// selects the parser:
 ///   - `"checklist"` (default): `- [ ]` unchecked items. Each `.md` file
-///     becomes a milestone; each item becomes a todo issue.
+///     becomes a goal; each item becomes a todo task.
 ///   - `"tlist"`: chengsheng-style `## T<N> — <title>` headings with a
 ///     `**Status:** ✅|open|partially resolved|blocked` line below. Each
-///     `.md` file is a milestone; each T-section is an issue with status
+///     `.md` file is a goal; each T-section is a task with status
 ///     mapped from the Status line.
 ///
 /// `paths` accepts both files and directories. Directories are walked
@@ -31,10 +31,10 @@ pub fn Dag::plan_from_docs(
   }
   md_files.sort_by((a, b) => a.lexical_compare(b))
   let report : PlanReport = {
-    added_milestones: [],
-    added_issues: [],
-    skipped_milestones: [],
-    skipped_issues: [],
+    added_goals: [],
+    added_tasks: [],
+    skipped_goals: [],
+    skipped_tasks: [],
   }
   for md_path in md_files {
     let raw = @fs.read_file_to_string(md_path) catch {
@@ -65,26 +65,24 @@ fn Dag::ingest_checklist(
   }
   let stem = doc_stem(md_path)
   let m_id = "plan-" + slugify(stem)
-  if self.has_milestone(m_id) {
-    report.skipped_milestones.push(m_id)
+  if self.has_goal(m_id) {
+    report.skipped_goals.push(m_id)
   } else {
-    self.add_milestone(
+    self.add_goal(
       id=m_id,
       title=stem,
       description="Planned items extracted from \{md_path}",
       docs=[md_path],
     )
-    report.added_milestones.push(m_id)
+    report.added_goals.push(m_id)
   }
   for item in items {
     let i_id = m_id + "-" + slug_short(item)
-    if self.has_issue(i_id) {
-      report.skipped_issues.push(i_id)
+    if self.has_task(i_id) {
+      report.skipped_tasks.push(i_id)
     } else {
-      self.add_issue(id=i_id, milestone=m_id, title=item, status=Todo, docs=[
-        md_path,
-      ])
-      report.added_issues.push(i_id)
+      self.add_task(id=i_id, goal=m_id, title=item, status=Todo, docs=[md_path])
+      report.added_tasks.push(i_id)
     }
   }
 }
@@ -102,30 +100,30 @@ fn Dag::ingest_tlist(
   }
   let stem = doc_stem(md_path)
   let m_id = "plan-" + slugify(stem)
-  if self.has_milestone(m_id) {
-    report.skipped_milestones.push(m_id)
+  if self.has_goal(m_id) {
+    report.skipped_goals.push(m_id)
   } else {
-    self.add_milestone(
+    self.add_goal(
       id=m_id,
       title=stem,
       description="T-items extracted from \{md_path}",
       docs=[md_path],
     )
-    report.added_milestones.push(m_id)
+    report.added_goals.push(m_id)
   }
   for item in items {
     let i_id = m_id + "-t" + item.number
-    if self.has_issue(i_id) {
-      report.skipped_issues.push(i_id)
+    if self.has_task(i_id) {
+      report.skipped_tasks.push(i_id)
     } else {
-      self.add_issue(
+      self.add_task(
         id=i_id,
-        milestone=m_id,
+        goal=m_id,
         title="T\{item.number} — \{item.title}",
         status=item.status,
         docs=[md_path],
       )
-      report.added_issues.push(i_id)
+      report.added_tasks.push(i_id)
     }
   }
 }
@@ -358,7 +356,7 @@ fn last_index_of(s : String, ch : Char) -> Int? {
 }
 
 ///|
-/// Short slug suitable for an issue id: lowercase, alnum, dashes, truncated to
+/// Short slug suitable for a task id: lowercase, alnum, dashes, truncated to
 /// 40 chars. Empty input yields "item".
 fn slug_short(text : String) -> String {
   let sb = StringBuilder::new()

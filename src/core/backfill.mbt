@@ -3,15 +3,15 @@
 /// list, so callers can diff or display "what changed."
 pub(all) struct BackfillReport {
   template : String
-  added_milestones : Array[String]
-  added_issues : Array[String]
-  skipped_milestones : Array[String]
-  skipped_issues : Array[String]
+  added_goals : Array[String]
+  added_tasks : Array[String]
+  skipped_goals : Array[String]
+  skipped_tasks : Array[String]
 } derive(Show, ToJson)
 
 ///|
 /// Run a backfill template against `src_root` and merge the result into this
-/// DAG. Existing milestone/issue ids are left alone. Returns a report of
+/// DAG. Existing goal/task ids are left alone. Returns a report of
 /// what was added vs skipped.
 pub fn Dag::backfill(
   self : Dag,
@@ -21,40 +21,40 @@ pub fn Dag::backfill(
   let packages = template.discover(src_root)
   let report : BackfillReport = {
     template: template.name,
-    added_milestones: [],
-    added_issues: [],
-    skipped_milestones: [],
-    skipped_issues: [],
+    added_goals: [],
+    added_tasks: [],
+    skipped_goals: [],
+    skipped_tasks: [],
   }
   for pkg in packages {
-    let m_id = milestone_id_for(pkg.rel_path)
-    if self.has_milestone(m_id) {
-      report.skipped_milestones.push(m_id)
+    let m_id = goal_id_for(pkg.rel_path)
+    if self.has_goal(m_id) {
+      report.skipped_goals.push(m_id)
     } else {
-      self.add_milestone(
+      self.add_goal(
         id=m_id,
         title=pkg.title,
         description="Backfilled via template `\{template.name}`",
         regression_testable=true,
         docs=pkg.docs,
       )
-      report.added_milestones.push(m_id)
+      report.added_goals.push(m_id)
     }
-    for issue in pkg.issues {
-      let i_id = issue_id_for(pkg.rel_path, issue.stem)
-      if self.has_issue(i_id) {
-        report.skipped_issues.push(i_id)
+    for task in pkg.tasks {
+      let i_id = task_id_for(pkg.rel_path, task.stem)
+      if self.has_task(i_id) {
+        report.skipped_tasks.push(i_id)
       } else {
-        self.add_issue(
+        self.add_task(
           id=i_id,
-          milestone=m_id,
-          title=issue.title,
+          goal=m_id,
+          title=task.title,
           status=Done,
           regression_testable=true,
-          tests=issue.tests,
-          docs=issue.docs,
+          tests=task.tests,
+          docs=task.docs,
         )
-        report.added_issues.push(i_id)
+        report.added_tasks.push(i_id)
       }
     }
   }
@@ -89,7 +89,7 @@ fn slugify(path : String) -> String {
 }
 
 ///|
-fn milestone_id_for(rel_path : String) -> String {
+fn goal_id_for(rel_path : String) -> String {
   if rel_path == "." {
     "pkg-root"
   } else {
@@ -98,7 +98,7 @@ fn milestone_id_for(rel_path : String) -> String {
 }
 
 ///|
-fn issue_id_for(rel_path : String, stem : String) -> String {
+fn task_id_for(rel_path : String, stem : String) -> String {
   let base = if rel_path == "." { "" } else { slugify(rel_path) + "-" }
   base + slugify(stem)
 }

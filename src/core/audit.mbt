@@ -24,40 +24,40 @@ pub(all) struct AuditReport {
 ///    Pure todo nodes are skipped (you can't doc what's not built yet).
 pub fn Dag::audit(self : Dag) -> AuditReport {
   let violations = []
-  for m in self.milestones {
+  for m in self.goals {
     if m.regression_testable && m.tests.length() == 0 {
       violations.push({
         kind: "missing_tests",
         node_id: m.id,
-        node_kind: "milestone",
-        message: "milestone is regression-testable but has no `tests` entries",
+        node_kind: "goal",
+        message: "goal is regression-testable but has no `tests` entries",
       })
     }
-    // Milestones don't have a status field, so always check docs.
+    // Goals don't have a status field, so always check docs.
     if m.docs.length() == 0 {
       violations.push({
         kind: "missing_docs",
         node_id: m.id,
-        node_kind: "milestone",
-        message: "milestone has no `docs` entries",
+        node_kind: "goal",
+        message: "goal has no `docs` entries",
       })
     }
   }
-  for i in self.issues {
+  for i in self.tasks {
     if i.regression_testable && i.tests.length() == 0 {
       violations.push({
         kind: "missing_tests",
         node_id: i.id,
-        node_kind: "issue",
-        message: "issue is regression-testable but has no `tests` entries",
+        node_kind: "task",
+        message: "task is regression-testable but has no `tests` entries",
       })
     }
     if not(i.status is Todo) && i.docs.length() == 0 {
       violations.push({
         kind: "missing_docs",
         node_id: i.id,
-        node_kind: "issue",
-        message: "issue is past `todo` but has no `docs` entries",
+        node_kind: "task",
+        message: "task is past `todo` but has no `docs` entries",
       })
     }
   }

@@ -1,7 +1,7 @@
 ///|
-/// True if `id` names a milestone in the DAG.
-pub fn Dag::has_milestone(self : Dag, id : String) -> Bool {
-  for m in self.milestones {
+/// True if `id` names a goal in the DAG.
+pub fn Dag::has_goal(self : Dag, id : String) -> Bool {
+  for m in self.goals {
     if m.id == id {
       return true
     }
@@ -10,9 +10,9 @@ pub fn Dag::has_milestone(self : Dag, id : String) -> Bool {
 }
 
 ///|
-/// True if `id` names an issue in the DAG.
-pub fn Dag::has_issue(self : Dag, id : String) -> Bool {
-  for i in self.issues {
+/// True if `id` names a task in the DAG.
+pub fn Dag::has_task(self : Dag, id : String) -> Bool {
+  for i in self.tasks {
     if i.id == id {
       return true
     }
@@ -21,27 +21,27 @@ pub fn Dag::has_issue(self : Dag, id : String) -> Bool {
 }
 
 ///|
-/// True if `id` names either a milestone or an issue.
+/// True if `id` names either a goal or a task.
 pub fn Dag::has_id(self : Dag, id : String) -> Bool {
-  self.has_milestone(id) || self.has_issue(id)
+  self.has_goal(id) || self.has_task(id)
 }
 
 ///|
-/// Find an issue by id (linear scan; DAGs stay small enough that a map is
+/// Find a task by id (linear scan; DAGs stay small enough that a map is
 /// premature).
-pub fn Dag::find_issue(self : Dag, id : String) -> (Int, Issue)? {
-  for idx, issue in self.issues {
-    if issue.id == id {
-      return Some((idx, issue))
+pub fn Dag::find_task(self : Dag, id : String) -> (Int, Task)? {
+  for idx, task in self.tasks {
+    if task.id == id {
+      return Some((idx, task))
     }
   }
   None
 }
 
 ///|
-/// Find a milestone by id.
-pub fn Dag::find_milestone(self : Dag, id : String) -> (Int, Milestone)? {
-  for idx, m in self.milestones {
+/// Find a goal by id.
+pub fn Dag::find_goal(self : Dag, id : String) -> (Int, Goal)? {
+  for idx, m in self.goals {
     if m.id == id {
       return Some((idx, m))
     }
@@ -50,9 +50,9 @@ pub fn Dag::find_milestone(self : Dag, id : String) -> (Int, Milestone)? {
 }
 
 ///|
-/// Append a new milestone. Raises `DuplicateId` if the id exists, or
+/// Append a new goal. Raises `DuplicateId` if the id exists, or
 /// `UnknownId` if any dep is unknown. Cycle detection runs after insertion.
-pub fn Dag::add_milestone(
+pub fn Dag::add_goal(
   self : Dag,
   id~ : String,
   title~ : String,
@@ -66,11 +66,11 @@ pub fn Dag::add_milestone(
     raise DuplicateId(id)
   }
   for d in deps {
-    if not(self.has_milestone(d)) {
-      raise UnknownId("milestone dep \{d}")
+    if not(self.has_goal(d)) {
+      raise UnknownId("goal dep \{d}")
     }
   }
-  self.milestones.push({
+  self.goals.push({
     id,
     title,
     description,
@@ -83,12 +83,12 @@ pub fn Dag::add_milestone(
 }
 
 ///|
-/// Append a new issue. The owning milestone must exist; deps must be other
-/// existing issues. Cycle detection runs after insertion.
-pub fn Dag::add_issue(
+/// Append a new task. The owning goal must exist; deps must be other
+/// existing tasks. Cycle detection runs after insertion.
+pub fn Dag::add_task(
   self : Dag,
   id~ : String,
-  milestone~ : String,
+  goal~ : String,
   title~ : String,
   deps? : Array[String] = [],
   notes? : String = "",
@@ -100,17 +100,17 @@ pub fn Dag::add_issue(
   if self.has_id(id) {
     raise DuplicateId(id)
   }
-  if not(self.has_milestone(milestone)) {
-    raise UnknownMilestone(milestone)
+  if not(self.has_goal(goal)) {
+    raise UnknownGoal(goal)
   }
   for d in deps {
-    if not(self.has_issue(d)) {
-      raise UnknownId("issue dep \{d}")
+    if not(self.has_task(d)) {
+      raise UnknownId("task dep \{d}")
     }
   }
-  self.issues.push({
+  self.tasks.push({
     id,
-    milestone,
+    goal,
     title,
     status,
     deps,
@@ -123,118 +123,118 @@ pub fn Dag::add_issue(
 }
 
 ///|
-/// Mutate the status of an issue in place. Errors if the id is not an issue.
+/// Mutate the status of a task in place. Errors if the id is not a task.
 pub fn Dag::update_status(
   self : Dag,
   id : String,
   status : Status,
 ) -> Unit raise DagError {
-  match self.find_issue(id) {
-    Some((idx, issue)) => self.issues[idx] = { ..issue, status, }
+  match self.find_task(id) {
+    Some((idx, task)) => self.tasks[idx] = { ..task, status, }
     None => raise UnknownId(id)
   }
 }
 
 ///|
-/// Set the title on either a milestone or an issue.
+/// Set the title on either a goal or a task.
 pub fn Dag::update_title(
   self : Dag,
   id : String,
   title : String,
 ) -> Unit raise DagError {
-  match self.find_milestone(id) {
+  match self.find_goal(id) {
     Some((idx, m)) => {
-      self.milestones[idx] = { ..m, title, }
+      self.goals[idx] = { ..m, title, }
       return
     }
     None => ()
   }
-  match self.find_issue(id) {
-    Some((idx, issue)) => self.issues[idx] = { ..issue, title, }
+  match self.find_task(id) {
+    Some((idx, task)) => self.tasks[idx] = { ..task, title, }
     None => raise UnknownId(id)
   }
 }
 
 ///|
-/// Set `regression_testable` on either a milestone or an issue.
+/// Set `regression_testable` on either a goal or a task.
 pub fn Dag::set_regression_testable(
   self : Dag,
   id : String,
   value : Bool,
 ) -> Unit raise DagError {
-  match self.find_milestone(id) {
+  match self.find_goal(id) {
     Some((idx, m)) => {
-      self.milestones[idx] = { ..m, regression_testable: value }
+      self.goals[idx] = { ..m, regression_testable: value }
       return
     }
     None => ()
   }
-  match self.find_issue(id) {
-    Some((idx, issue)) =>
-      self.issues[idx] = { ..issue, regression_testable: value }
+  match self.find_task(id) {
+    Some((idx, task)) =>
+      self.tasks[idx] = { ..task, regression_testable: value }
     None => raise UnknownId(id)
   }
 }
 
 ///|
-/// Replace the test list on either a milestone or an issue.
+/// Replace the test list on either a goal or a task.
 pub fn Dag::set_tests(
   self : Dag,
   id : String,
   tests : Array[String],
 ) -> Unit raise DagError {
-  match self.find_milestone(id) {
+  match self.find_goal(id) {
     Some((idx, m)) => {
-      self.milestones[idx] = { ..m, tests, }
+      self.goals[idx] = { ..m, tests, }
       return
     }
     None => ()
   }
-  match self.find_issue(id) {
-    Some((idx, issue)) => self.issues[idx] = { ..issue, tests, }
+  match self.find_task(id) {
+    Some((idx, task)) => self.tasks[idx] = { ..task, tests, }
     None => raise UnknownId(id)
   }
 }
 
 ///|
-/// Replace the docs list on either a milestone or an issue.
+/// Replace the docs list on either a goal or a task.
 pub fn Dag::set_docs(
   self : Dag,
   id : String,
   docs : Array[String],
 ) -> Unit raise DagError {
-  match self.find_milestone(id) {
+  match self.find_goal(id) {
     Some((idx, m)) => {
-      self.milestones[idx] = { ..m, docs, }
+      self.goals[idx] = { ..m, docs, }
       return
     }
     None => ()
   }
-  match self.find_issue(id) {
-    Some((idx, issue)) => self.issues[idx] = { ..issue, docs, }
+  match self.find_task(id) {
+    Some((idx, task)) => self.tasks[idx] = { ..task, docs, }
     None => raise UnknownId(id)
   }
 }
 
 ///|
 /// Remove a node by id. Also strips it from any other node's deps. If the id
-/// names a milestone, all issues under it are removed too.
+/// names a goal, all tasks under it are removed too.
 pub fn Dag::remove(self : Dag, id : String) -> Unit raise DagError {
-  if self.has_milestone(id) {
-    // Drop the milestone, drop dependent issues, then scrub remaining deps.
-    self.milestones.retain(m => m.id != id)
-    self.issues.retain(i => i.milestone != id)
-    for idx, m in self.milestones {
+  if self.has_goal(id) {
+    // Drop the goal, drop dependent tasks, then scrub remaining deps.
+    self.goals.retain(m => m.id != id)
+    self.tasks.retain(i => i.goal != id)
+    for idx, m in self.goals {
       let next = m.deps.copy()
       next.retain(d => d != id)
-      self.milestones[idx] = { ..m, deps: next }
+      self.goals[idx] = { ..m, deps: next }
     }
-  } else if self.has_issue(id) {
-    self.issues.retain(i => i.id != id)
-    for idx, i in self.issues {
+  } else if self.has_task(id) {
+    self.tasks.retain(i => i.id != id)
+    for idx, i in self.tasks {
       let next = i.deps.copy()
       next.retain(d => d != id)
-      self.issues[idx] = { ..i, deps: next }
+      self.tasks[idx] = { ..i, deps: next }
     }
   } else {
     raise UnknownId(id)
@@ -243,39 +243,39 @@ pub fn Dag::remove(self : Dag, id : String) -> Unit raise DagError {
 
 ///|
 /// Run every structural validator against this DAG: id uniqueness across
-/// milestones+issues, issue→milestone references resolve, dep references
-/// resolve at their layer (milestone deps point at milestones, issue deps at
-/// issues), and the dep graph is acyclic. Raises on the first violation.
+/// goals+tasks, task→goal references resolve, dep references
+/// resolve at their layer (goal deps point at goals, task deps at
+/// tasks), and the dep graph is acyclic. Raises on the first violation.
 pub fn Dag::validate(self : Dag) -> Unit raise DagError {
   let seen : Map[String, Bool] = {}
-  for m in self.milestones {
+  for m in self.goals {
     if seen.contains(m.id) {
       raise DuplicateId(m.id)
     }
     seen[m.id] = true
   }
-  for i in self.issues {
+  for i in self.tasks {
     if seen.contains(i.id) {
       raise DuplicateId(i.id)
     }
     seen[i.id] = true
   }
-  for i in self.issues {
-    if not(self.has_milestone(i.milestone)) {
-      raise UnknownMilestone("issue \{i.id} -> \{i.milestone}")
+  for i in self.tasks {
+    if not(self.has_goal(i.goal)) {
+      raise UnknownGoal("task \{i.id} -> \{i.goal}")
     }
   }
-  for m in self.milestones {
+  for m in self.goals {
     for d in m.deps {
-      if not(self.has_milestone(d)) {
-        raise UnknownId("milestone \{m.id} dep -> \{d}")
+      if not(self.has_goal(d)) {
+        raise UnknownId("goal \{m.id} dep -> \{d}")
       }
     }
   }
-  for i in self.issues {
+  for i in self.tasks {
     for d in i.deps {
-      if not(self.has_issue(d)) {
-        raise UnknownId("issue \{i.id} dep -> \{d}")
+      if not(self.has_task(d)) {
+        raise UnknownId("task \{i.id} dep -> \{d}")
       }
     }
   }
@@ -283,22 +283,22 @@ pub fn Dag::validate(self : Dag) -> Unit raise DagError {
 }
 
 ///|
-/// Run depth-first cycle detection across milestones and issues. Edges go
+/// Run depth-first cycle detection across goals and tasks. Edges go
 /// from a node to each of its deps; a back-edge means a cycle.
 pub fn Dag::assert_acyclic(self : Dag) -> Unit raise DagError {
   // 0 = unseen, 1 = on stack, 2 = done
   let state : Map[String, Int] = {}
-  for m in self.milestones {
+  for m in self.goals {
     state[m.id] = 0
   }
-  for i in self.issues {
+  for i in self.tasks {
     state[i.id] = 0
   }
   fn deps_of(id : String) -> Array[String] {
-    match self.find_milestone(id) {
+    match self.find_goal(id) {
       Some((_, m)) => m.deps
       None =>
-        match self.find_issue(id) {
+        match self.find_task(id) {
           Some((_, i)) => i.deps
           None => []
         }
@@ -319,20 +319,20 @@ pub fn Dag::assert_acyclic(self : Dag) -> Unit raise DagError {
     }
   }
 
-  for m in self.milestones {
+  for m in self.goals {
     visit(m.id)
   }
-  for i in self.issues {
+  for i in self.tasks {
     visit(i.id)
   }
 }
 
 ///|
-/// Issues filed under a milestone, in insertion order.
-pub fn Dag::issues_of(self : Dag, milestone_id : String) -> Array[Issue] {
+/// Tasks filed under a goal, in insertion order.
+pub fn Dag::tasks_of(self : Dag, goal_id : String) -> Array[Task] {
   let out = []
-  for i in self.issues {
-    if i.milestone == milestone_id {
+  for i in self.tasks {
+    if i.goal == goal_id {
       out.push(i)
     }
   }
@@ -340,12 +340,12 @@ pub fn Dag::issues_of(self : Dag, milestone_id : String) -> Array[Issue] {
 }
 
 ///|
-/// Progress of a milestone as `(done, total)` issues.
-pub fn Dag::progress(self : Dag, milestone_id : String) -> (Int, Int) {
+/// Progress of a goal as `(done, total)` tasks.
+pub fn Dag::progress(self : Dag, goal_id : String) -> (Int, Int) {
   let mut done = 0
   let mut total = 0
-  for i in self.issues {
-    if i.milestone == milestone_id {
+  for i in self.tasks {
+    if i.goal == goal_id {
       total = total + 1
       if i.status is Done {
         done = done + 1

@@ -48,12 +48,12 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "add",
-        about="Add a milestone or issue.",
+        about="Add a goal or task.",
         subcommand_required=true,
         subcommands=[
           @argparse.Command::new(
-            "milestone",
-            about="Add a milestone (a user-visible capability).",
+            "goal",
+            about="Add a goal (a user-visible capability).",
             flags=[
               @argparse.FlagArg::new(
                 "regression-testable",
@@ -69,7 +69,7 @@ fn build_cli() -> @argparse.Command {
               @argparse.OptionArg::new(
                 "deps",
                 long="deps",
-                about="Comma-separated milestone ids this depends on",
+                about="Comma-separated goal ids this depends on",
               ),
               @argparse.OptionArg::new(
                 "tests",
@@ -87,8 +87,8 @@ fn build_cli() -> @argparse.Command {
             ],
           ),
           @argparse.Command::new(
-            "issue",
-            about="Add an issue (an implementation task under a milestone).",
+            "task",
+            about="Add a task (an implementation task under a goal).",
             flags=[
               @argparse.FlagArg::new(
                 "regression-testable",
@@ -99,16 +99,12 @@ fn build_cli() -> @argparse.Command {
             ],
             options=[
               @argparse.OptionArg::new("id", long="id", required=true),
-              @argparse.OptionArg::new(
-                "milestone",
-                long="milestone",
-                required=true,
-              ),
+              @argparse.OptionArg::new("goal", long="goal", required=true),
               @argparse.OptionArg::new("title", long="title", required=true),
               @argparse.OptionArg::new(
                 "deps",
                 long="deps",
-                about="Comma-separated issue ids this depends on",
+                about="Comma-separated task ids this depends on",
               ),
               @argparse.OptionArg::new("notes", long="notes"),
               @argparse.OptionArg::new(
@@ -130,7 +126,7 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "update",
-        about="Update fields on a milestone or issue. Flags that are not passed leave the existing value alone.",
+        about="Update fields on a goal or task. Flags that are not passed leave the existing value alone.",
         positionals=[@argparse.PositionArg::new("id")],
         flags=[
           @argparse.FlagArg::new(
@@ -164,7 +160,7 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "rm",
-        about="Remove a milestone or issue.",
+        about="Remove a goal or task.",
         positionals=[@argparse.PositionArg::new("id")],
         options=[
           @argparse.OptionArg::new("file", long="file", default_values=[
@@ -221,7 +217,7 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "backfill",
-        about="Synthesize milestones (per package) and issues (per source file) from an existing source tree. Merges into the DAG; existing ids are left alone. Auto-detects the template when --template / --template-file is omitted.",
+        about="Synthesize goals (per package) and tasks (per source file) from an existing source tree. Merges into the DAG; existing ids are left alone. Auto-detects the template when --template / --template-file is omitted.",
         flags=[
           @argparse.FlagArg::new(
             "json",
@@ -233,8 +229,8 @@ fn build_cli() -> @argparse.Command {
           @argparse.OptionArg::new(
             "src",
             long="src",
-            default_values=["src"],
-            about="Source tree root to scan.",
+            default_values=["."],
+            about="Source tree root to scan (default: current dir).",
           ),
           @argparse.OptionArg::new(
             "template",
@@ -306,8 +302,8 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
     "add" => {
       let (sub_name, sub_sub) = sub.subcommand.unwrap()
       match sub_name {
-        "milestone" => cmd_add_milestone(sub_sub)
-        "issue" => cmd_add_issue(sub_sub)
+        "goal" => cmd_add_goal(sub_sub)
+        "task" => cmd_add_task(sub_sub)
         _ => fail("unknown add subcommand: \{sub_name}")
       }
     }
@@ -375,12 +371,12 @@ fn cmd_init(m : @argparse.Matches) -> Unit raise {
 }
 
 ///|
-fn cmd_add_milestone(m : @argparse.Matches) -> Unit raise {
+fn cmd_add_goal(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let id = opt(m, "id")
   let title = opt(m, "title")
   let dag = @core.load(path, default_name="untitled")
-  dag.add_milestone(
+  dag.add_goal(
     id~,
     title~,
     description=opt(m, "description"),
@@ -390,19 +386,19 @@ fn cmd_add_milestone(m : @argparse.Matches) -> Unit raise {
     docs=parse_csv(opt(m, "docs")),
   )
   @core.save(dag, path)
-  println("+ milestone \{id}: \{title}")
+  println("+ goal \{id}: \{title}")
 }
 
 ///|
-fn cmd_add_issue(m : @argparse.Matches) -> Unit raise {
+fn cmd_add_task(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let id = opt(m, "id")
-  let milestone = opt(m, "milestone")
+  let goal = opt(m, "goal")
   let title = opt(m, "title")
   let dag = @core.load(path, default_name="untitled")
-  dag.add_issue(
+  dag.add_task(
     id~,
-    milestone~,
+    goal~,
     title~,
     deps=parse_csv(opt(m, "deps")),
     notes=opt(m, "notes"),
@@ -411,7 +407,7 @@ fn cmd_add_issue(m : @argparse.Matches) -> Unit raise {
     docs=parse_csv(opt(m, "docs")),
   )
   @core.save(dag, path)
-  println("+ issue \{id} under \{milestone}: \{title}")
+  println("+ task \{id} under \{goal}: \{title}")
 }
 
 ///|
@@ -490,36 +486,32 @@ fn cmd_status(m : @argparse.Matches) -> Unit raise {
   if dag.project.description != "" {
     println("  \{dag.project.description}")
   }
-  if dag.milestones.length() == 0 {
-    println(
-      "(no milestones yet — try `vmap add milestone --id m1 --title …`)",
-    )
+  if dag.goals.length() == 0 {
+    println("(no goals yet — try `vmap add goal --id m1 --title …`)")
     return
   }
-  for milestone in dag.milestones {
-    let (done, total) = dag.progress(milestone.id)
+  for goal in dag.goals {
+    let (done, total) = dag.progress(goal.id)
     let pct = if total > 0 { done * 100 / total } else { 0 }
-    println(
-      "• [\{milestone.id}] \{milestone.title}  (\{done}/\{total} · \{pct}%)",
-    )
-    for issue in dag.issues_of(milestone.id) {
-      let mark = match issue.status {
+    println("• [\{goal.id}] \{goal.title}  (\{done}/\{total} · \{pct}%)")
+    for task in dag.tasks_of(goal.id) {
+      let mark = match task.status {
         @core.Done => "✓"
         @core.InProgress => "…"
         @core.Blocked => "!"
         @core.Todo => "·"
       }
-      println("    \{mark} [\{issue.id}] \{issue.title}")
+      println("    \{mark} [\{task.id}] \{task.title}")
     }
   }
 }
 
 ///|
 /// Build the JSON shape returned by `vmap status --json`: the raw DAG plus a
-/// `progress` field derived per milestone, so AI agents don't have to recompute.
+/// `progress` field derived per goal, so AI agents don't have to recompute.
 fn status_json(dag : @core.Dag) -> Json {
   let progress : Map[String, Json] = {}
-  for m in dag.milestones {
+  for m in dag.goals {
     let (done, total) = dag.progress(m.id)
     progress[m.id] = { "done": done.to_json(), "total": total.to_json() }
   }
@@ -553,7 +545,7 @@ fn cmd_import(m : @argparse.Matches) -> Unit raise {
   let dag = @core.import_dag(in_path)
   @core.save(dag, target)
   println(
-    "imported \{dag.milestones.length()} milestone(s), \{dag.issues.length()} issue(s) -> \{target}",
+    "imported \{dag.goals.length()} goal(s), \{dag.tasks.length()} task(s) -> \{target}",
   )
 }
 
@@ -589,12 +581,11 @@ fn cmd_backfill(m : @argparse.Matches) -> Unit raise {
     println(report.to_json().stringify(indent=2))
   } else {
     println(
-      "backfill[\{report.template}] from \{src}: +\{report.added_milestones.length()} milestone(s), +\{report.added_issues.length()} issue(s)",
+      "backfill[\{report.template}] from \{src}: +\{report.added_goals.length()} goal(s), +\{report.added_tasks.length()} task(s)",
     )
-    if report.skipped_milestones.length() > 0 ||
-      report.skipped_issues.length() > 0 {
+    if report.skipped_goals.length() > 0 || report.skipped_tasks.length() > 0 {
       println(
-        "  (skipped \{report.skipped_milestones.length()} milestone(s) and \{report.skipped_issues.length()} issue(s) that already existed)",
+        "  (skipped \{report.skipped_goals.length()} goal(s) and \{report.skipped_tasks.length()} task(s) that already existed)",
       )
     }
   }
@@ -615,12 +606,11 @@ fn cmd_plan(m : @argparse.Matches) -> Unit raise {
     println(report.to_json().stringify(indent=2))
   } else {
     println(
-      "plan from \{docs.length()} path(s): +\{report.added_milestones.length()} milestone(s), +\{report.added_issues.length()} issue(s)",
+      "plan from \{docs.length()} path(s): +\{report.added_goals.length()} goal(s), +\{report.added_tasks.length()} task(s)",
     )
-    if report.skipped_milestones.length() > 0 ||
-      report.skipped_issues.length() > 0 {
+    if report.skipped_goals.length() > 0 || report.skipped_tasks.length() > 0 {
       println(
-        "  (skipped \{report.skipped_milestones.length()} milestone(s) and \{report.skipped_issues.length()} issue(s) that already existed)",
+        "  (skipped \{report.skipped_goals.length()} goal(s) and \{report.skipped_tasks.length()} task(s) that already existed)",
       )
     }
   }

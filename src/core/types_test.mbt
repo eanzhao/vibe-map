@@ -12,16 +12,16 @@ test "Dag::empty serializes to a stable shape" {
   let dag = @core.Dag::empty("demo")
   json_inspect(dag, content={
     "project": { "name": "demo", "description": "" },
-    "milestones": [],
-    "issues": [],
+    "goals": [],
+    "tasks": [],
   })
 }
 
 ///|
-test "Dag round-trip with one milestone and one issue" {
+test "Dag round-trip with one goal and one task" {
   let dag : @core.Dag = {
     project: { name: "demo", description: "vibe coding DAG" },
-    milestones: [
+    goals: [
       {
         id: "m1",
         title: "用户能登录",
@@ -32,10 +32,10 @@ test "Dag round-trip with one milestone and one issue" {
         docs: [],
       },
     ],
-    issues: [
+    tasks: [
       {
         id: "i1",
-        milestone: "m1",
+        goal: "m1",
         title: "写 auth middleware",
         status: @core.Done,
         deps: [],

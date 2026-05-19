@@ -3,11 +3,11 @@
     "name": "vibe-map (self)",
     "description": ""
   },
-  "milestones": [
+  "goals": [
     {
       "id": "pkg-cmd-vmap",
       "title": "cmd/vmap",
-      "description": "Backfilled MoonBit package",
+      "description": "Backfilled via template `moonbit`",
       "deps": [],
       "regression_testable": true,
       "tests": [],
@@ -16,7 +16,7 @@
     {
       "id": "pkg-core",
       "title": "core",
-      "description": "Backfilled MoonBit package",
+      "description": "Backfilled via template `moonbit`",
       "deps": [],
       "regression_testable": true,
       "tests": [],
@@ -25,7 +25,7 @@
     {
       "id": "pkg-render",
       "title": "render",
-      "description": "Backfilled MoonBit package",
+      "description": "Backfilled via template `moonbit`",
       "deps": [],
       "regression_testable": true,
       "tests": [],
@@ -43,10 +43,10 @@
       ]
     }
   ],
-  "issues": [
+  "tasks": [
     {
       "id": "cmd-vmap-main",
-      "milestone": "pkg-cmd-vmap",
+      "goal": "pkg-cmd-vmap",
       "title": "main.mbt",
       "status": "done",
       "deps": [],
@@ -56,8 +56,56 @@
       "docs": []
     },
     {
+      "id": "core-adapter",
+      "goal": "pkg-core",
+      "title": "adapter.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-audit",
+      "goal": "pkg-core",
+      "title": "audit.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "audit_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "core-backfill",
+      "goal": "pkg-core",
+      "title": "backfill.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [
+        "backfill_test.mbt"
+      ],
+      "docs": []
+    },
+    {
+      "id": "core-errors",
+      "goal": "pkg-core",
+      "title": "errors.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
       "id": "core-ops",
-      "milestone": "pkg-core",
+      "goal": "pkg-core",
       "title": "ops.mbt",
       "status": "done",
       "deps": [],
@@ -70,7 +118,7 @@
     },
     {
       "id": "core-plan",
-      "milestone": "pkg-core",
+      "goal": "pkg-core",
       "title": "plan.mbt",
       "status": "done",
       "deps": [],
@@ -82,21 +130,8 @@
       "docs": []
     },
     {
-      "id": "core-audit",
-      "milestone": "pkg-core",
-      "title": "audit.mbt",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [
-        "audit_test.mbt"
-      ],
-      "docs": []
-    },
-    {
       "id": "core-store",
-      "milestone": "pkg-core",
+      "goal": "pkg-core",
       "title": "store.mbt",
       "status": "done",
       "deps": [],
@@ -106,8 +141,30 @@
       "docs": []
     },
     {
+      "id": "core-template",
+      "goal": "pkg-core",
+      "title": "template.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-templates",
+      "goal": "pkg-core",
+      "title": "templates.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
       "id": "core-types",
-      "milestone": "pkg-core",
+      "goal": "pkg-core",
       "title": "types.mbt",
       "status": "done",
       "deps": [],
@@ -119,32 +176,8 @@
       "docs": []
     },
     {
-      "id": "core-errors",
-      "milestone": "pkg-core",
-      "title": "errors.mbt",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "core-backfill",
-      "milestone": "pkg-core",
-      "title": "backfill.mbt",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [
-        "backfill_test.mbt"
-      ],
-      "docs": []
-    },
-    {
       "id": "render-html",
-      "milestone": "pkg-render",
+      "goal": "pkg-render",
       "title": "html.mbt",
       "status": "done",
       "deps": [],
@@ -157,7 +190,7 @@
     },
     {
       "id": "plan-roadmap-add-live-reload-serve-mode",
-      "milestone": "plan-roadmap",
+      "goal": "plan-roadmap",
       "title": "add live-reload serve mode",
       "status": "todo",
       "deps": [],
@@ -170,7 +203,7 @@
     },
     {
       "id": "plan-roadmap-generate-mcp-tool-definitions-for-ai-age",
-      "milestone": "plan-roadmap",
+      "goal": "plan-roadmap",
       "title": "generate MCP tool definitions for AI agents",
       "status": "todo",
       "deps": [],
@@ -183,7 +216,7 @@
     },
     {
       "id": "plan-roadmap-symbol-level-backfill-via-moon-ide-outli",
-      "milestone": "plan-roadmap",
+      "goal": "plan-roadmap",
       "title": "symbol-level backfill via `moon ide outline`",
       "status": "todo",
       "deps": [],
@@ -196,7 +229,7 @@
     },
     {
       "id": "plan-roadmap-cross-language-adapter-beyond-moonbit",
-      "milestone": "plan-roadmap",
+      "goal": "plan-roadmap",
       "title": "cross-language adapter beyond MoonBit",
       "status": "todo",
       "deps": [],

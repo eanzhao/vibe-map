@@ -2,7 +2,7 @@
 pub(all) suberror DagError {
   DuplicateId(String)
   UnknownId(String)
-  UnknownMilestone(String)
+  UnknownGoal(String)
   CycleDetected(String)
   IoError(String)
   ParseError(String)

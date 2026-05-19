@@ -38,9 +38,9 @@ pub(all) struct PackageDiscovery {
   /// Post-walk grouping strategy. Currently supported:
   ///   - `"none"`: leave discovered packages as-is.
   ///   - `"namespace"`: collapse packages whose basename shares the first
-  ///     `group_depth` dot-separated segments into one milestone. Used for
+  ///     `group_depth` dot-separated segments into one goal. Used for
   ///     .NET where `Aevatar.Foundation.X` + `Aevatar.Foundation.Y` should
-  ///     fold into one "Aevatar.Foundation" milestone.
+  ///     fold into one "Aevatar.Foundation" goal.
   group_by : String
   group_depth : Int
 } derive(Show, ToJson, FromJson)
@@ -49,7 +49,7 @@ pub(all) struct PackageDiscovery {
 pub(all) struct FileRules {
   source : SourceRule
   test_colocated : PatternList
-  issue_doc : PatternList
+  task_doc : PatternList
   package_doc : NameList
 } derive(Show, ToJson, FromJson)
 
@@ -124,7 +124,7 @@ pub fn Template::discover(
 ///|
 /// Fold packages whose basename shares the first `depth` dot-segments into
 /// one DiscoveredPackage. Used by .NET to collapse `Aevatar.Foundation.X`
-/// projects into a single "Aevatar.Foundation" milestone.
+/// projects into a single "Aevatar.Foundation" goal.
 fn group_by_namespace(
   packages : Array[DiscoveredPackage],
   depth : Int,
@@ -134,21 +134,21 @@ fn group_by_namespace(
   for pkg in packages {
     let basename = basename_of(pkg.rel_path)
     let key = take_dot_prefix(basename, depth)
-    let prefixed_issues : Array[DiscoveredIssue] = []
-    for issue in pkg.issues {
-      // Disambiguate issue stems with the source package basename so two
+    let prefixed_tasks : Array[DiscoveredTask] = []
+    for task in pkg.tasks {
+      // Disambiguate task stems with the source package basename so two
       // projects in the same group can both have e.g. `Class1.cs` without
-      // colliding on issue id.
-      let new_stem = slug_dots(basename) + "-" + issue.stem
-      prefixed_issues.push({ ..issue, stem: new_stem })
+      // colliding on task id.
+      let new_stem = slug_dots(basename) + "-" + task.stem
+      prefixed_tasks.push({ ..task, stem: new_stem })
     }
     match groups.get(key) {
       Some(existing) => {
         for d in pkg.docs {
           existing.docs.push(d)
         }
-        for issue in prefixed_issues {
-          existing.issues.push(issue)
+        for task in prefixed_tasks {
+          existing.tasks.push(task)
         }
       }
       None => {
@@ -157,7 +157,7 @@ fn group_by_namespace(
           rel_path: key,
           title: key,
           docs: pkg.docs.copy(),
-          issues: prefixed_issues,
+          tasks: prefixed_tasks,
         }
       }
     }
@@ -206,7 +206,7 @@ fn take_dot_prefix(name : String, depth : Int) -> String {
 }
 
 ///|
-/// Replace `.` and other id-unsafe chars with `-`, for issue stem prefixes.
+/// Replace `.` and other id-unsafe chars with `-`, for task stem prefixes.
 fn slug_dots(s : String) -> String {
   let sb = StringBuilder::new()
   for ch in s {
@@ -274,7 +274,7 @@ fn Template::walk(
   entries.sort_by((a, b) => a.lexical_compare(b))
   if self.is_package_dir(current, entries) {
     let pkg = self.build_package(root, current, entries)
-    if pkg.issues.length() >= self.package_discovery.min_source_files {
+    if pkg.tasks.length() >= self.package_discovery.min_source_files {
       out.push(pkg)
     }
   }
@@ -349,7 +349,7 @@ fn Template::build_package(
       package_docs.push(name)
     }
   }
-  let issues = []
+  let tasks = []
   for entry in entries {
     if not(self.matches_source(entry)) {
       continue
@@ -362,16 +362,16 @@ fn Template::build_package(
         tests.push(candidate)
       }
     }
-    let issue_docs = []
-    for pat in self.files.issue_doc.patterns {
+    let task_docs = []
+    for pat in self.files.task_doc.patterns {
       let candidate = substitute_stem(pat, stem)
       if contains_str(entries, candidate) {
-        issue_docs.push(candidate)
+        task_docs.push(candidate)
       }
     }
-    issues.push({ stem, title: entry, tests, docs: issue_docs })
+    tasks.push({ stem, title: entry, tests, docs: task_docs })
   }
-  { rel_path: trimmed_rel, title: trimmed_rel, docs: package_docs, issues }
+  { rel_path: trimmed_rel, title: trimmed_rel, docs: package_docs, tasks }
 }
 
 ///|

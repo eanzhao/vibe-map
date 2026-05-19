@@ -11,7 +11,7 @@ let moonbit_template_json : String =
   #|    "marker_files": ["moon.pkg", "moon.pkg.json"],
   #|    "marker_extensions": [],
   #|    "skip_dirs": [".git", ".mooncakes", "_build", "node_modules"],
-  #|    "strip_path_prefix": "",
+  #|    "strip_path_prefix": "src",
   #|    "min_source_files": 0,
   #|    "stop_at_package": false,
   #|    "group_by": "none",
@@ -25,7 +25,7 @@ let moonbit_template_json : String =
   #|    "test_colocated": {
   #|      "patterns": ["{stem}_test.mbt", "{stem}_wbtest.mbt", "{stem}_blackbox_test.mbt"]
   #|    },
-  #|    "issue_doc": {
+  #|    "task_doc": {
   #|      "patterns": ["{stem}.mbt.md"]
   #|    },
   #|    "package_doc": {
@@ -61,7 +61,7 @@ let typescript_template_json : String =
   #|    "test_colocated": {
   #|      "patterns": ["{stem}.test.ts", "{stem}.test.tsx", "{stem}.test.js", "{stem}.spec.ts"]
   #|    },
-  #|    "issue_doc": {
+  #|    "task_doc": {
   #|      "patterns": ["{stem}.md"]
   #|    },
   #|    "package_doc": {
@@ -98,7 +98,7 @@ let dotnet_template_json : String =
   #|    "test_colocated": {
   #|      "patterns": []
   #|    },
-  #|    "issue_doc": {
+  #|    "task_doc": {
   #|      "patterns": []
   #|    },
   #|    "package_doc": {
