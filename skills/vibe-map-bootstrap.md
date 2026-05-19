@@ -49,6 +49,8 @@
 
 约束：
 
+- **当前这个会话只做 vmap 分析，不要改我的源代码**。你的产出只能是往 .vmap/ 写（JSON / HTML），跑 vmap 命令，和我用自然语言对齐 goal/task。如果你边读边想"顺手把这个 bug 改了"——停下，告诉我，让我新开一个 session 改代码。理由：vmap 是项目当下状态的诚实快照，同一会话里又分析又改码会让快照和代码同时漂，事后没法复盘。如果我执意要在这个会话里也改代码，先 commit 一次 .vmap/ 当基线再继续。
+- **抽 goal 之前尽量把项目文档读完整**（README / docs/ / design/ / ROADMAP / ARCHITECTURE / 顶层 module docstring）。只跳过被明确标注 deprecated / archived / legacy / 废弃 的文档，以及贡献者指南那类与产品能力无关的内容。其它默认读完，再开始抽 goal。
 - goal 是 PRD 上的"用户能感知的能力"，不是代码 package（不要给我建 pkg-xxx 风格的 goal）
 - closure 单调推进（seed → obligation → scoped → public → bridged → mature），不能回退
 - 不要手改 .vmap/vibe-map.json，所有改动走 vmap CLI（自动跑循环检测、状态机校验、auto-render）
@@ -75,6 +77,10 @@ go.
 - 写完一个 task → vmap update --status done
 - 整个 goal 推到一个阶段 → vmap update --closure ...
 - 关键节点 → vmap audit，按违例修 tests/docs
+
+两条硬约束：
+- 当前这个会话**只做 vmap 分析、不改我的源代码**。要改代码请提醒我新开一个 session，那边专心改实现，这边一直挂着记进度。如果我执意要在同一会话里既分析又改码，先 commit 一次 .vmap/ 当基线再说。
+- 冷启动抽 goal 之前，**尽量把项目文档读完整**（README、docs/、design/、ROADMAP、ARCHITECTURE 等）。只跳过明确标注废弃 / deprecated / archived / legacy 的文档，以及和产品能力无关的贡献者指南类。
 
 具体咋做查 ~/.vmap/skills/playbooks/，命令速查 ~/.vmap/skills/cheatsheet.md。
 

@@ -33,6 +33,12 @@ find . -type f -name "*.md" \
 
 ## 2. 找 PRD-shaped 信号
 
+> **抽 goal 之前，尽量把项目的文档读完整**——不是抽样 5 分钟就停。冷启动抽出来的 goal 直接决定后续画布的形状，你少读一份设计文档就可能漏一整条语义 lane。
+>
+> **哪些可以跳过**：在头部、文件名或 README 索引里被明确标注为 `deprecated` / `archived` / `legacy` / `废弃` / `旧版本` / `已弃用` 的文档；属于"对外贡献者指南" / "代码风格"这类**与产品能力无关**的文档；纯生成产物（changelog 摘要、自动生成的 API ref）。其它都该读。
+>
+> **不确定要不要跳过**：默认读。冷启动的成本主要在抽 goal 的判断，不在读文档；漏读一份设计 doc 后果远大于多读几页。
+
 读这些找"用户能感知的能力"：
 
 | 读什么 | 找什么 |
@@ -103,12 +109,14 @@ vmap add task --id t-fix-pagination-bug \
 
 `--gh-query` 字段后续会被 `tools/audit_github.py` 用来检查 issue 数漂移——和 release 的 closed/open 状态对得上。
 
-**快速跳过**（这一步别陷进去）：
+**代码层面可以快速跳过**（实现细节，不是 PRD 信号）：
 - 实现细节文件（`utils/`、`helpers/`、`internal/`、`_lib/`）
 - 测试文件
 - 配置 / build 脚本
 
-时间盒：探仓 + 读关键文档应该在 5-10 分钟内做完。**别把"读完整个 codebase"当目标**——目标是抽出 5-15 个语义 goal 的草稿。
+但是**文档层面要尽量读完**——README、docs/、design/、ROADMAP、ARCHITECTURE、CHANGELOG、顶层 module docstring。只跳过被明确标注 `deprecated` / `archived` / `legacy` / `废弃` 的文档，以及"贡献者指南 / 代码风格"这类与产品能力无关的文档。
+
+目标：抽出 5-15 个高质量的语义 goal 草稿。读文档花在前期，比抽错了再 rename 便宜。
 
 ## 3. 决策分支
 
