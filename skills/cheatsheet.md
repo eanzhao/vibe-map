@@ -201,6 +201,9 @@ vmap plan --docs ROADMAP.md --no-render
 vmap --version          # release tag (e.g. v0.5.0-alpha.3) 或 "dev" (本地构建)
 vmap version            # 同上，文本形式 `vmap <tag>`
 vmap version --json     # {"version": "v0.5.0-alpha.3"}
+vmap version --check    # 当前版本 + 检查 GitHub 最新 release 的 curl 命令
+vmap upgrade            # 打印一行 curl install.sh，配 `| bash` 一键升级
+vmap upgrade | bash     # 实际执行升级（重装 binary + skills）
 ```
 
 ## --json 输出

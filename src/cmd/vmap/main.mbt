@@ -702,14 +702,23 @@ fn build_cli() -> @argparse.Command {
       ),
       @argparse.Command::new(
         "version",
-        about="Print the vmap version string. Same as `vmap --version` but supports --json.",
+        about="Print the vmap version string. With --check, also print the command to check for newer releases.",
         flags=[
           @argparse.FlagArg::new(
             "json",
             long="json",
             about="Emit a JSON document.",
           ),
+          @argparse.FlagArg::new(
+            "check",
+            long="check",
+            about="Also print the curl command that checks for a newer release on GitHub.",
+          ),
         ],
+      ),
+      @argparse.Command::new(
+        "upgrade",
+        about="Print the upgrade command. Pipe through bash to actually upgrade: `vmap upgrade | bash`.",
       ),
     ],
   )
@@ -760,6 +769,7 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
     "deps" => cmd_deps(sub)
     "rename" => cmd_rename(sub)
     "version" => cmd_version(sub)
+    "upgrade" => cmd_upgrade(sub)
     _ => fail("unknown subcommand: \{name}")
   }
 }
@@ -1818,10 +1828,41 @@ fn cmd_rename(m : @argparse.Matches) -> Unit raise {
 
 ///|
 fn cmd_version(m : @argparse.Matches) -> Unit {
-  if m.flags.get("json").unwrap_or(false) {
-    let payload : Map[String, Json] = { "version": @core.version.to_json() }
+  let check = m.flags.get("check").unwrap_or(false)
+  let json_mode = m.flags.get("json").unwrap_or(false)
+  let check_url = "https://api.github.com/repos/eanzhao/vibe-map/releases/latest"
+  if json_mode {
+    let payload : Map[String, Json] = {
+      "version": @core.version.to_json(),
+    }
+    if check {
+      payload["latest_check_url"] = check_url.to_json()
+      payload["upgrade_hint"] = "vmap upgrade | bash".to_json()
+    }
     println(payload.to_json().stringify())
     return
   }
   println("vmap \{@core.version}")
+  if check {
+    println("")
+    println("# To check the latest release tag on GitHub:")
+    println("curl -fsSL \{check_url} | grep -m1 tag_name | cut -d'\"' -f4")
+    println("")
+    println("# To upgrade if needed:")
+    println("vmap upgrade | bash")
+  }
+}
+
+///|
+fn cmd_upgrade(_m : @argparse.Matches) -> Unit {
+  // Two lines:
+  //   - leading `#` comment, so `vmap upgrade | bash` runs only the curl
+  //   - the actual install.sh invocation, which downloads the latest release
+  //     and refreshes ~/.local/bin/vmap and ~/.vmap/skills/.
+  println(
+    "# vmap upgrade — current version: \{@core.version}. Piping this output through bash will run the line below:",
+  )
+  println(
+    "curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash",
+  )
 }

@@ -90,6 +90,25 @@ planned → open → closed
 | 用户问"现在做到哪了" | `skills/playbooks/daily-progress.md` |
 | 重命名 / 移动 task / 改 deps | `skills/cheatsheet.md` |
 
+## 升级 vmap
+
+每次开新会话或者用户提到 "vmap 用了一段时间了 / vmap 是不是旧了" 的时候，主动跑一下：
+
+```bash
+vmap version --check
+# 打印当前版本 + 一行 curl 检查最新 tag。把它跑出来对比：
+curl -fsSL https://api.github.com/repos/eanzhao/vibe-map/releases/latest | grep -m1 tag_name | cut -d'"' -f4
+```
+
+如果 GitHub 上的 tag 比本地 `vmap version` 报的高，提议升级：
+
+```bash
+vmap upgrade | bash
+# 等价于：curl -fsSL https://.../master/install.sh | bash
+```
+
+升级完 binary + skills 一起更新（同 tarball 发）。所以"升级 vmap" = "升级 skills"，不会出现 binary 新 / skills 老的不同步。
+
 ---
 
 ## 一些"会让 vmap 失去意义"的反模式

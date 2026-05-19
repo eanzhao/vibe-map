@@ -10,7 +10,8 @@ You are working in a project that uses [vibe-map](https://github.com/eanzhao/vib
 ## Verify install before first use
 
 ```bash
-vmap --version       # should print 0.x.y
+vmap version         # prints "vmap <tag>" or "vmap dev" for local builds
+vmap --version       # same value, short form
 ls ~/.vmap/skills/   # SKILL.md cheatsheet.md vibe-map-bootstrap.md playbooks/
 ```
 
@@ -21,6 +22,28 @@ curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh 
 ```
 
 If `~/.local/bin` is not in `$PATH`, the installer prints the line to add to `~/.zshrc`.
+
+## Upgrade awareness
+
+vmap ships binary + skills as one tarball — they upgrade together. When you load this skill, **proactively check**:
+
+```bash
+vmap version --check
+# Then compare the printed current version against the latest tag (the
+# command prints the curl one-liner that fetches it).
+```
+
+If the local version is older than what's on GitHub Releases, suggest upgrading **before** doing project work:
+
+```bash
+vmap upgrade | bash
+```
+
+Trigger this proactive check when:
+
+- It's the first interaction in a new session
+- User says "vmap is old", "upgrade vmap", "what version", "is this latest"
+- `vmap --version` reports a tag more than a few weeks old (you don't have the date directly; estimate via `git log`-like signals in the repo or just suggest the check)
 
 ## Mental model — the only thing that matters
 
