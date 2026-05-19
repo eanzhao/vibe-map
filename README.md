@@ -9,11 +9,13 @@
 ## 安装
 
 ```bash
-# 装最新 release（macOS arm64 / x86_64、Linux x86_64 / arm64）
-curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh | bash
+# 装最新 release（macOS arm64、Linux x86_64 / arm64）
+curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
 ```
 
 会把 `vmap` 放到 `~/.local/bin/`，skills 放到 `~/.vmap/skills/`。如果 `~/.local/bin` 不在 `$PATH`，脚本会提示你加。
+
+> Intel Mac (`darwin-x86_64`) 当前不在预编译矩阵里（GitHub Actions macos-13 runner 排队太慢）。Intel mac 用户先 `git clone + moon build` 然后用 `--local` 模式装，见下一段。
 
 **从源码装**（已有 MoonBit 工具链 + 想本地改）：
 

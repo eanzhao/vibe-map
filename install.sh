@@ -2,7 +2,7 @@
 # vmap installer.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
 #   ./install.sh                              # latest release from GitHub
 #   ./install.sh --version v0.5.0             # pin a specific release tag
 #   ./install.sh --local /path/to/vibe-map    # install from a local repo build (dogfood)
