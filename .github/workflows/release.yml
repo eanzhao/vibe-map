@@ -33,10 +33,10 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/${{ matrix.install }}.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
-      - name: Verify toolchain
+      - name: Refresh moon registry
         run: |
           moon version --all
-          moon install
+          moon update
 
       - name: Build native release
         run: moon build --target native --release
