@@ -316,6 +316,9 @@ vmap release rm <key> [--force]        删 release（有成员需 --force）
 | **0.1.0** | 2026-05-15 | Live tracking：`init / add goal / add task / update / rm`、JSON 落地、循环检测、稳定退出码契约 |
 | **0.2.0** | 2026-05-17 | Plan（checklist + tlist）、Backfill（moonbit / typescript / dotnet 模板）、可视化基础（HTML、product/搜索/状态过滤、节点详情）、Audit 基础（tests / docs / region metadata）、GitHub issue drift 脚本 |
 | **0.3.0** | 2026-05-18 | 术语重命名：Milestone → Goal、Issue → Task（和 GitHub 概念隔离） |
+| **0.5.0** | 2026-05-19 | 给 coding agent 用的一站式体验：`install.sh`（curl \| bash）+ skills bundle（SKILL.md / cheatsheet / playbooks / vibe-map-bootstrap）+ `.vmap/` 默认路径 + 每次 mutating 命令 auto-render `.vmap/vibe-map.html` + `vmap version` / `vmap upgrade` + cli-dag-mgmt 12 个命令（update --deps / --add-dep / show / list / deps / rename / release update/unassign）+ release lanes 基础 + node 详情 modal |
+
+> 0.4.0 的 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 还在 in-flight，未独立打 tag；剩余 scope 计划进 0.6/0.7。
 
 ## 构建
 
