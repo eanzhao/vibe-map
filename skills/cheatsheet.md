@@ -195,6 +195,14 @@ vmap plan --docs ROADMAP.md --no-render
 | 2 | CLI 参数错误 |
 | 3 | `audit` 发现违例 |
 
+## 版本
+
+```bash
+vmap --version          # release tag (e.g. v0.5.0-alpha.3) 或 "dev" (本地构建)
+vmap version            # 同上，文本形式 `vmap <tag>`
+vmap version --json     # {"version": "v0.5.0-alpha.3"}
+```
+
 ## --json 输出
 
 下面命令都支持 `--json`，便于 AI parse：

@@ -38,7 +38,7 @@ fn build_cli() -> @argparse.Command {
   @argparse.Command::new(
     "vmap",
     about="DAG-based progress visualization for vibe coding.",
-    version="0.1.0",
+    version=@core.version,
     arg_required_else_help=true,
     subcommand_required=true,
     subcommands=[
@@ -700,6 +700,17 @@ fn build_cli() -> @argparse.Command {
           ]),
         ],
       ),
+      @argparse.Command::new(
+        "version",
+        about="Print the vmap version string. Same as `vmap --version` but supports --json.",
+        flags=[
+          @argparse.FlagArg::new(
+            "json",
+            long="json",
+            about="Emit a JSON document.",
+          ),
+        ],
+      ),
     ],
   )
 }
@@ -748,6 +759,7 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
     }
     "deps" => cmd_deps(sub)
     "rename" => cmd_rename(sub)
+    "version" => cmd_version(sub)
     _ => fail("unknown subcommand: \{name}")
   }
 }
@@ -1802,4 +1814,14 @@ fn cmd_rename(m : @argparse.Matches) -> Unit raise {
   @core.save(dag, path)
   maybe_render(dag, m)
   println("~ \{old_id} -> \{new_id}")
+}
+
+///|
+fn cmd_version(m : @argparse.Matches) -> Unit {
+  if m.flags.get("json").unwrap_or(false) {
+    let payload : Map[String, Json] = { "version": @core.version.to_json() }
+    println(payload.to_json().stringify())
+    return
+  }
+  println("vmap \{@core.version}")
 }
