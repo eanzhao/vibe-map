@@ -29,7 +29,46 @@ moon install && moon build --target native --release
 
 ## 让你的 coding agent 用 vmap
 
-把 [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md) 里的 prompt 复制给 Claude Code / Codex / Cursor 即可。Agent 会自动装 vmap、读懂工作模式、开始在你项目里维护 DAG。
+复制下面这一整段，发给 Claude Code / Codex / Cursor / 任何 coding agent，它就会自动装 vmap、读懂工作模式、开始在你项目里维护 DAG：
+
+````text
+帮我用 vibe-map（vmap）维护这个项目的进度。
+
+如果还没装 vmap：
+  curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
+  # 如果 ~/.local/bin 不在 PATH，按脚本提示加到 ~/.zshrc 然后 source 一下
+
+读懂规则（必读）：
+  cat ~/.vmap/skills/SKILL.md
+  ls ~/.vmap/skills/playbooks/
+
+在项目根初始化（如果 .vmap/ 不存在）：
+  vmap init --name "我的项目"
+  # 把 .vmap/ 加到 .gitignore
+
+之后所有进展都用 vmap CLI 记下来：
+  - 我说一个需求 → 你按 PRD 视角抽 goal（语义层，不是按代码包！），vmap add goal
+  - 拆任务 vmap add task --deps ...
+  - 写完一个 task vmap update <id> --status done
+  - goal 推到一个阶段 vmap update <goal> --closure scoped/public/...
+  - 关键节点 vmap audit，按违例修 tests/docs
+
+约束：
+  - goal 是 PRD 上的"用户能感知的能力"，不是代码 package
+  - closure 单调推进（seed → obligation → scoped → public → bridged → mature），不能回退
+  - 不要手改 .vmap/vibe-map.json，所有改动走 vmap CLI
+  - 退出码 1=业务错误 / 2=参数错 / 3=audit 违例
+
+具体怎么做查 ~/.vmap/skills/playbooks/：
+  new-feature.md / audit-fix-loop.md / release-shipping.md / daily-progress.md
+命令速查 ~/.vmap/skills/cheatsheet.md。
+
+每次 vmap mutating 命令会自动刷新 .vmap/vibe-map.html，我随时打开看。开始吧。
+````
+
+更详细的版本 + 调试技巧见 [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md)。
+
+如果项目里已经有 `.claude/skills/vibe-map-bootstrap/SKILL.md`（vibe-map 这个 repo 自带一份），Claude Code 打开就会自动加载，连 prompt 都不用复制。
 
 ## 这是个什么
 
