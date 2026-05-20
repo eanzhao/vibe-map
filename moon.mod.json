@@ -1,9 +1,12 @@
 {
   "name": "eanzhao/vibe-map",
-  "version": "0.1.0",
+  "version": "0.5.2",
   "source": "src",
   "description": "DAG-based progress visualization for vibe coding — Lean 4 region map style",
   "keywords": ["dag", "visualization", "vibe-coding", "progress"],
+  "license": "MIT",
+  "repository": "https://github.com/eanzhao/vibe-map",
+  "readme": "README.md",
   "deps": {
     "moonbitlang/x": "0.4.43"
   }
