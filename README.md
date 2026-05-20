@@ -333,6 +333,7 @@ Older JSON missing newer fields still loads (Option fields default to None). `cl
 | **0.5.0** | 2026-05-19 | The all-in-one coding-agent experience: `install.sh` (curl \| bash) + skills bundle (SKILL.md / cheatsheet / playbooks / vibe-map-bootstrap) + `.vmap/` default path + auto-render of `.vmap/vibe-map.html` on every mutating command + `vmap version` / `vmap upgrade` + 12 cli-dag-mgmt commands + release lanes (base) + node detail modal |
 | **0.5.1** | 2026-05-19 | Skill refresh: agent now reads GitHub issues (`gh issue list`) as a PRD signal during bootstrap |
 | **0.5.2** | 2026-05-20 | `vmap coverage` (docs/src/issues coverage) + `vmap doctor` (density / lane / orphan / mismatch warnings); published to [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) under MIT |
+| **0.5.3** | 2026-05-20 | `vibe-map.html` frontend: double-click a sidebar goal row to open its detail modal, GitHub URLs across the page become new-tab links, double-click an expanded task card for a dedicated task detail modal |
 
 > 0.4.0 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 are still in flight; remaining scope rolls into 0.6 / 0.7.
 

@@ -333,6 +333,7 @@ vmap upgrade                           打印升级命令（管道到 bash 执�
 | **0.5.0** | 2026-05-19 | 给 coding agent 用的一站式体验：`install.sh`（curl \| bash）+ skills bundle（SKILL.md / cheatsheet / playbooks / vibe-map-bootstrap）+ `.vmap/` 默认路径 + 每次 mutating 命令 auto-render `.vmap/vibe-map.html` + `vmap version` / `vmap upgrade` + cli-dag-mgmt 12 个命令 + release lanes 基础 + node 详情 modal |
 | **0.5.1** | 2026-05-19 | Skills 更新：bootstrap 流程里 agent 用 `gh issue list` 把 GitHub issues 当 PRD 信号读 |
 | **0.5.2** | 2026-05-20 | 新增 `vmap coverage`（docs / src / issues 覆盖率）+ `vmap doctor`（density / lane / orphan / mismatch 健康度告警）；以 MIT 许可发布到 [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) |
+| **0.5.3** | 2026-05-20 | `vibe-map.html` 前端优化：双击侧栏 goal 行弹出详情 modal、页面上的 GitHub URL 均可点击（新标签打开）、双击展开的任务卡片弹出任务详情 modal |
 
 > 0.4.0 的 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 还在 in-flight，未独立打 tag；剩余 scope 计划进 0.6 / 0.7。
 

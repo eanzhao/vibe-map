@@ -1,6 +1,6 @@
 {
   "name": "eanzhao/vibe-map",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "source": "src",
   "description": "DAG-based progress visualization for vibe coding — Lean 4 region map style",
   "keywords": ["dag", "visualization", "vibe-coding", "progress"],

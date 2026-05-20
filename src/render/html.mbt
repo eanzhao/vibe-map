@@ -649,6 +649,29 @@ fn page_head(title : String) -> String {
     $|    font: 10px ui-monospace, SFMono-Regular, Menlo, monospace;
     $|  }
     $|
+    $|  .gh-link {
+    $|    color: var(--cyan);
+    $|    text-decoration: underline;
+    $|    text-underline-offset: 2px;
+    $|    text-decoration-color: rgba(125, 211, 252, 0.5);
+    $|    transition: color 140ms ease;
+    $|  }
+    $|
+    $|  .gh-link:hover { color: #bae6fd; }
+    $|
+    $|  a.chip { cursor: pointer; text-decoration: none; }
+    $|
+    $|  a.chip.gh-link {
+    $|    color: var(--cyan);
+    $|    text-decoration: none;
+    $|    border-color: rgba(125, 211, 252, 0.42);
+    $|  }
+    $|
+    $|  a.chip.gh-link:hover {
+    $|    border-color: rgba(125, 211, 252, 0.8);
+    $|    background: rgba(14, 165, 233, 0.12);
+    $|  }
+    $|
     $|  .task-detail-list {
     $|    display: grid;
     $|    gap: 8px;
@@ -731,6 +754,14 @@ fn page_head(title : String) -> String {
     $|    min-width: 0;
     $|    overflow-wrap: anywhere;
     $|    color: var(--text-secondary);
+    $|  }
+    $|
+    $|  .task-detail-hint {
+    $|    margin-top: 2px;
+    $|    padding-top: 7px;
+    $|    border-top: 1px solid var(--border-subtle);
+    $|    color: var(--text-dimmed);
+    $|    font-size: 10px;
     $|  }
     $|
     $|  .notes {
@@ -887,6 +918,20 @@ fn page_head(title : String) -> String {
     $|    <div class="node-modal-body" id="node-modal-body"></div>
     $|  </section>
     $|</div>
+    $|<div class="node-modal-backdrop" id="task-detail-modal" hidden>
+    $|  <section class="node-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" tabindex="-1">
+    $|    <div class="node-modal-head">
+    $|      <div class="node-modal-heading">
+    $|        <h2 class="node-modal-title" id="task-modal-title">任务详情</h2>
+    $|        <p class="node-modal-subtitle" id="task-modal-subtitle"></p>
+    $|      </div>
+    $|      <button class="icon-button node-modal-close" id="task-modal-close" type="button" aria-label="关闭任务详情">
+    $|        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    $|      </button>
+    $|    </div>
+    $|    <div class="node-modal-body" id="task-modal-body"></div>
+    $|  </section>
+    $|</div>
     $|<script type="application/json" id="dag-data">
     $|
   head
@@ -908,6 +953,12 @@ let page_tail : String =
   #|  const nodeModalSubtitle = document.getElementById('node-modal-subtitle');
   #|  const nodeModalBody = document.getElementById('node-modal-body');
   #|  const nodeModalClose = document.getElementById('node-modal-close');
+  #|  const taskModal = document.getElementById('task-detail-modal');
+  #|  const taskModalPanel = taskModal ? taskModal.querySelector('.node-modal') : null;
+  #|  const taskModalTitle = document.getElementById('task-modal-title');
+  #|  const taskModalSubtitle = document.getElementById('task-modal-subtitle');
+  #|  const taskModalBody = document.getElementById('task-modal-body');
+  #|  const taskModalClose = document.getElementById('task-modal-close');
   #|  const ctx = canvas.getContext('2d');
   #|  const dpr = window.devicePixelRatio || 1;
   #|
@@ -950,6 +1001,7 @@ let page_tail : String =
   #|    visibleNodes: [],
   #|    visibleEdges: [],
   #|    nodeById: new Map(),
+  #|    taskById: new Map(),
   #|    selectedId: null,
   #|    hoveredId: null,
   #|    filter: 'all',
@@ -958,6 +1010,7 @@ let page_tail : String =
   #|    focusIds: null,
   #|    navigationPeerIds: null,
   #|    modalNodeId: null,
+  #|    modalTaskId: null,
   #|    transform: { x: 0, y: 0, scale: 1 },
   #|    pointer: { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null },
   #|  };
@@ -1106,6 +1159,46 @@ let page_tail : String =
   #|  function truncateText(value, max) {
   #|    const text = String(value || '');
   #|    return text.length > max ? text.slice(0, Math.max(0, max - 1)) + '…' : text;
+  #|  }
+  #|
+  #|  function isGithubUrl(value) {
+  #|    return /^https?:\/\/(?:gist\.|www\.)?github\.com\//i.test(String(value == null ? '' : value).trim());
+  #|  }
+  #|
+  #|  function githubAnchor(href, label) {
+  #|    return '<a class="gh-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label) + '</a>';
+  #|  }
+  #|
+  #|  // Turn any github.com URL inside free text into a new-tab link; surrounding text stays escaped.
+  #|  function linkifyGithub(rawText) {
+  #|    const text = String(rawText == null ? '' : rawText);
+  #|    const pattern = /https?:\/\/(?:gist\.|www\.)?github\.com\/[^\s<>"'`)\]]+/gi;
+  #|    let out = '';
+  #|    let lastIndex = 0;
+  #|    let match;
+  #|    while ((match = pattern.exec(text)) !== null) {
+  #|      out += escapeHtml(text.slice(lastIndex, match.index));
+  #|      let url = match[0];
+  #|      let trailing = '';
+  #|      while (url.length > 0 && /[.,;:!?]$/.test(url)) {
+  #|        trailing = url.slice(-1) + trailing;
+  #|        url = url.slice(0, -1);
+  #|      }
+  #|      out += githubAnchor(url, url) + escapeHtml(trailing);
+  #|      lastIndex = match.index + match[0].length;
+  #|    }
+  #|    out += escapeHtml(text.slice(lastIndex));
+  #|    return out;
+  #|  }
+  #|
+  #|  // The GitHub field holds an issue search query (occasionally a URL) — render it clickable.
+  #|  function githubField(query) {
+  #|    const value = String(query == null ? '' : query).trim();
+  #|    if (!value) return '未记录';
+  #|    if (/^https?:\/\//i.test(value)) {
+  #|      return isGithubUrl(value) ? githubAnchor(value, value) : escapeHtml(value);
+  #|    }
+  #|    return githubAnchor('https://github.com/search?q=' + encodeURIComponent(value) + '&type=issues', value);
   #|  }
   #|
   #|  function buildGraph(input) {
@@ -1883,7 +1976,7 @@ let page_tail : String =
   #|    list.innerHTML = milestones.map(node => {
   #|      const progress = node.progress ? node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%' : '';
   #|      return `
-  #|        <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}">
+  #|        <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}" title="双击查看详情">
   #|          <div class="node-row-title">${escapeHtml(node.title)}</div>
   #|          <div class="node-row-meta">
   #|            <i class="status-dot" style="--dot:${node.color};--dot-glow:${node.glow}"></i>
@@ -1895,7 +1988,16 @@ let page_tail : String =
   #|        </button>`;
   #|    }).join('');
   #|    list.querySelectorAll('[data-node-id]').forEach(button => {
-  #|      button.addEventListener('click', () => selectNode(button.getAttribute('data-node-id'), true));
+  #|      const id = button.getAttribute('data-node-id');
+  #|      button.addEventListener('click', () => selectNode(id, true));
+  #|      // Double-click a goal row → same modal as double-clicking the graph node.
+  #|      // Listener is per-button (not delegated) so it survives the list re-render
+  #|      // that the first click triggers, even if the button detaches.
+  #|      button.addEventListener('dblclick', event => {
+  #|        event.preventDefault();
+  #|        selectNode(id, false);
+  #|        openNodeModal(id);
+  #|      });
   #|    });
   #|  }
   #|
@@ -1928,7 +2030,13 @@ let page_tail : String =
   #|
   #|  function chips(items, emptyText) {
   #|    if (!items || items.length === 0) return '<span>' + escapeHtml(emptyText) + '</span>';
-  #|    return '<div class="chip-list">' + items.map(item => '<span class="chip" title="' + escapeHtml(item) + '">' + escapeHtml(item) + '</span>').join('') + '</div>';
+  #|    return '<div class="chip-list">' + items.map(item => {
+  #|      const text = String(item == null ? '' : item);
+  #|      if (isGithubUrl(text)) {
+  #|        return '<a class="chip gh-link" href="' + escapeHtml(text) + '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(text) + '">' + escapeHtml(text) + '</a>';
+  #|      }
+  #|      return '<span class="chip" title="' + escapeHtml(text) + '">' + escapeHtml(text) + '</span>';
+  #|    }).join('') + '</div>';
   #|  }
   #|
   #|  function taskDetails(tasks) {
@@ -1936,9 +2044,9 @@ let page_tail : String =
   #|    return '<div class="task-detail-list">' + tasks.map(task => {
   #|      const meta = statusMeta(task.status);
   #|      const title = task.title || task.id;
-  #|      const notes = task.notes || '未记录';
+  #|      const hasNotes = !!(task.notes && String(task.notes).trim());
   #|      return `
-  #|        <details class="task-detail">
+  #|        <details class="task-detail" data-task-id="${escapeHtml(task.id)}">
   #|          <summary>
   #|            <div class="task-summary-main">
   #|              <span class="task-title">${escapeHtml(title)}</span>
@@ -1950,10 +2058,11 @@ let page_tail : String =
   #|          </summary>
   #|          <div class="task-detail-body">
   #|            <div class="task-field"><strong>依赖</strong>${chips(task.deps, '无')}</div>
-  #|            <div class="task-field"><strong>Notes</strong><span>${escapeHtml(notes)}</span></div>
+  #|            <div class="task-field"><strong>Notes</strong><span>${hasNotes ? linkifyGithub(task.notes) : '未记录'}</span></div>
   #|            <div class="task-field"><strong>测试</strong>${chips(task.tests, '未记录')}</div>
   #|            <div class="task-field"><strong>文档</strong>${chips(task.docs, '未记录')}</div>
   #|            <div class="task-field"><strong>质量</strong><span>${task.regressionTestable ? 'regression-testable' : '未标记'}</span></div>
+  #|            <div class="task-detail-hint">双击卡片查看任务详情弹窗</div>
   #|          </div>
   #|        </details>`;
   #|    }).join('') + '</div>';
@@ -1996,7 +2105,7 @@ let page_tail : String =
   #|          ${node.archived ? '<span class="badge">封档</span>' : ''}
   #|          ${node.regressionTestable ? '<span class="badge">regression-testable</span>' : ''}
   #|        </div>
-  #|        ${node.description ? '<div class="notes">' + escapeHtml(node.description) + '</div>' : ''}
+  #|        ${node.description ? '<div class="notes">' + linkifyGithub(node.description) + '</div>' : ''}
   #|        ${node.progress ? '<div class="progress-row"><label><span>完成</span><span>' + node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%</span></label><div class="progress"><span style="width:' + node.progress.pct + '%"></span></div></div>' : ''}
   #|        <div class="kv"><strong>Owner</strong><span>${escapeHtml(node.owner || '未记录')}</span></div>
   #|        <div class="kv"><strong>产品</strong><span>${escapeHtml(node.productLabel)}</span></div>
@@ -2009,7 +2118,7 @@ let page_tail : String =
   #|        <div class="kv kv-wide"><strong>任务详情</strong>${taskDetails(goalTasks)}</div>
   #|        <div class="kv"><strong>测试</strong>${chips(node.tests, '未记录')}</div>
   #|        <div class="kv"><strong>文档</strong>${chips(node.docs, '未记录')}</div>
-  #|        <div class="kv"><strong>GitHub</strong><span>${escapeHtml(node.ghQuery || '未记录')}</span></div>
+  #|        <div class="kv"><strong>GitHub</strong><span>${githubField(node.ghQuery)}</span></div>
   #|      </div>`;
   #|  }
   #|
@@ -2053,6 +2162,63 @@ let page_tail : String =
   #|    state.modalNodeId = null;
   #|    if (nodeModal) nodeModal.hidden = true;
   #|    if (nodeModalBody) nodeModalBody.innerHTML = '';
+  #|  }
+  #|
+  #|  function taskDetailSubtitle(task, ownerNode) {
+  #|    const meta = statusMeta(task.status);
+  #|    return meta.label + (ownerNode ? ' · ' + (ownerNode.title || ownerNode.id) : '');
+  #|  }
+  #|
+  #|  function taskDetailsHtml(task, ownerNode) {
+  #|    const meta = statusMeta(task.status);
+  #|    const hasNotes = !!(task.notes && String(task.notes).trim());
+  #|    return `
+  #|      <div class="detail-stack">
+  #|        <div>
+  #|          <div class="detail-id">${escapeHtml(task.id)}</div>
+  #|          <h3 class="detail-title">${escapeHtml(task.title || task.id)}</h3>
+  #|        </div>
+  #|        <div class="badge-row">
+  #|          <span class="badge" style="border-color:${meta.border};color:${meta.border}">${escapeHtml(meta.label)}</span>
+  #|          ${task.regressionTestable ? '<span class="badge">regression-testable</span>' : ''}
+  #|        </div>
+  #|        ${hasNotes ? '<div class="notes">' + linkifyGithub(task.notes) + '</div>' : ''}
+  #|        ${ownerNode ? '<div class="kv"><strong>所属目标</strong><span>' + escapeHtml(ownerNode.title || ownerNode.id) + '</span></div>' : ''}
+  #|        <div class="kv"><strong>状态</strong><span>${escapeHtml(meta.label)}</span></div>
+  #|        <div class="kv"><strong>依赖</strong>${chips(task.deps, '无')}</div>
+  #|        <div class="kv"><strong>测试</strong>${chips(task.tests, '未记录')}</div>
+  #|        <div class="kv"><strong>文档</strong>${chips(task.docs, '未记录')}</div>
+  #|        <div class="kv"><strong>质量</strong><span>${task.regressionTestable ? 'regression-testable' : '未标记'}</span></div>
+  #|      </div>`;
+  #|  }
+  #|
+  #|  function isTaskModalOpen() {
+  #|    return !!taskModal && !taskModal.hidden;
+  #|  }
+  #|
+  #|  function openTaskModal(taskId) {
+  #|    const entry = taskId ? state.taskById.get(taskId) : null;
+  #|    if (!entry || !taskModal || !taskModalBody) return;
+  #|    state.modalTaskId = entry.task.id;
+  #|    if (taskModalTitle) taskModalTitle.textContent = entry.task.title || entry.task.id;
+  #|    if (taskModalSubtitle) taskModalSubtitle.textContent = taskDetailSubtitle(entry.task, entry.node);
+  #|    taskModalBody.innerHTML = taskDetailsHtml(entry.task, entry.node);
+  #|    taskModal.hidden = false;
+  #|    requestAnimationFrame(() => {
+  #|      if (taskModalPanel) {
+  #|        try {
+  #|          taskModalPanel.focus({ preventScroll: true });
+  #|        } catch (_) {
+  #|          taskModalPanel.focus();
+  #|        }
+  #|      }
+  #|    });
+  #|  }
+  #|
+  #|  function closeTaskModal() {
+  #|    state.modalTaskId = null;
+  #|    if (taskModal) taskModal.hidden = true;
+  #|    if (taskModalBody) taskModalBody.innerHTML = '';
   #|  }
   #|
   #|  function setFilter(filter) {
@@ -2100,6 +2266,7 @@ let page_tail : String =
   #|    state.focusIds = null;
   #|    state.navigationPeerIds = null;
   #|    closeNodeModal();
+  #|    closeTaskModal();
   #|    state.pointer = { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null };
   #|    document.querySelectorAll('.filter-button').forEach(button => {
   #|      button.classList.toggle('active', button.getAttribute('data-filter') === 'all');
@@ -2318,12 +2485,33 @@ let page_tail : String =
   #|        if (event.target === nodeModal) closeNodeModal();
   #|      });
   #|    }
+  #|    if (taskModalClose) taskModalClose.addEventListener('click', closeTaskModal);
+  #|    if (taskModal) {
+  #|      taskModal.addEventListener('mousedown', event => {
+  #|        if (event.target === taskModal) closeTaskModal();
+  #|      });
+  #|    }
+  #|    // Double-click an expanded task card in the right panel → open a task detail modal.
+  #|    const detailsPanelEl = document.getElementById('details-panel');
+  #|    if (detailsPanelEl) {
+  #|      detailsPanelEl.addEventListener('dblclick', event => {
+  #|        const details = event.target.closest('.task-detail');
+  #|        if (!details || !detailsPanelEl.contains(details) || !details.open) return;
+  #|        const taskId = details.getAttribute('data-task-id');
+  #|        if (!taskId) return;
+  #|        event.preventDefault();
+  #|        const selection = window.getSelection && window.getSelection();
+  #|        if (selection) selection.removeAllRanges();
+  #|        openTaskModal(taskId);
+  #|      });
+  #|    }
   #|
   #|    document.addEventListener('keydown', event => {
   #|      if (event.defaultPrevented || event.isComposing || event.repeat) return;
-  #|      if (shortcutEventKey(event) === 'escape' && isNodeModalOpen()) {
+  #|      if (shortcutEventKey(event) === 'escape' && (isTaskModalOpen() || isNodeModalOpen())) {
   #|        event.preventDefault();
-  #|        closeNodeModal();
+  #|        if (isTaskModalOpen()) closeTaskModal();
+  #|        else closeNodeModal();
   #|        return;
   #|      }
   #|      if (event.ctrlKey || event.altKey) return;
@@ -2442,6 +2630,12 @@ let page_tail : String =
   #|    state.nodes = graph.nodes;
   #|    state.edges = graph.edges;
   #|    state.nodeById = graph.nodeById;
+  #|    state.taskById = new Map();
+  #|    for (const goalNode of state.nodes) {
+  #|      for (const task of (goalNode.tasks || [])) {
+  #|        state.taskById.set(task.id, { task, node: goalNode });
+  #|      }
+  #|    }
   #|    seedLayout();
   #|    applyFilter();
   #|    renderProductFilter();
