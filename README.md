@@ -1,23 +1,42 @@
+**English** | [简体中文](README_zh.md)
+
 # vibe-map
 
-> Coding agent 用 CLI 修一张 goal DAG，人在 `.vmap/vibe-map.html` 看 region map 风格的实时进展。
+> A goal DAG that coding agents maintain and humans watch — Lean 4 region map style, rendered as a live `.vmap/vibe-map.html`.
 
-![vibe-map dashboard](examples/dashboard.png)
+![vibe-map dashboard](https://raw.githubusercontent.com/eanzhao/vibe-map/master/examples/dashboard.png)
 
-> 上图是 vibe-map 自己 dogfood 出来的 self-map（`examples/dag.html` 是 live 版本，本地 `open` 可看）。
+> The screenshot is vibe-map's own self-map. `examples/dag.html` is the live version — `open` it locally.
 
-## 安装
+## Vision
+
+In the vibe-coding era the AI is the primary author and the human watches and steers. Two pieces of state matter constantly: *where are we?* and *what would break if we shipped the next thing?* Neither GitHub issues nor a flat todo list answer them.
+
+`vibe-map` ships as **a `vmap` CLI plus a bundle of skills**. The CLI is small. The artifact the user actually consumes is a single file — `.vmap/vibe-map.html` — a live execution map of the goal DAG: what's done, what's next, what's blocked, and what the next ship would break.
+
+The long-term picture (much of it still unfinished):
+
+1. **Coding-agent first.** This whole project is *for coding agents*. No PM UI, no IDE plugin, no daemon. Just a CLI an agent can `exec` plus skills it can read.
+2. **Greenfield → DAG.** For a brand-new project, the agent brainstorms with the user (paired with skills like [gstack](https://github.com/gstack/gstack)), then uses vibe-map to decompose the resulting docs into goals and tasks — producing an actionable `.vmap/vibe-map.html`.
+3. **Brownfield → DAG.** For a project that already has some code, the agent uses vibe-map to recover the goals it has already shipped, and continues forward from there.
+4. **Regression suite per goal.** Every goal carries the tests that prove it works. The user can run the full regression suite at any time. When a new goal breaks an older one, vibe-map points at *exactly which goal regressed* — the user (or the agent on their behalf) fixes per vibe-map's hint, or adjusts the goal definition if reality has moved.
+5. **End-to-end loop.** Once the user's idea has been refined enough — polished through gstack, or just thoroughly self-recorded — they hand it to a coding agent. vibe-map turns it into a DAG, the agent ships it goal by goal, and the loop only stops when the original idea is delivered.
+6. **Open.** Issues, forks and PRs welcome.
+
+Where each point stands today is summarized in [Status](#status).
+
+## Install
 
 ```bash
-# 装最新 release（macOS arm64、Linux x86_64 / arm64）
+# macOS arm64 / Linux x86_64 / Linux arm64 — prebuilt
 curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
 ```
 
-会把 `vmap` 放到 `~/.local/bin/`，skills 放到 `~/.vmap/skills/`。如果 `~/.local/bin` 不在 `$PATH`，脚本会提示你加。
+This drops `vmap` into `~/.local/bin/` and skills into `~/.vmap/skills/`. If `~/.local/bin` is not on your `$PATH`, the installer prints the line to add to your shell rc.
 
-> Intel Mac (`darwin-x86_64`) 当前不在预编译矩阵里（GitHub Actions macos-13 runner 排队太慢）。Intel mac 用户先 `git clone + moon build` 然后用 `--local` 模式装，见下一段。
+> Intel Mac (`darwin-x86_64`) is not in the prebuilt matrix yet (GitHub Actions `macos-13` queue is too slow). Build from source for now.
 
-**从源码装**（已有 MoonBit 工具链 + 想本地改）：
+**From source** (MoonBit toolchain + local hacking):
 
 ```bash
 git clone https://github.com/eanzhao/vibe-map && cd vibe-map
@@ -25,238 +44,239 @@ moon install && moon build --target native --release
 ./install.sh --local "$PWD"
 ```
 
-详细分发设计见 [`docs/distribution.md`](docs/distribution.md)。
+Distribution design: [`docs/distribution.md`](docs/distribution.md).
 
-## 让你的 coding agent 用 vmap
+## Drop this prompt into any coding agent
 
-复制下面这一整段，发给 Claude Code / Codex / Cursor / 任何 coding agent，它就会自动装 vmap、读懂工作模式、开始在你项目里维护 DAG：
+Paste the block below into Claude Code, Codex, Cursor — whichever agent you use. It will install vmap, read the rules, and start maintaining the DAG inside your project.
 
 ````text
-帮我用 vibe-map（vmap）维护这个项目的进度。
+Help me track this project's progress with vibe-map (vmap).
 
-如果还没装 vmap：
+If vmap isn't installed yet:
   curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash
-  # 如果 ~/.local/bin 不在 PATH，按脚本提示加到 ~/.zshrc 然后 source 一下
+  # If ~/.local/bin isn't on PATH, follow the script's hint and source your shell rc
 
-读懂规则（必读）：
+Read the rules (required):
   cat ~/.vmap/skills/SKILL.md
   ls ~/.vmap/skills/playbooks/
 
-在项目根初始化（如果 .vmap/ 不存在）：
-  vmap init --name "我的项目"
-  # 把 .vmap/ 加到 .gitignore
+Initialize at the project root (if .vmap/ doesn't exist):
+  vmap init --name "<my project>"
+  # Add .vmap/ to .gitignore
 
-之后所有进展都用 vmap CLI 记下来：
-  - 我说一个需求 → 你按 PRD 视角抽 goal（语义层，不是按代码包！），vmap add goal
-  - 拆任务 vmap add task --deps ...
-  - 写完一个 task vmap update <id> --status done
-  - goal 推到一个阶段 vmap update <goal> --closure scoped/public/...
-  - 关键节点 vmap audit，按违例修 tests/docs
+From then on, every piece of progress goes through the vmap CLI:
+  - I describe a requirement → you extract goals at the PRD level (semantic, not by code package!) with vmap add goal
+  - You break work into tasks: vmap add task --deps ...
+  - You finish a task: vmap update <id> --status done
+  - You promote a goal: vmap update <goal> --closure scoped/public/...
+  - At key checkpoints: vmap audit, then fix tests/docs per the violations
 
-约束：
-  - goal 是 PRD 上的"用户能感知的能力"，不是代码 package
-  - closure 单调推进（seed → obligation → scoped → public → bridged → mature），不能回退
-  - 不要手改 .vmap/vibe-map.json，所有改动走 vmap CLI
-  - 退出码 1=业务错误 / 2=参数错 / 3=audit 违例
+Constraints:
+  - A goal is a "user-perceivable capability" on the PRD, not a code package
+  - closure is monotonic (seed → obligation → scoped → public → bridged → mature), never regress
+  - Never hand-edit .vmap/vibe-map.json — everything goes through the vmap CLI
+  - Exit codes: 1 = business error / 2 = bad args / 3 = audit violation
 
-具体怎么做查 ~/.vmap/skills/playbooks/：
+Playbook lookups in ~/.vmap/skills/playbooks/:
   new-feature.md / audit-fix-loop.md / release-shipping.md / daily-progress.md
-命令速查 ~/.vmap/skills/cheatsheet.md。
+Command cheatsheet: ~/.vmap/skills/cheatsheet.md.
 
-每次 vmap mutating 命令会自动刷新 .vmap/vibe-map.html，我随时打开看。开始吧。
+Every mutating vmap command auto-refreshes .vmap/vibe-map.html, which I'll keep open. Go.
 ````
 
-更详细的版本 + 调试技巧见 [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md)。
+Longer version with debugging tips: [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md). If your repo already has `.claude/skills/vibe-map-bootstrap/SKILL.md` (vibe-map ships one), Claude Code auto-loads it — no copy-paste needed.
 
-如果项目里已经有 `.claude/skills/vibe-map-bootstrap/SKILL.md`（vibe-map 这个 repo 自带一份），Claude Code 打开就会自动加载，连 prompt 都不用复制。
+## What vibe-map models
 
-## 这是个什么
+Progress lives as a DAG:
 
-vibe coding 时代，AI 是主驱动写代码，人在旁边看。但 "AI 写到哪一步了 / 还差多远 / 哪些路径被堵着 / 这一版边界在哪 / AI 该停在哪" 这些事情，传统 todo list / 工单系统都看不出。
+- **goal** — a *semantic* deliverable on the PRD ("users can log in", "supports release lanes") — not a code package
+- **task** — the concrete steps that deliver a goal; tasks routinely span multiple source files / packages
+- **release** — a version boundary ("0.5.2") that groups goals and tells the agent *what this version is about*
+- **edges** are at the semantic layer — not the source-code-import layer
 
-**vibe-map** 把项目进度建模成一张 DAG：
+The coding agent edits the graph through CLI calls; the human watches the rendered HTML — region-map styled, finished work in solid color, in-flight nodes glowing, future scope fading into the background.
 
-- **goal** —— PRD 上的一条**语义目标**（"用户能登录"、"支持 release 维度"），不是代码 package
-- **task** —— 实现这个 goal 需要做的具体动作；一个 goal 的 task 经常**跨多个源文件 / package**
-- **release** —— 版本边界（"0.4.0"），把 goal 归到版本，告诉 agent "这一版要交付什么"
-- **依赖**是图的边（语义层），不是源码 import 层
+> Terminology: `goal` / `task` rather than `milestone` / `issue` to avoid collision with GitHub's own concepts. The "region map" visual is borrowed from Lean 4 — `goal` / `focus` / `closure` are the same family of ideas.
 
-Coding agent 用一行 CLI 修这张图，人在浏览器看 region map 风格的可视化——已完成的实色、进行中的发亮、未来的淡入背景。
+## Designed for coding agents
 
-> 术语：用 `goal` / `task` 而不是 `milestone` / `issue`，避免和 GitHub 自己的 milestone/issue 概念混淆。"region map" 视觉风格借鉴 Lean 4 证明体系——goal / focus / closure 都是同一类语义。
+Every command has `--json` output and a stable exit code:
 
-## 给 coding agent 用，不是 PM 工具
-
-所有命令都有 `--json` 输出 + 稳定退出码，便于 agent 在 loop 里调用：
-
-| 退出码 | 含义 |
+| code | meaning |
 |---|---|
-| 0 | 成功 |
-| 1 | 业务校验失败（依赖循环、id 已存在、未知节点、release 校验失败等） |
-| 2 | CLI 参数错误 |
-| 3 | `audit` 发现违例（fix-and-retry loop） |
+| 0 | success |
+| 1 | business validation failed (cycle, duplicate id, unknown node, release validation, ...) |
+| 2 | CLI argument error |
+| 3 | `audit` violations (drives the fix-and-retry loop) |
 
-所有状态落在单一 `vibe-map.json`，agent 可以直接读。无 MCP、无 daemon、无 IDE 插件——**CLI-only**，让 agent 直接 `exec`。
+All state lives in a single `vibe-map.json`. No MCP, no daemon, no IDE plugin — just a binary the agent can `exec`.
 
-## 数据接入
+## Three ways to load data
 
-vmap 不假设 agent 从空白起步。三种切入方式，**重要性递减**：
+In decreasing order of importance:
 
-### 1. Live tracking — 主线（PRD-driven）
+### 1. Live tracking — primary
 
-Agent 边读 PRD / 设计文档边记图。这是 vibe-map 的核心使用方式：
+The agent records as it reads the PRD / design docs. This is the canonical workflow:
 
 ```bash
-vmap init --name "我的项目"
-vmap add goal --id g-login --title "用户能登录"
-vmap add task --id t-auth --goal g-login --title "写 auth middleware" --regression-testable
+vmap init --name "<my project>"
+vmap add goal --id g-login --title "users can log in"
+vmap add task --id t-auth --goal g-login --title "auth middleware" --regression-testable
 vmap update t-auth --status done --tests "src/auth/middleware_test.mbt"
 ```
 
-### 2. Plan — 辅线（从 markdown 抽 todo）
+### 2. Plan — secondary (extract todos from markdown)
 
-扫 markdown，把待办抽成 goal/task：
+Scan markdown and synthesize goals/tasks:
 
 ```bash
-vmap plan --docs ROADMAP.md docs/         # 默认抽 `- [ ]` checklist
-vmap plan --docs TODOS.md --format tlist  # 抽 `## T<N> — title` + `**Status:**` 结构化 TODO 段
+vmap plan --docs ROADMAP.md docs/         # default: extract `- [ ]` checklist items
+vmap plan --docs TODOS.md --format tlist  # extract `## T<N> — title` + `**Status:**`
 ```
 
-代码块 / 已勾选项自动跳过，重跑幂等。
+Code blocks and already-checked items are skipped; reruns are idempotent.
 
-> 当前 plan 只抽显式 checklist。从自由文本 PRD 抽**语义** goal 是 1.0.0 的事（goal-llm-plan）。
+> Today `plan` only handles explicit checklists. Pulling *semantic* goals from free-form PRD text is on the 1.0.0 roadmap (`goal-llm-plan`) — and unblocks vision point 2.
 
-### 3. Backfill — 救援工具（从老 codebase 反推）
+### 3. Backfill — rescue tool (recover goals from existing code)
 
-对**已有但没记录过 goal 的代码**做反向追溯。**每个 package → 一个 goal，每个源文件 → 一个 done task**：
+For codebases that already exist but were never tracked. **One goal per package, one done task per file:**
 
 ```bash
-vmap backfill --src . --template moonbit      # 内置: moonbit | typescript | dotnet
+vmap backfill --src . --template moonbit      # built-in: moonbit | typescript | dotnet
 vmap backfill --src . --template-file path.json
 ```
 
-> ⚠️ 这只对"事后追溯"有意义。**产品能力依赖 ≠ 代码包结构**——backfill 出来的 goal 是 package-shaped，不是 PRD-shaped。一旦项目跑起来，主入口应该回到 live tracking。
+> ⚠️ Useful only for retroactive recovery. **Product capability dependencies ≠ code package structure** — backfilled goals are package-shaped, not PRD-shaped. Once the project is running, the main entry point should return to live tracking.
 
-## Release lanes — 版本边界
+## Release lanes
 
-vibe coding 最容易跑偏的事：AI 没有版本边界感，加了 scope 停不下来。release 维度把这事建模进 DAG：
+The thing vibe-coding gets wrong most often: AI has no sense of version boundary and won't stop adding scope. Release lanes model that:
 
 ```bash
-vmap release add 0.4.0 --label-en "audit + viz polish" --label-zh "审计 + 可视化完善" \
-                       --target 2026-06-15 --status open
-vmap release assign 0.4.0 --goals goal-audit,goal-viz,goal-release-modeling
-vmap status --release 0.4.0           # 文本，按 release 过滤
-vmap status --release 0.4.0 --json    # AI loop 友好
+vmap release add 0.5.2 --label-en "publish to mooncakes.io" --label-zh "发布到 mooncakes.io" \
+                       --target 2026-05-20 --status open
+vmap release assign 0.5.2 --goals goal-publish,goal-licensing
+vmap status --release 0.5.2           # text, filtered to one release
+vmap status --release 0.5.2 --json    # AI-loop friendly
 vmap release list [--json]
 ```
 
-Release `status` 状态机单调：`planned → open → closed`，不允许倒退（`ReleaseStatusRegression`）。Goal 通过 `milestone` 字段指向 `release.key`，**软校验**——配了 `releases` 才校验，老数据 `milestone="anything"` 不会被卡。
+`status` is a monotonic state machine: `planned → open → closed`, no regressions (`ReleaseStatusRegression`). Goals reference a release via `milestone`. Soft validation — only enforced when `releases` is non-empty, so legacy `milestone="anything"` data isn't blocked.
 
-## 质量守门 `vmap audit`
+## Quality gate: `vmap audit`
 
 ```bash
-vmap audit               # 文本
+vmap audit               # text
 vmap audit --json        # JSON
-echo $?                  # 0 干净 / 3 有违例
+echo $?                  # 0 clean / 3 violations
 ```
 
-当前规则：
+Today's rules:
 
-- `regression_testable: true` 但 `tests: []` → `missing_tests`
-- `status != todo` 但 `docs: []` → `missing_docs`
-- goal 缺 region metadata（closure / owner / `issue_count` / `focus` / `archived` / `promoted_at` / `gh_query`）→ `missing_region_metadata`
+- `regression_testable: true` but `tests: []` → `missing_tests`
+- `status != todo` but `docs: []` → `missing_docs`
+- goal missing region metadata (closure / owner / `issue_count` / `focus` / `archived` / `promoted_at` / `gh_query`) → `missing_region_metadata`
 
-GitHub issue 数漂移用独立脚本（依赖 `gh` CLI）：
+GitHub issue drift is checked by a separate script (depends on `gh` CLI):
 
 ```bash
 python3 tools/audit_github.py --file vibe-map.json [--strict] [--markdown]
 ```
 
-Agent loop 大概是：
+The agent's audit loop looks roughly like:
 
 ```
 vmap audit --json > /tmp/v
-# parse violations → 给每个 missing_tests 写测试 / missing_docs 写文档 / 补 region metadata
+# parse violations → write tests for each missing_tests / write docs for each missing_docs / fill region metadata
 # vmap update <id> --tests ... / --docs ... / --owner ...
-# 再 audit，直到 exit 0
+# audit again until exit 0
 ```
 
-## 可视化
+> Today `audit` checks that tests are *listed*. **Actually running the regression suite and gating on it — vision point 4 — is `goal-regression-runner`, not yet started.**
+
+## Visualization
 
 ```bash
 vmap render --out examples/dag.html
 open examples/dag.html
 ```
 
-- 暗色 canvas goal DAG，发光节点、点阵背景，可拖拽 / 缩放 / 适配视图
-- **画布只展 goal**，task 收进 goal 详情面板
-- **颜色 = closure tier**：seed → obligation → scoped → public → bridged → mature
-- **大小 = `issue_count`**，红框 = 当前 focus，半透明 = archived
-- 左侧进度面板（按 goal）+ 搜索 + product 过滤 + 状态按钮（全部 / 焦点 / 进行中 / 封档）
-- 右侧节点详情：closure / formal / owner / product / milestone / promoted_at / 每个 task 的 status / tests / docs / notes
-- 点节点 → 高亮整条传递依赖链
-- 单文件 self-contained HTML，无 CDN / 无框架运行依赖
+- Dark canvas goal DAG with glowing nodes, dotted background, drag / zoom / fit-to-view
+- **Canvas shows only goals**; tasks are collapsed into the goal detail panel
+- **Color = closure tier**: seed → obligation → scoped → public → bridged → mature
+- **Size = `issue_count`**; red border = current focus; semi-transparent = archived
+- Left progress panel (per goal) + search + product filter + status buttons (all / focus / in-progress / archived)
+- Right node detail: closure / formal / owner / product / milestone / promoted_at / tests / docs / notes per task
+- Click a node → highlight its full transitive dependency chain
+- Single self-contained HTML — no CDN, no framework runtime
 
-`examples/dag.html` 是 vibe-map 自己的 self-map。
+`examples/dag.html` is vibe-map's own self-map.
 
-## CLI 一览
+## CLI at a glance
 
 ```
-vmap init                              创建 vibe-map.json
-vmap add goal …                        加 goal
-vmap add task …                        加 task
-vmap update <id> …                     编辑任意字段（不传的不动）
-vmap rm <id>                           删 goal 或 task
-vmap rename <old> <new>                改 id（连带修所有 deps / task.goal 引用）
-vmap show <id> [--json]                单节点完整详情（含 tasks / upstream / downstream）
-vmap list goals [filters] [--json]     按属性过滤列 goal
-vmap list tasks [filters] [--json]     按属性过滤列 task
-vmap deps <id> [--upstream/--downstream/--json]  传递依赖图
-vmap import --in <path>                批量加载手写的 vibe-map.json（校验 + 写盘）
-vmap render --out X.html               出可视化 HTML
-vmap status [--json] [--release K]     文本 / JSON 摘要（可按 release 过滤）
-vmap audit [--json]                    质量守门
-vmap coverage [--json]                 DAG 引用了多少 docs/src/issues（防漏门槛）
-vmap doctor [--json]                   健康度告警（density/lane/orphan/mismatch）
-vmap backfill --src DIR                从源码反推（救援工具）
-vmap plan --docs F,…                   从 markdown 反推
-vmap release add <key>                 加 release lane
-vmap release list [--json]             列 releases
+vmap init                              create vibe-map.json
+vmap add goal …                        add a goal
+vmap add task …                        add a task
+vmap update <id> …                     edit any field (unset flags don't touch existing values)
+vmap rm <id>                           remove a goal or task
+vmap rename <old> <new>                rename id (rewrites deps + task.goal refs)
+vmap show <id> [--json]                full detail for one node (tasks / upstream / downstream)
+vmap list goals [filters] [--json]     list goals with filtering
+vmap list tasks [filters] [--json]     list tasks with filtering
+vmap deps <id> [--upstream/--downstream/--json]  transitive deps graph
+vmap import --in <path>                bulk-load a hand-written vibe-map.json (validate + write)
+vmap render --out X.html               render visualization HTML
+vmap status [--json] [--release K]     summary text / JSON (optionally per release)
+vmap audit [--json]                    quality gate
+vmap coverage [--json]                 how much of docs / src / issues the DAG references
+vmap doctor [--json]                   health alerts (density / lane / orphan / mismatch)
+vmap backfill --src DIR                rescue tool: recover goals from source
+vmap plan --docs F,…                   extract from markdown
+vmap release add <key>                 add a release lane
+vmap release list [--json]             list releases
 vmap release update <key> --status/--target/--label-en/--label-zh/--notes
-vmap release assign <key> --goals      批量分配 goal 到 release
-vmap release unassign <key> [--goals]  从 release 清掉 goal（默认清全部）
-vmap release rm <key> [--force]        删 release（有成员需 --force）
+vmap release assign <key> --goals      assign goals to a release
+vmap release unassign <key> [--goals]  remove goals from a release (default: all)
+vmap release rm <key> [--force]        delete a release (--force if it has members)
+vmap version [--check]                 print version
+vmap upgrade                           print the upgrade command (pipe through bash to run)
 ```
 
-`--help` 看每条的完整 flags。重点：
+Full flags via `--help` on each subcommand.
 
-**`vmap update <id>` 支持的字段（goal/task 通用 + 各自专属）**：
-- 通用：`--title`、`--regression-testable`、`--tests a,b,c`（替换）、`--add-test`/`--remove-test`（增量）、`--docs`/`--add-doc`/`--remove-doc`、`--deps a,b,c`（替换）、`--add-dep`/`--remove-dep`（增量）
-- 仅 goal：`--description`、`--closure`、`--formal`、`--product`、`--milestone`、`--owner`、`--issue-count`、`--focus`/`--archived`、`--promoted-at key=date,…`、`--gh-query`
-- 仅 task：`--status`、`--notes`、`--goal <new-goal>`（把 task 移到另一个 goal）
+`vmap update <id>` fields (general + per-kind):
 
-`closure` 单调推进（不能回退）；`add-dep` 自动跑循环检测；`rename` 自动改所有 `deps` 引用 + `task.goal` 指针。
+- **general**: `--title`, `--regression-testable`, `--tests a,b,c` (replace), `--add-test`/`--remove-test`, `--docs`/`--add-doc`/`--remove-doc`, `--deps a,b,c` (replace), `--add-dep`/`--remove-dep`
+- **goal only**: `--description`, `--closure`, `--formal`, `--product`, `--milestone`, `--owner`, `--issue-count`, `--focus`/`--archived`, `--promoted-at key=date,…`, `--gh-query`
+- **task only**: `--status`, `--notes`, `--goal <new-goal>` (move task between goals)
 
-## 数据模型
+`closure` is monotonic (no regression). `add-dep` runs cycle detection. `rename` rewrites every `deps` reference and `task.goal` pointer.
 
-落在 `vibe-map.json`，agent 可直接读：
+## Data model
+
+State lives in `vibe-map.json`. The agent reads it directly:
 
 ```jsonc
 {
   "config": { /* products / closure_tiers / formal_levels / ui */ },
   "project": { "name": "...", "description": "..." },
   "releases": [
-    { "key": "0.4.0", "label": {"en":"audit + viz polish","zh":"审计 + 可视化完善"},
-      "target": "2026-06-15", "status": "planned|open|closed", "closed_at": null }
+    { "key": "0.5.2", "label": {"en":"publish to mooncakes.io","zh":"发布到 mooncakes.io"},
+      "target": "2026-05-20", "status": "planned|open|closed", "closed_at": null }
   ],
   "goals": [{
     "id": "goal-login",
-    "title": "用户能登录",
-    "deps": ["goal-schema"],            // 跨 goal 依赖（语义层，不是源码 import）
-    "closure": "scoped",                // seed → obligation → scoped → public → bridged → mature（单调）
+    "title": "users can log in",
+    "deps": ["goal-schema"],            // cross-goal deps at the semantic layer
+    "closure": "scoped",                // seed → obligation → scoped → public → bridged → mature (monotonic)
     "formal": "checked",                // none / sop / checked / audited
     "product": "default",
-    "milestone": "0.4.0",               // 指向 release.key（软校验）
+    "milestone": "0.5.2",               // points at release.key (soft-validated)
     "owner": "eanzhao",
     "issue_count": 3,
     "focus": true,
@@ -270,7 +290,7 @@ vmap release rm <key> [--force]        删 release（有成员需 --force）
     "id": "t-auth", "goal": "goal-login",
     "title": "auth middleware",
     "status": "todo | in-progress | blocked | done",
-    "deps": [],                         // 同层 task 依赖
+    "deps": [],                         // same-layer task deps
     "notes": "",
     "regression_testable": true,
     "tests": [], "docs": []
@@ -278,61 +298,61 @@ vmap release rm <key> [--force]        删 release（有成员需 --force）
 }
 ```
 
-老 JSON 缺新字段也能读（Option 字段自动 = None / 默认）。`closure` 单调推进在 `set_goal_closure` 时校验。Release 维度软校验：`releases` 非空时 `assign_release` 才校验 key 在内。
+Older JSON missing newer fields still loads (Option fields default to None). `closure` monotonicity is enforced in `set_goal_closure`. Release lanes are soft-validated: keys are only checked against `releases` when that list is non-empty.
 
-## 路线图
+## Status
 
-> 机器友好：`vmap release list --json`。下面是人友好版。
+> Machine-friendly: `vmap release list --json`. Human-friendly below.
 
-### 0.4.0 — release modeling + audit + viz polish（in-flight，目标 2026-06-15）
+### Currently in flight — 0.4.0 (release modeling + audit + viz polish, target 2026-06-15)
 
-| Goal | 进展 |
+| Goal | State |
 |---|---|
-| **goal-release-modeling** —— release lanes 数据模型 + CLI | Stage 1 ✓ (add/list/update/assign/unassign/rm、status --release、release_progress)；Stage 2 待做（release status / close 命令） |
-| **goal-cli-dag-mgmt** —— AI 管 DAG 的 CLI 表面积 | ✓ `update --deps/--add-dep/--remove-dep/--goal/--notes/--description/--add-test/--remove-test/--add-doc/--remove-doc`、`show <id>`、`list goals/tasks` (含过滤)、`deps <id>` (传递查询)、`rename <old> <new>` |
-| **goal-audit** —— audit 规则扩展 | 基础规则 ✓；待做：release_blocked / release_unknown / `audit --release` 过滤 |
-| **goal-viz** —— 可视化里 release 维度 | 基础 viz ✓；待做：release 下拉过滤、左侧按 release 分组 |
+| **goal-release-modeling** — release lanes (data + CLI) | Stage 1 ✓ (add/list/update/assign/unassign/rm, status --release, release_progress); Stage 2 pending (release status / close) |
+| **goal-cli-dag-mgmt** — CLI surface the agent uses to drive the DAG | ✓ `update --deps/--add-dep/--remove-dep/--goal/--notes/--description/--add-test/--remove-test/--add-doc/--remove-doc`, `show <id>`, `list goals/tasks` (filtering), `deps <id>` (transitive), `rename <old> <new>` |
+| **goal-audit** — audit rule expansion | Base rules ✓; pending: release_blocked / release_unknown / `audit --release` filtering |
+| **goal-viz** — release dimension in the viz | Base viz ✓; pending: release dropdown filter, group-by-release on the left panel |
 
-### 0.5.0 — coding agent bootstrap + auto-render + `.vmap/` 约定（planned，目标 2026-07-15）
+### Planned — 0.6.x → 1.0.0 (and the vision)
 
-> 0.5 的关键里程碑：**让 coding agent 一键上手**。
-
-| Goal | 内容 |
-|---|---|
-| **goal-vibe-map-bootstrap** | README 顶部一段安装 prompt：用户复制给 Claude Code / Codex / Cursor，agent 自动装 vmap 二进制 + 配套 skills（何时 add goal vs add task / 何时 audit / closure 升级判断准则） |
-| **goal-auto-render** | `add` / `update` / `rm` / `release *` 命令后**自动**重渲 `.vmap/vibe-map.html`；批量操作时 `--no-render` 跳过。不引入 HTTP server / SSE，只是命令时同步 |
-| **goal-vmap-dir** | 默认数据路径从 `./vibe-map.json` 改成 `./.vmap/vibe-map.json`；`vmap init` 自动 `mkdir .vmap` 并打印一条 `.gitignore` 提示行 |
-
-### 1.0.0 — schema freeze + cross-language + LLM plan（planned，目标 2026-09-01）
-
-| Goal | 内容 |
-|---|---|
-| **goal-llm-plan** | `vmap plan` 升级：从自由文本 PRD 抽**语义** goal，不只 `- [ ]` checklist |
-| **goal-cross-language** | Rust / Go / Python 模板（backfill 救援工具广播） |
-| **goal-schema-freeze** | `schema_version` 字段 + 升级路径 + 稳定 schema 文档 |
-
-## 已交付
-
-| Release | 日期 | 内容 |
+| Goal | Vision link | Notes |
 |---|---|---|
-| **0.1.0** | 2026-05-15 | Live tracking：`init / add goal / add task / update / rm`、JSON 落地、循环检测、稳定退出码契约 |
-| **0.2.0** | 2026-05-17 | Plan（checklist + tlist）、Backfill（moonbit / typescript / dotnet 模板）、可视化基础（HTML、product/搜索/状态过滤、节点详情）、Audit 基础（tests / docs / region metadata）、GitHub issue drift 脚本 |
-| **0.3.0** | 2026-05-18 | 术语重命名：Milestone → Goal、Issue → Task（和 GitHub 概念隔离） |
-| **0.5.0** | 2026-05-19 | 给 coding agent 用的一站式体验：`install.sh`（curl \| bash）+ skills bundle（SKILL.md / cheatsheet / playbooks / vibe-map-bootstrap）+ `.vmap/` 默认路径 + 每次 mutating 命令 auto-render `.vmap/vibe-map.html` + `vmap version` / `vmap upgrade` + cli-dag-mgmt 12 个命令（update --deps / --add-dep / show / list / deps / rename / release update/unassign）+ release lanes 基础 + node 详情 modal |
+| **goal-llm-plan** | point 2 (greenfield → DAG) | Upgrade `vmap plan`: extract *semantic* goals from free-form PRD text, not just `- [ ]` checklists |
+| **goal-regression-runner** | point 4 (regression suite per goal) | Actually run the tests attached to every goal, gate new ships on them, point at the exact regressed goal when something breaks. Today `audit` only checks tests are *listed*, not that they pass. |
+| **goal-greenfield-bootstrap** | point 2 | Tighter loop between brainstorm-style skills (gstack and similar) and `vmap plan` — agent walks the user from raw idea to a full DAG without manual copy-paste |
+| **goal-cross-language** | — | Rust / Go / Python templates for `backfill` (rescue tool broadcast) |
+| **goal-schema-freeze** | — | `schema_version` field + upgrade path + stable schema doc |
 
-> 0.4.0 的 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 还在 in-flight，未独立打 tag；剩余 scope 计划进 0.6/0.7。
+### Shipped
 
-## 构建
+| Release | Date | Contents |
+|---|---|---|
+| **0.1.0** | 2026-05-15 | Live tracking: `init / add goal / add task / update / rm`, JSON persistence, cycle detection, stable exit-code contract |
+| **0.2.0** | 2026-05-17 | Plan (checklist + tlist), Backfill (moonbit / typescript / dotnet templates), base visualization (HTML, product/search/status filters, node detail), base Audit (tests / docs / region metadata), GitHub issue drift script |
+| **0.3.0** | 2026-05-18 | Terminology rename: Milestone → Goal, Issue → Task (isolating from GitHub's concepts) |
+| **0.5.0** | 2026-05-19 | The all-in-one coding-agent experience: `install.sh` (curl \| bash) + skills bundle (SKILL.md / cheatsheet / playbooks / vibe-map-bootstrap) + `.vmap/` default path + auto-render of `.vmap/vibe-map.html` on every mutating command + `vmap version` / `vmap upgrade` + 12 cli-dag-mgmt commands + release lanes (base) + node detail modal |
+| **0.5.1** | 2026-05-19 | Skill refresh: agent now reads GitHub issues (`gh issue list`) as a PRD signal during bootstrap |
+| **0.5.2** | 2026-05-20 | `vmap coverage` (docs/src/issues coverage) + `vmap doctor` (density / lane / orphan / mismatch warnings); published to [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) under MIT |
 
-[MoonBit](https://www.moonbitlang.com/) 写的：
+> 0.4.0 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 are still in flight; remaining scope rolls into 0.6 / 0.7.
+
+## Contributing
+
+Issues, forks and PRs are welcome — file at [github.com/eanzhao/vibe-map](https://github.com/eanzhao/vibe-map). The project is bilingual (English / 简体中文); either is fine.
+
+If you're proposing a new direction, opening an issue first saves rework — the long-term shape (see [Vision](#vision)) is opinionated.
+
+## Build
+
+[MoonBit](https://www.moonbitlang.com/):
 
 ```bash
-moon install                # 拉 moonbitlang/x 依赖
-moon build --target native  # 出 _build/native/debug/build/cmd/vmap/vmap.exe
-moon test                   # 37 tests
+moon install                # fetch moonbitlang/x
+moon build --target native  # outputs _build/native/debug/build/cmd/vmap/vmap.exe
+moon test                   # 59 tests
 moon fmt && moon check
 ```
 
-## 许可证
+## License
 
-待定。在确定之前默认 all rights reserved；想用请到 GitHub 提 issue 沟通。
+MIT — see [`LICENSE`](LICENSE).
