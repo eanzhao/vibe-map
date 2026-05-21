@@ -300,6 +300,36 @@
     box-shadow: 0 0 10px var(--dot-glow, transparent);
   }
 
+  .release-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .release-group-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .release-group-status {
+    flex: 0 0 auto;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .release-group-status.planned { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+  .release-group-status.open { background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+  .release-group-status.closed { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+
   .canvas-shell {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
@@ -820,6 +850,10 @@
           <select class="select-input" id="product-filter" aria-label="产品筛选">
             <option value="all">全部产品</option>
           </select>
+          <select class="select-input" id="release-filter" aria-label="发布计划筛选">
+            <option value="all">全部发布计划</option>
+            <option value="unassigned">未指派发布计划</option>
+          </select>
         </div>
         <div class="node-list" id="milestone-list"></div>
       </div>
@@ -916,10 +950,10 @@
     "version": 1,
     "products": [
       {
-        "key": "default",
+        "key": "vmap",
         "label": {
-          "en": "Default",
-          "zh": "默认"
+          "en": "vibe-map",
+          "zh": "vibe-map"
         }
       }
     ],
@@ -930,7 +964,7 @@
           "en": "Proposed",
           "zh": "提出"
         },
-        "color": "#475569",
+        "color": "#94a3b8",
         "trigger": {
           "en": "issue / discussion created",
           "zh": "issue / discussion 已创建"
@@ -942,7 +976,7 @@
           "en": "Claimed",
           "zh": "接手"
         },
-        "color": "#2563eb",
+        "color": "#38bdf8",
         "trigger": {
           "en": "assignee set",
           "zh": "assignee 字段非空"
@@ -954,10 +988,10 @@
           "en": "Designed",
           "zh": "设计完"
         },
-        "color": "#6366f1",
+        "color": "#a78bfa",
         "trigger": {
-          "en": "RFC / ADR / design doc merged",
-          "zh": "RFC / ADR / 设计 doc merged"
+          "en": "design merged",
+          "zh": "设计已合并"
         }
       },
       {
@@ -966,10 +1000,10 @@
           "en": "Committed",
           "zh": "已承诺"
         },
-        "color": "#f59e0b",
+        "color": "#fdba74",
         "trigger": {
-          "en": "release notes / changelog / external commitment",
-          "zh": "release notes / changelog / 对外承诺已发"
+          "en": "release notes published",
+          "zh": "release notes 已发"
         }
       },
       {
@@ -978,10 +1012,10 @@
           "en": "Integrated",
           "zh": "已集成"
         },
-        "color": "#16a34a",
+        "color": "#2dd4bf",
         "trigger": {
-          "en": "upstream/downstream closed + smoke passed",
-          "zh": "上下游 issue closed + smoke 通过"
+          "en": "up/downstream closed + smoke passed",
+          "zh": "上下游 closed + smoke 通过"
         }
       },
       {
@@ -990,7 +1024,7 @@
           "en": "Operating",
           "zh": "运行中"
         },
-        "color": "#4ade80",
+        "color": "#34d399",
         "trigger": {
           "en": "30 days incident-free",
           "zh": "30 天无 incident"
@@ -1049,438 +1083,158 @@
   },
   "project": {
     "name": "vibe-map (self)",
-    "description": "vmap 自己的 region map：按语义 goal 切分，coding agent 用 CLI 维护，人看 .vmap/vibe-map.html。"
+    "description": ""
   },
   "goals": [
     {
-      "id": "goal-live-tracking",
-      "title": "Live tracking — coding agent 用 CLI 修图",
-      "description": "",
+      "id": "pkg-cmd-vmap",
+      "title": "cmd/vmap",
+      "description": "Backfilled via template `moonbit`",
+      "deps": [
+        "pkg-core",
+        "pkg-render"
+      ],
+      "closure": "scoped",
+      "formal": "sop",
+      "product": "vmap",
+      "milestone": "CLI",
+      "owner": "eanzhao",
+      "issue_count": 1,
+      "focus": true,
+      "archived": false,
+      "promoted_at": {
+        "obligation": "2026-05-18",
+        "scoped": "2026-05-19"
+      },
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map vmap",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "pkg-core",
+      "title": "core",
+      "description": "Backfilled via template `moonbit`",
       "deps": [],
       "closure": "mature",
       "formal": "checked",
-      "product": "default",
-      "milestone": "0.1.0",
+      "product": "vmap",
+      "milestone": "Core",
       "owner": "eanzhao",
-      "issue_count": 0,
+      "issue_count": 8,
       "focus": false,
       "archived": false,
       "promoted_at": {
-        "public": "2026-05-15",
-        "mature": "2026-05-17"
+        "bridged": "2026-05-10",
+        "mature": "2026-05-19"
       },
-      "gh_query": "is:issue label:goal-live-tracking",
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map core",
       "regression_testable": true,
-      "tests": [
-        "src/core/types_test.mbt",
-        "src/core/ops_test.mbt"
-      ],
-      "docs": [
-        "README.md",
-        "src/core/types.mbt",
-        "src/cmd/vmap/main.mbt"
-      ]
+      "tests": [],
+      "docs": []
     },
     {
-      "id": "goal-plan",
-      "title": "Plan — 从 markdown 抽 todo（checklist / tlist）",
-      "description": "",
+      "id": "pkg-render",
+      "title": "render",
+      "description": "Backfilled via template `moonbit`",
       "deps": [
-        "goal-live-tracking"
+        "pkg-core"
       ],
       "closure": "public",
       "formal": "checked",
-      "product": "default",
-      "milestone": "0.2.0",
-      "owner": "eanzhao",
-      "issue_count": 0,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {
-        "public": "2026-05-17"
-      },
-      "gh_query": "is:issue label:goal-plan",
-      "regression_testable": true,
-      "tests": [
-        "src/core/plan_test.mbt"
-      ],
-      "docs": [
-        "src/core/plan.mbt",
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-backfill",
-      "title": "Backfill — 从老 codebase 反推 goal/task（救援工具）",
-      "description": "",
-      "deps": [
-        "goal-live-tracking"
-      ],
-      "closure": "public",
-      "formal": "checked",
-      "product": "default",
-      "milestone": "0.2.0",
-      "owner": "eanzhao",
-      "issue_count": 0,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {
-        "public": "2026-05-17"
-      },
-      "gh_query": "is:issue label:goal-backfill",
-      "regression_testable": true,
-      "tests": [
-        "src/core/backfill_test.mbt"
-      ],
-      "docs": [
-        "src/core/backfill.mbt",
-        "src/core/template.mbt",
-        "src/core/templates.mbt"
-      ]
-    },
-    {
-      "id": "goal-audit",
-      "title": "Audit — 质量守门（tests / docs / region metadata）",
-      "description": "",
-      "deps": [
-        "goal-live-tracking"
-      ],
-      "closure": "scoped",
-      "formal": "checked",
-      "product": "default",
-      "milestone": "0.4.0",
+      "product": "vmap",
+      "milestone": "Viz",
       "owner": "eanzhao",
       "issue_count": 3,
       "focus": true,
       "archived": false,
       "promoted_at": {
-        "public": "2026-05-17",
-        "scoped": "2026-05-19"
-      },
-      "gh_query": "is:issue label:goal-audit",
-      "regression_testable": true,
-      "tests": [
-        "src/core/audit_test.mbt"
-      ],
-      "docs": [
-        "src/core/audit.mbt",
-        "tools/audit_github.py",
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-viz",
-      "title": "Visualization — 暗色 canvas region map",
-      "description": "",
-      "deps": [
-        "goal-live-tracking"
-      ],
-      "closure": "scoped",
-      "formal": "checked",
-      "product": "default",
-      "milestone": "0.4.0",
-      "owner": "eanzhao",
-      "issue_count": 2,
-      "focus": true,
-      "archived": false,
-      "promoted_at": {
-        "public": "2026-05-17",
-        "scoped": "2026-05-19"
-      },
-      "gh_query": "is:issue label:goal-viz",
-      "regression_testable": true,
-      "tests": [
-        "src/render/html_test.mbt"
-      ],
-      "docs": [
-        "src/render/html.mbt"
-      ]
-    },
-    {
-      "id": "goal-release-modeling",
-      "title": "Release lanes — 版本化 goal 分组",
-      "description": "",
-      "deps": [
-        "goal-live-tracking"
-      ],
-      "closure": "scoped",
-      "formal": "checked",
-      "product": "default",
-      "milestone": "0.4.0",
-      "owner": "eanzhao",
-      "issue_count": 2,
-      "focus": true,
-      "archived": false,
-      "promoted_at": {
-        "obligation": "2026-05-19",
-        "scoped": "2026-05-19"
-      },
-      "gh_query": "is:issue label:goal-release-modeling",
-      "regression_testable": true,
-      "tests": [
-        "src/core/ops_test.mbt"
-      ],
-      "docs": [
-        "src/core/types.mbt",
-        "src/core/ops.mbt",
-        "src/cmd/vmap/main.mbt"
-      ]
-    },
-    {
-      "id": "goal-github-audit",
-      "title": "GitHub issue 数漂移检测（tools/audit_github.py）",
-      "description": "",
-      "deps": [
-        "goal-live-tracking",
-        "goal-audit"
-      ],
-      "closure": "mature",
-      "formal": "checked",
-      "product": "default",
-      "milestone": "0.2.0",
-      "owner": "eanzhao",
-      "issue_count": 0,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {
-        "public": "2026-05-17",
-        "mature": "2026-05-18"
-      },
-      "gh_query": "is:issue label:goal-github-audit",
-      "regression_testable": true,
-      "tests": [],
-      "docs": [
-        "tools/audit_github.py"
-      ]
-    },
-    {
-      "id": "goal-vibe-map-bootstrap",
-      "title": "Coding agent bootstrap — 一段 prompt 让 agent 自动装 vmap + skills",
-      "description": "",
-      "deps": [
-        "goal-live-tracking"
-      ],
-      "closure": "bridged",
-      "formal": "none",
-      "product": "default",
-      "milestone": "0.5.0",
-      "owner": "eanzhao",
-      "issue_count": 1,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {
-        "obligation": "2026-05-19",
+        "obligation": "2026-05-18",
         "scoped": "2026-05-19",
-        "public": "2026-05-19",
-        "bridged": "2026-05-19"
+        "public": "2026-05-19"
       },
-      "gh_query": "is:issue label:goal-agent-bootstrap",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-auto-render",
-      "title": "Auto-render — 每次 add/update/rm/release 自动刷新 .vmap/vibe-map.html",
-      "description": "",
-      "deps": [
-        "goal-live-tracking",
-        "goal-viz"
-      ],
-      "closure": "bridged",
-      "formal": "none",
-      "product": "default",
-      "milestone": "0.5.0",
-      "owner": "eanzhao",
-      "issue_count": 1,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {
-        "obligation": "2026-05-19",
-        "scoped": "2026-05-19",
-        "public": "2026-05-19",
-        "bridged": "2026-05-19"
-      },
-      "gh_query": "is:issue label:goal-auto-render",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-vmap-dir",
-      "title": "默认数据路径 .vmap/ + init 时提示加 .gitignore",
-      "description": "",
-      "deps": [
-        "goal-live-tracking",
-        "goal-auto-render"
-      ],
-      "closure": "bridged",
-      "formal": "none",
-      "product": "default",
-      "milestone": "0.5.0",
-      "owner": "eanzhao",
-      "issue_count": 1,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {
-        "obligation": "2026-05-19",
-        "scoped": "2026-05-19",
-        "public": "2026-05-19",
-        "bridged": "2026-05-19"
-      },
-      "gh_query": "is:issue label:goal-vmap-dir",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-llm-plan",
-      "title": "LLM-assisted plan — 从自由文本 PRD 抽语义 goal（不只 checklist）",
-      "description": "",
-      "deps": [
-        "goal-plan"
-      ],
-      "closure": "seed",
-      "formal": "none",
-      "product": "default",
-      "milestone": "1.0.0",
-      "owner": "eanzhao",
-      "issue_count": 1,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {},
-      "gh_query": "is:issue label:goal-llm-plan",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-cross-language",
-      "title": "跨语言 backfill 模板（Rust / Go / Python）",
-      "description": "",
-      "deps": [
-        "goal-backfill"
-      ],
-      "closure": "seed",
-      "formal": "none",
-      "product": "default",
-      "milestone": "1.0.0",
-      "owner": "eanzhao",
-      "issue_count": 1,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {},
-      "gh_query": "is:issue label:goal-cross-language",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-schema-freeze",
-      "title": "Schema 锁定 + 1.0 contract",
-      "description": "",
-      "deps": [
-        "goal-live-tracking",
-        "goal-release-modeling"
-      ],
-      "closure": "seed",
-      "formal": "none",
-      "product": "default",
-      "milestone": "1.0.0",
-      "owner": "eanzhao",
-      "issue_count": 1,
-      "focus": false,
-      "archived": false,
-      "promoted_at": {},
-      "gh_query": "is:issue label:goal-schema-freeze",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "README.md"
-      ]
-    },
-    {
-      "id": "goal-cli-dag-mgmt",
-      "title": "CLI for AI-driven DAG management",
-      "description": "",
-      "deps": [
-        "goal-live-tracking"
-      ],
-      "closure": "public",
-      "formal": "checked",
-      "product": "default",
-      "milestone": "0.4.0",
-      "owner": "eanzhao",
-      "issue_count": 0,
-      "focus": true,
-      "archived": false,
-      "promoted_at": {
-        "scoped": "2026-05-19"
-      },
-      "gh_query": "is:issue label:goal-cli-dag-mgmt",
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map render",
       "regression_testable": true,
-      "tests": [
-        "src/core/ops_test.mbt"
-      ],
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "plan-roadmap",
+      "title": "roadmap",
+      "description": "Planned items extracted from /tmp/vmap-fake-roadmap/roadmap.md",
+      "deps": [],
+      "closure": "seed",
+      "formal": "sop",
+      "product": "vmap",
+      "milestone": "Roadmap",
+      "owner": "eanzhao",
+      "issue_count": 4,
+      "focus": false,
+      "archived": false,
+      "promoted_at": {
+        "seed": "2026-05-19"
+      },
+      "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map roadmap",
+      "regression_testable": false,
+      "tests": [],
       "docs": [
-        "src/core/ops.mbt",
-        "src/cmd/vmap/main.mbt",
-        "README.md"
+        "/tmp/vmap-fake-roadmap/roadmap.md"
       ]
     }
   ],
   "tasks": [
     {
-      "id": "lt-cli-skeleton",
-      "goal": "goal-live-tracking",
-      "title": "argparse-based CLI 框架",
+      "id": "cmd-vmap-main",
+      "goal": "pkg-cmd-vmap",
+      "title": "main.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-adapter",
+      "goal": "pkg-core",
+      "title": "adapter.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-audit",
+      "goal": "pkg-core",
+      "title": "audit.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": true,
       "tests": [
-        "src/core/types_test.mbt"
+        "audit_test.mbt"
       ],
       "docs": []
     },
     {
-      "id": "lt-json-store",
-      "goal": "goal-live-tracking",
-      "title": "vibe-map.json 读写 + FromJson 兜底（旧 JSON 缺字段也能读）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "lt-cycle-detection",
-      "goal": "goal-live-tracking",
-      "title": "DAG 循环检测（add/import 时）",
+      "id": "core-backfill",
+      "goal": "pkg-core",
+      "title": "backfill.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": true,
       "tests": [
-        "src/core/ops_test.mbt"
+        "backfill_test.mbt"
       ],
       "docs": []
     },
     {
-      "id": "lt-exit-code-contract",
-      "goal": "goal-live-tracking",
-      "title": "稳定退出码 0/1/2/3，AI loop 友好",
+      "id": "core-errors",
+      "goal": "pkg-core",
+      "title": "errors.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
@@ -1489,35 +1243,35 @@
       "docs": []
     },
     {
-      "id": "plan-checklist",
-      "goal": "goal-plan",
-      "title": "`- [ ]` checklist 解析（默认 format）",
+      "id": "core-ops",
+      "goal": "pkg-core",
+      "title": "ops.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": true,
       "tests": [
-        "src/core/plan_test.mbt"
+        "ops_test.mbt"
       ],
       "docs": []
     },
     {
-      "id": "plan-tlist",
-      "goal": "goal-plan",
-      "title": "`## T<N> — title` + `**Status:**` 结构化 TODO 段解析（tlist format）",
+      "id": "core-plan",
+      "goal": "pkg-core",
+      "title": "plan.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": true,
       "tests": [
-        "src/core/plan_test.mbt"
+        "plan_test.mbt"
       ],
       "docs": []
     },
     {
-      "id": "plan-codeblock-skip",
-      "goal": "goal-plan",
-      "title": "代码块内 checklist 自动跳过 + 已勾选项幂等跳过",
+      "id": "core-store",
+      "goal": "pkg-core",
+      "title": "store.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
@@ -1526,9 +1280,9 @@
       "docs": []
     },
     {
-      "id": "bf-template-schema",
-      "goal": "goal-backfill",
-      "title": "JSON 模板 schema（DetectRules / PackageDiscovery / FileRules）",
+      "id": "core-template",
+      "goal": "pkg-core",
+      "title": "template.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
@@ -1537,744 +1291,93 @@
       "docs": []
     },
     {
-      "id": "bf-moonbit-template",
-      "goal": "goal-backfill",
-      "title": "MoonBit 模板（moon.pkg / *.mbt / *_test.mbt）",
+      "id": "core-templates",
+      "goal": "pkg-core",
+      "title": "templates.mbt",
+      "status": "done",
+      "deps": [],
+      "notes": "",
+      "regression_testable": true,
+      "tests": [],
+      "docs": []
+    },
+    {
+      "id": "core-types",
+      "goal": "pkg-core",
+      "title": "types.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": true,
       "tests": [
-        "src/core/backfill_test.mbt"
+        "types_test.mbt"
       ],
       "docs": []
     },
     {
-      "id": "bf-typescript-template",
-      "goal": "goal-backfill",
-      "title": "TypeScript 模板（package.json / *.ts / *.test.ts）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "bf-dotnet-template",
-      "goal": "goal-backfill",
-      "title": "dotnet 模板（*.csproj / namespace grouping）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "bf-auto-detect",
-      "goal": "goal-backfill",
-      "title": "auto-detect 模板（按 detect.files / globs）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "audit-missing-tests",
-      "goal": "goal-audit",
-      "title": "missing_tests 规则（regression_testable=true 但 tests=[]）",
+      "id": "render-html",
+      "goal": "pkg-render",
+      "title": "html.mbt",
       "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": true,
       "tests": [
-        "src/core/audit_test.mbt"
+        "html_test.mbt"
       ],
       "docs": []
     },
     {
-      "id": "audit-missing-docs",
-      "goal": "goal-audit",
-      "title": "missing_docs 规则（status≠todo 但 docs=[]）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [
-        "src/core/audit_test.mbt"
-      ],
-      "docs": []
-    },
-    {
-      "id": "audit-region-metadata",
-      "goal": "goal-audit",
-      "title": "missing_region_metadata 规则（closure / owner / gh_query 等）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "audit-release-blocked",
-      "goal": "goal-audit",
-      "title": "release_blocked 规则（release closed 但成员 goal 未到 public）",
+      "id": "plan-roadmap-add-live-reload-serve-mode",
+      "goal": "plan-roadmap",
+      "title": "add live-reload serve mode",
       "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "audit-release-unknown",
-      "goal": "goal-audit",
-      "title": "release_unknown 规则（goal.milestone 不在 releases 中）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "audit-release-filter",
-      "goal": "goal-audit",
-      "title": "`vmap audit --release <key>` 过滤违例到一个 release",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-html-renderer",
-      "goal": "goal-viz",
-      "title": "单文件 HTML renderer，data 嵌入 + canvas 渲染",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-product-filter",
-      "goal": "goal-viz",
-      "title": "product 下拉过滤",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-status-filter",
-      "goal": "goal-viz",
-      "title": "状态按钮（全部 / 焦点 / 进行中 / 封档）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-search",
-      "goal": "goal-viz",
-      "title": "goal / owner / milestone 搜索",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-node-details",
-      "goal": "goal-viz",
-      "title": "右侧节点详情面板（closure / promoted_at / tasks）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-release-filter",
-      "goal": "goal-viz",
-      "title": "release 下拉过滤（镜像 product filter）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "viz-release-grouping",
-      "goal": "goal-viz",
-      "title": "左侧进度面板按 release 分组",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "rel-schema",
-      "goal": "goal-release-modeling",
-      "title": "ReleaseConfig + Dag.releases 顶层数组",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [
-        "src/core/ops_test.mbt"
-      ],
-      "docs": []
-    },
-    {
-      "id": "rel-crud-ops",
-      "goal": "goal-release-modeling",
-      "title": "add / find / update / remove / assign 操作 + 状态机",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [
-        "src/core/ops_test.mbt"
-      ],
-      "docs": []
-    },
-    {
-      "id": "rel-cli",
-      "goal": "goal-release-modeling",
-      "title": "`vmap release add / list / assign / rm` 子命令",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "rel-status-filter",
-      "goal": "goal-release-modeling",
-      "title": "`vmap status --release <key>` 过滤",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "rel-progress",
-      "goal": "goal-release-modeling",
-      "title": "release_progress（blocked / ready_to_close / by_closure）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "rel-status-cmd",
-      "goal": "goal-release-modeling",
-      "title": "`vmap release status <key>` 命令",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "rel-close-cmd",
-      "goal": "goal-release-modeling",
-      "title": "`vmap release close <key>` 命令（校验 + 状态推进 + 可选 CHANGELOG 草稿）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "gh-script",
-      "goal": "goal-github-audit",
-      "title": "tools/audit_github.py 主体（gh CLI + issue count）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "gh-strict-mode",
-      "goal": "goal-github-audit",
-      "title": "--strict（任何漂移 = exit 1）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "gh-markdown",
-      "goal": "goal-github-audit",
-      "title": "--markdown 输出（适合 PR 评论）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "bootstrap-install-prompt",
-      "goal": "goal-vibe-map-bootstrap",
-      "title": "一段 README 顶部的安装 prompt（用户复制给 Claude Code / Codex / Cursor）",
-      "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": false,
       "tests": [],
       "docs": [
-        "skills/agent-bootstrap.md"
+        "/tmp/vmap-fake-roadmap/roadmap.md"
       ]
     },
     {
-      "id": "bootstrap-skill-bundle",
-      "goal": "goal-vibe-map-bootstrap",
-      "title": "配套 skills（何时 add goal vs add task / 何时 audit / closure 升级判断准则）",
-      "status": "done",
+      "id": "plan-roadmap-generate-mcp-tool-definitions-for-ai-age",
+      "goal": "plan-roadmap",
+      "title": "generate MCP tool definitions for AI agents",
+      "status": "todo",
       "deps": [],
       "notes": "",
       "regression_testable": false,
       "tests": [],
       "docs": [
-        "skills/SKILL.md",
-        "skills/cheatsheet.md",
-        "skills/playbooks/"
+        "/tmp/vmap-fake-roadmap/roadmap.md"
       ]
     },
     {
-      "id": "bootstrap-release-channel",
-      "goal": "goal-vibe-map-bootstrap",
-      "title": "vmap 二进制分发渠道（GitHub Releases / homebrew / npm ?）",
-      "status": "done",
-      "deps": [],
-      "notes": "install.sh supports --local for dogfood + GitHub Releases for production; workflow builds 4 platforms",
-      "regression_testable": false,
-      "tests": [],
-      "docs": [
-        "docs/distribution.md",
-        "install.sh",
-        ".github/workflows/release.yml"
-      ]
-    },
-    {
-      "id": "auto-render-hook",
-      "goal": "goal-auto-render",
-      "title": "在 add / update / rm / release 命令后自动调 render",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "auto-render-no-flag",
-      "goal": "goal-auto-render",
-      "title": "--no-render flag（批量操作时跳过）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "auto-render-default-out",
-      "goal": "goal-auto-render",
-      "title": "默认输出路径 .vmap/vibe-map.html",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "vdir-default-path",
-      "goal": "goal-vmap-dir",
-      "title": "默认 file 路径从 vibe-map.json 改成 .vmap/vibe-map.json",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "vdir-mkdir-on-init",
-      "goal": "goal-vmap-dir",
-      "title": "init 自动 mkdir .vmap（如果不存在）",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "vdir-gitignore-hint",
-      "goal": "goal-vmap-dir",
-      "title": "init 后打印 .gitignore 提示行",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "llm-prompt",
-      "goal": "goal-llm-plan",
-      "title": "prompt 设计：从自由文本 PRD/README 抽语义 goal",
+      "id": "plan-roadmap-symbol-level-backfill-via-moon-ide-outli",
+      "goal": "plan-roadmap",
+      "title": "symbol-level backfill via `moon ide outline`",
       "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "llm-integration",
-      "goal": "goal-llm-plan",
-      "title": "外部 LLM 调用（OpenAI / Claude / 本地）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "xlang-rust",
-      "goal": "goal-cross-language",
-      "title": "Rust 模板（Cargo.toml / src/**）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "xlang-go",
-      "goal": "goal-cross-language",
-      "title": "Go 模板（go.mod / package）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "xlang-python",
-      "goal": "goal-cross-language",
-      "title": "Python 模板（pyproject.toml / setup.py）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "schema-version",
-      "goal": "goal-schema-freeze",
-      "title": "schema_version 字段 + 升级路径",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "schema-contract-doc",
-      "goal": "goal-schema-freeze",
-      "title": "稳定 schema 文档（docs/schema.md）",
-      "status": "todo",
-      "deps": [],
-      "notes": "",
-      "regression_testable": false,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-update-deps-replace",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "update --deps a,b,c (替换 goal/task deps + 循环检测)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-update-deps-incremental",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "update --add-dep / --remove-dep (增量编辑 deps)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-update-task-goal",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "update <task> --goal <new-goal> (跨 goal 移动 task)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-update-notes-desc",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "update --notes (task) / --description (goal)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-update-tests-docs-incremental",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "update --add-test / --remove-test / --add-doc / --remove-doc",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-show",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "show <id> [--json] (单节点完整详情 + upstream/downstream/tasks/progress)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-list-goals",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "list goals [--release/--closure/--owner/--product/--focus/--archived/--no-tests/--no-docs/--json]",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-list-tasks",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "list tasks [--goal/--status/--json]",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-deps-query",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "deps <id> [--upstream/--downstream/--json] (传递依赖图)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-rename",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "rename <old> <new> (id 重命名 + 自动改 deps / task.goal 引用)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-release-update",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "release update <key> --status/--target/--label-en/--label-zh/--notes",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "cli-release-unassign",
-      "goal": "goal-cli-dag-mgmt",
-      "title": "release unassign <key> [--goals] (清掉 goal 的 milestone 指向)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "rel-update-cli",
-      "goal": "goal-release-modeling",
-      "title": "release update 命令 (label/target/status/notes)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [
-        "src/core/ops_test.mbt"
-      ],
-      "docs": []
-    },
-    {
-      "id": "rel-unassign-cli",
-      "goal": "goal-release-modeling",
-      "title": "release unassign 命令 (从 release 清掉 goal)",
-      "status": "done",
-      "deps": [],
-      "notes": "",
-      "regression_testable": true,
-      "tests": [],
-      "docs": []
-    },
-    {
-      "id": "bootstrap-cold-start-playbook",
-      "goal": "goal-vibe-map-bootstrap",
-      "title": "Cold-start playbook (大代码库重建 semantic DAG 的工作流)",
-      "status": "done",
       "deps": [],
       "notes": "",
       "regression_testable": false,
       "tests": [],
       "docs": [
-        "skills/playbooks/bootstrap-existing-codebase.md",
-        "skills/SKILL.md",
-        ".claude/skills/vibe-map-bootstrap/SKILL.md"
+        "/tmp/vmap-fake-roadmap/roadmap.md"
       ]
     },
     {
-      "id": "bootstrap-gh-issues-source",
-      "goal": "goal-vibe-map-bootstrap",
-      "title": "Skills 教 AI 把 GitHub issues 当 PRD 来源（gh issue list）",
-      "status": "done",
+      "id": "plan-roadmap-cross-language-adapter-beyond-moonbit",
+      "goal": "plan-roadmap",
+      "title": "cross-language adapter beyond MoonBit",
+      "status": "todo",
       "deps": [],
       "notes": "",
       "regression_testable": false,
       "tests": [],
       "docs": [
-        "skills/playbooks/bootstrap-existing-codebase.md",
-        "skills/playbooks/new-feature.md",
-        "skills/cheatsheet.md",
-        "skills/SKILL.md",
-        ".claude/skills/vibe-map-bootstrap/SKILL.md"
+        "/tmp/vmap-fake-roadmap/roadmap.md"
       ]
-    }
-  ],
-  "releases": [
-    {
-      "key": "0.1.0",
-      "label": {
-        "en": "AI-first DAG MVP",
-        "zh": "AI 优先的 DAG MVP"
-      },
-      "target": "2026-05-15",
-      "status": "closed",
-      "closed_at": "2026-05-15"
-    },
-    {
-      "key": "0.2.0",
-      "label": {
-        "en": "multi-language backfill + markdown plan",
-        "zh": "多语言 backfill + markdown plan"
-      },
-      "target": "2026-05-17",
-      "status": "closed",
-      "closed_at": "2026-05-17"
-    },
-    {
-      "key": "0.3.0",
-      "label": {
-        "en": "Milestone→Goal / Issue→Task rename",
-        "zh": "Milestone→Goal / Issue→Task 重命名"
-      },
-      "target": "2026-05-18",
-      "status": "closed",
-      "closed_at": "2026-05-18"
-    },
-    {
-      "key": "0.4.0",
-      "label": {
-        "en": "release lanes + audit + viz polish",
-        "zh": "release 维度 + audit + viz 完善"
-      },
-      "target": "2026-06-15",
-      "status": "open"
-    },
-    {
-      "key": "0.5.0",
-      "label": {
-        "en": "agent bootstrap + auto-render + .vmap convention",
-        "zh": "一键给 coding agent 配 vmap + 命令时自动刷新 + .vmap 目录约定"
-      },
-      "target": "2026-07-15",
-      "status": "closed"
-    },
-    {
-      "key": "1.0.0",
-      "label": {
-        "en": "schema freeze + cross-language + LLM plan",
-        "zh": "schema 冻结 + 跨语言 + LLM 抽语义 goal"
-      },
-      "target": "2026-09-01",
-      "status": "planned"
     }
   ]
 }</script>
@@ -2344,6 +1447,7 @@
     hoveredId: null,
     filter: 'all',
     productFilter: 'all',
+    releaseFilter: 'all',
     search: '',
     focusIds: null,
     navigationPeerIds: null,
@@ -2832,6 +1936,13 @@
       if (state.filter === 'archived' && !node.archived) return false;
       if (state.filter === 'active' && !activeStatuses.has(node.status)) return false;
       if (state.productFilter !== 'all' && node.product !== state.productFilter) return false;
+      if (state.releaseFilter !== 'all') {
+        if (state.releaseFilter === 'unassigned') {
+          if (node.milestone !== '') return false;
+        } else if (node.milestone !== state.releaseFilter) {
+          return false;
+        }
+      }
       if (state.search) {
         const haystack = [node.id, node.title, node.owner, node.milestone, node.productLabel, node.closureLabel].join(' ').toLowerCase();
         if (!haystack.includes(state.search)) return false;
@@ -3304,6 +2415,21 @@
     document.getElementById('canvas-subtitle').textContent = 'n=' + state.nodes.length + ' e=' + edgeCount + ' dep=' + depCount;
   }
 
+  function renderGoalRow(node) {
+    const progress = node.progress ? node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%' : '';
+    return `
+      <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}" title="双击查看详情">
+        <div class="node-row-title">${escapeHtml(node.title)}</div>
+        <div class="node-row-meta">
+          <i class="status-dot" style="--dot:${node.color};--dot-glow:${node.glow}"></i>
+          <span>${escapeHtml(node.closureLabel)}</span>
+          <span>${escapeHtml(node.productLabel)}</span>
+          ${node.owner ? '<span>@' + escapeHtml(node.owner) + '</span>' : ''}
+          <span>${escapeHtml(progress)}</span>
+        </div>
+      </button>`;
+  }
+
   function renderMilestoneList() {
     const list = document.getElementById('milestone-list');
     const milestones = state.visibleNodes.filter(n => n.kind === 'milestone');
@@ -3311,26 +2437,54 @@
       list.innerHTML = '<div class="detail-empty">无匹配目标</div>';
       return;
     }
-    list.innerHTML = milestones.map(node => {
-      const progress = node.progress ? node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%' : '';
-      return `
-        <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}" title="双击查看详情">
-          <div class="node-row-title">${escapeHtml(node.title)}</div>
-          <div class="node-row-meta">
-            <i class="status-dot" style="--dot:${node.color};--dot-glow:${node.glow}"></i>
-            <span>${escapeHtml(node.closureLabel)}</span>
-            <span>${escapeHtml(node.productLabel)}</span>
-            ${node.owner ? '<span>@' + escapeHtml(node.owner) + '</span>' : ''}
-            <span>${escapeHtml(progress)}</span>
+    const releaseMap = new Map();
+    const unassigned = [];
+    const releases = dag.releases || [];
+    for (const r of releases) {
+      releaseMap.set(r.key, []);
+    }
+    for (const node of milestones) {
+      const m = node.milestone;
+      if (m && releaseMap.has(m)) {
+        releaseMap.get(m).push(node);
+      } else {
+        unassigned.push(node);
+      }
+    }
+    const htmlParts = [];
+    for (const r of releases) {
+      const groupNodes = releaseMap.get(r.key);
+      if (groupNodes.length > 0) {
+        const releaseName = escapeHtml(localized(r.label, r.key));
+        const statusText = r.status === 'closed' ? '已关闭' : (r.status === 'open' ? '进行中' : '计划中');
+        const statusClass = r.status === 'closed' ? 'closed' : (r.status === 'open' ? 'open' : 'planned');
+        htmlParts.push(`
+          <div class="release-group-header">
+            <span class="release-group-title">${releaseName}</span>
+            <span class="release-group-status ${statusClass}">${statusText}</span>
           </div>
-        </button>`;
-    }).join('');
+        `);
+        for (const node of groupNodes) {
+          htmlParts.push(renderGoalRow(node));
+        }
+      }
+    }
+    if (unassigned.length > 0) {
+      if (releases.length > 0) {
+        htmlParts.push(`
+          <div class="release-group-header">
+            <span class="release-group-title">未指派</span>
+          </div>
+        `);
+      }
+      for (const node of unassigned) {
+        htmlParts.push(renderGoalRow(node));
+      }
+    }
+    list.innerHTML = htmlParts.join('');
     list.querySelectorAll('[data-node-id]').forEach(button => {
       const id = button.getAttribute('data-node-id');
       button.addEventListener('click', () => selectNode(id, true));
-      // Double-click a goal row → same modal as double-clicking the graph node.
-      // Listener is per-button (not delegated) so it survives the list re-render
-      // that the first click triggers, even if the button detaches.
       button.addEventListener('dblclick', event => {
         event.preventDefault();
         selectNode(id, false);
@@ -3350,6 +2504,19 @@
     }
     select.innerHTML = options.join('');
     select.value = state.productFilter;
+  }
+
+  function renderReleaseFilter() {
+    const select = document.getElementById('release-filter');
+    if (!select) return;
+    const options = ['<option value="all">全部计划</option>'];
+    const releases = dag.releases || [];
+    for (const r of releases) {
+      options.push('<option value="' + escapeHtml(r.key) + '">' + escapeHtml(localized(r.label, r.key)) + '</option>');
+    }
+    options.push('<option value="unassigned">未指派</option>');
+    select.innerHTML = options.join('');
+    select.value = state.releaseFilter;
   }
 
   function renderLegend() {
@@ -3595,9 +2762,21 @@
     fitView(true);
   }
 
+  function updateReleaseFilter(value) {
+    state.releaseFilter = value || 'all';
+    applyFilter();
+    if (state.selectedId && !state.visibleNodes.some(n => n.id === state.selectedId)) {
+      selectNode(null, false);
+    }
+    renderStats();
+    renderMilestoneList();
+    fitView(true);
+  }
+
   function resetLayout() {
     state.filter = 'all';
     state.productFilter = 'all';
+    state.releaseFilter = 'all';
     state.search = '';
     state.selectedId = null;
     state.hoveredId = null;
@@ -3611,8 +2790,10 @@
     });
     const search = document.getElementById('goal-search');
     const product = document.getElementById('product-filter');
+    const release = document.getElementById('release-filter');
     if (search) search.value = '';
     if (product) product.value = 'all';
+    if (release) release.value = 'all';
     seedLayout();
     applyFilter();
     renderStats();
@@ -3802,6 +2983,10 @@
     });
     document.getElementById('goal-search').addEventListener('input', event => updateSearch(event.target.value));
     document.getElementById('product-filter').addEventListener('change', event => updateProductFilter(event.target.value));
+    const releaseFilterEl = document.getElementById('release-filter');
+    if (releaseFilterEl) {
+      releaseFilterEl.addEventListener('change', event => updateReleaseFilter(event.target.value));
+    }
 
     const resetButton = document.getElementById('reset-layout');
     const resetShortcut = SHORTCUTS.resetLayout;
@@ -3977,6 +3162,7 @@
     seedLayout();
     applyFilter();
     renderProductFilter();
+    renderReleaseFilter();
     renderLegend();
     renderStats();
     renderMilestoneList();

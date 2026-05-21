@@ -6,7 +6,7 @@ pub(all) struct Template {
   detect : DetectRules
   package_discovery : PackageDiscovery
   files : FileRules
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 /// Auto-detection rules. The template applies to `root` if any listed file
@@ -14,7 +14,7 @@ pub(all) struct Template {
 pub(all) struct DetectRules {
   files : Array[String]
   globs : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 /// What makes a directory a "package":
@@ -43,7 +43,7 @@ pub(all) struct PackageDiscovery {
   ///     fold into one "Aevatar.Foundation" goal.
   group_by : String
   group_depth : Int
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct FileRules {
@@ -51,23 +51,23 @@ pub(all) struct FileRules {
   test_colocated : PatternList
   task_doc : PatternList
   package_doc : NameList
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct SourceRule {
   globs : Array[String]
   excludes : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct PatternList {
   patterns : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct NameList {
   names : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 /// True if any of the template's detection rules fires at `root`.
@@ -82,7 +82,7 @@ pub fn Template::detect_at(
   }
   if self.detect.globs.length() > 0 {
     let entries = @fs.read_dir(root) catch {
-      err => raise IoError("read_dir \{root}: \{err}")
+      err => raise IoError("read_dir \{root}: \{@debug.to_repr(err)}")
     }
     for entry in entries {
       for pat in self.detect.globs {
@@ -101,7 +101,7 @@ pub fn Template::discover(
   self : Template,
   root : String,
 ) -> Array[DiscoveredPackage] raise DagError {
-  if not(@fs.path_exists(root)) {
+  if !@fs.path_exists(root) {
     raise IoError("source root not found: \{root}")
   }
   let normalized_root = strip_trailing_slash(root)
@@ -176,7 +176,7 @@ fn group_by_namespace(
 /// Last `/`-separated segment of a relative path. `lib/ganzhi` -> `ganzhi`.
 fn basename_of(rel : String) -> String {
   match last_index_of_char(rel, '/') {
-    Some(idx) => rel[idx + 1:rel.length()].to_string()
+    Some(idx) => rel[idx + 1:rel.length()].to_owned()
     None => rel
   }
 }
@@ -263,13 +263,13 @@ fn Template::walk(
   out : Array[DiscoveredPackage],
 ) -> Unit raise DagError {
   let is_dir = @fs.is_dir(current) catch {
-    err => raise IoError("stat \{current}: \{err}")
+    err => raise IoError("stat \{current}: \{@debug.to_repr(err)}")
   }
-  if not(is_dir) {
+  if !is_dir {
     return
   }
   let entries = @fs.read_dir(current) catch {
-    err => raise IoError("read_dir \{current}: \{err}")
+    err => raise IoError("read_dir \{current}: \{@debug.to_repr(err)}")
   }
   entries.sort_by((a, b) => a.lexical_compare(b))
   if self.is_package_dir(current, entries) {
@@ -351,7 +351,7 @@ fn Template::build_package(
   }
   let tasks = []
   for entry in entries {
-    if not(self.matches_source(entry)) {
+    if !self.matches_source(entry) {
       continue
     }
     let stem = strip_source_extension(entry, self.files.source.globs)
@@ -383,7 +383,7 @@ fn Template::matches_source(self : Template, name : String) -> Bool {
       break
     }
   }
-  if not(included) {
+  if !included {
     return false
   }
   for pat in self.files.source.excludes {
@@ -398,7 +398,7 @@ fn Template::matches_source(self : Template, name : String) -> Bool {
 /// Very small glob: `*xyz` matches a suffix `xyz`; anything else is exact match.
 fn matches_pattern(name : String, pattern : String) -> Bool {
   if pattern.has_prefix("*") {
-    let suffix = pattern[1:pattern.length()].to_string()
+    let suffix = pattern[1:pattern.length()].to_owned()
     name.has_suffix(suffix)
   } else {
     name == pattern
@@ -420,18 +420,18 @@ fn strip_source_extension(
   let mut best = ""
   for pat in include_patterns {
     if pat.has_prefix("*") {
-      let suffix = pat[1:pat.length()].to_string()
+      let suffix = pat[1:pat.length()].to_owned()
       if name.has_suffix(suffix) && suffix.length() > best.length() {
         best = suffix
       }
     }
   }
   if best != "" {
-    name[0:name.length() - best.length()].to_string()
+    name[0:name.length() - best.length()].to_owned()
   } else {
     // Fallback: last dot.
     match last_index_of_char(name, '.') {
-      Some(idx) => name[0:idx].to_string()
+      Some(idx) => name[0:idx].to_owned()
       None => name
     }
   }
@@ -474,7 +474,7 @@ fn strip_prefix_dir(path : String, prefix : String) -> String {
   }
   let with_slash = prefix + "/"
   if path.has_prefix(with_slash) {
-    path[with_slash.length():path.length()].to_string()
+    path[with_slash.length():path.length()].to_owned()
   } else if path == prefix {
     "."
   } else {

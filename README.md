@@ -334,8 +334,8 @@ Older JSON missing newer fields still loads (Option fields default to None). `cl
 | **0.5.1** | 2026-05-19 | Skill refresh: agent now reads GitHub issues (`gh issue list`) as a PRD signal during bootstrap |
 | **0.5.2** | 2026-05-20 | `vmap coverage` (docs/src/issues coverage) + `vmap doctor` (density / lane / orphan / mismatch warnings); published to [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) under MIT |
 | **0.5.3** | 2026-05-20 | `vibe-map.html` frontend: double-click a sidebar goal row to open its detail modal, GitHub URLs across the page become new-tab links, double-click an expanded task card for a dedicated task detail modal |
+| **0.6.0** | 2026-05-21 | Release modeling Stage 2, Audit Stage 2, Visualizer Stage 3 & AI Regression Context: `vmap release status` / `close` CLI subcommands (with target-specific FFI date retrieval), `vmap audit --release` filtering, core release audit rules (`release_unknown` & `release_blocked`), HTML visualizer sidebar release grouping & filter dropdown, and `vmap regression prompt` to compile structured markdown diagnostics context for external AI agents |
 
-> 0.4.0 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 are still in flight; remaining scope rolls into 0.6 / 0.7.
 
 ## Contributing
 
@@ -350,7 +350,7 @@ If you're proposing a new direction, opening an issue first saves rework — the
 ```bash
 moon install                # fetch moonbitlang/x
 moon build --target native  # outputs _build/native/debug/build/cmd/vmap/vmap.exe
-moon test                   # 59 tests
+moon test                   # 63 tests
 moon fmt && moon check
 ```
 

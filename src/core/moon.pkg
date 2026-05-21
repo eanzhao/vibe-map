@@ -1,4 +1,14 @@
 import {
   "moonbitlang/core/json",
+  "moonbitlang/core/debug",
   "moonbitlang/x/fs" @fs,
 }
+
+options(
+  "native-stub": [ "time_stub.c" ],
+  targets: {
+    "time_js.mbt": [ "js" ],
+    "time_native.mbt": [ "native" ],
+    "time_wasm.mbt": [ "wasm", "wasm-gc" ],
+  },
+)

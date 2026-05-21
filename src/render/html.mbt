@@ -322,6 +322,36 @@ fn page_head(title : String) -> String {
     $|    box-shadow: 0 0 10px var(--dot-glow, transparent);
     $|  }
     $|
+    $|  .release-group-header {
+    $|    display: flex;
+    $|    align-items: center;
+    $|    justify-content: space-between;
+    $|    margin-top: 16px;
+    $|    margin-bottom: 8px;
+    $|    padding-bottom: 4px;
+    $|    border-bottom: 1px solid var(--border-subtle);
+    $|    font-size: 11px;
+    $|    font-weight: 700;
+    $|    color: var(--text-secondary);
+    $|  }
+    $|
+    $|  .release-group-title {
+    $|    overflow: hidden;
+    $|    text-overflow: ellipsis;
+    $|    white-space: nowrap;
+    $|  }
+    $|
+    $|  .release-group-status {
+    $|    flex: 0 0 auto;
+    $|    font-size: 9px;
+    $|    padding: 1px 5px;
+    $|    border-radius: 999px;
+    $|    font-weight: 700;
+    $|  }
+    $|  .release-group-status.planned { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+    $|  .release-group-status.open { background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+    $|  .release-group-status.closed { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+    $|
     $|  .canvas-shell {
     $|    display: grid;
     $|    grid-template-rows: auto minmax(0, 1fr) auto;
@@ -842,6 +872,10 @@ fn page_head(title : String) -> String {
     $|          <select class="select-input" id="product-filter" aria-label="产品筛选">
     $|            <option value="all">全部产品</option>
     $|          </select>
+    $|          <select class="select-input" id="release-filter" aria-label="发布计划筛选">
+    $|            <option value="all">全部发布计划</option>
+    $|            <option value="unassigned">未指派发布计划</option>
+    $|          </select>
     $|        </div>
     $|        <div class="node-list" id="milestone-list"></div>
     $|      </div>
@@ -1006,6 +1040,7 @@ let page_tail : String =
   #|    hoveredId: null,
   #|    filter: 'all',
   #|    productFilter: 'all',
+  #|    releaseFilter: 'all',
   #|    search: '',
   #|    focusIds: null,
   #|    navigationPeerIds: null,
@@ -1494,6 +1529,13 @@ let page_tail : String =
   #|      if (state.filter === 'archived' && !node.archived) return false;
   #|      if (state.filter === 'active' && !activeStatuses.has(node.status)) return false;
   #|      if (state.productFilter !== 'all' && node.product !== state.productFilter) return false;
+  #|      if (state.releaseFilter !== 'all') {
+  #|        if (state.releaseFilter === 'unassigned') {
+  #|          if (node.milestone !== '') return false;
+  #|        } else if (node.milestone !== state.releaseFilter) {
+  #|          return false;
+  #|        }
+  #|      }
   #|      if (state.search) {
   #|        const haystack = [node.id, node.title, node.owner, node.milestone, node.productLabel, node.closureLabel].join(' ').toLowerCase();
   #|        if (!haystack.includes(state.search)) return false;
@@ -1966,6 +2008,21 @@ let page_tail : String =
   #|    document.getElementById('canvas-subtitle').textContent = 'n=' + state.nodes.length + ' e=' + edgeCount + ' dep=' + depCount;
   #|  }
   #|
+  #|  function renderGoalRow(node) {
+  #|    const progress = node.progress ? node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%' : '';
+  #|    return `
+  #|      <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}" title="双击查看详情">
+  #|        <div class="node-row-title">${escapeHtml(node.title)}</div>
+  #|        <div class="node-row-meta">
+  #|          <i class="status-dot" style="--dot:${node.color};--dot-glow:${node.glow}"></i>
+  #|          <span>${escapeHtml(node.closureLabel)}</span>
+  #|          <span>${escapeHtml(node.productLabel)}</span>
+  #|          ${node.owner ? '<span>@' + escapeHtml(node.owner) + '</span>' : ''}
+  #|          <span>${escapeHtml(progress)}</span>
+  #|        </div>
+  #|      </button>`;
+  #|  }
+  #|
   #|  function renderMilestoneList() {
   #|    const list = document.getElementById('milestone-list');
   #|    const milestones = state.visibleNodes.filter(n => n.kind === 'milestone');
@@ -1973,26 +2030,54 @@ let page_tail : String =
   #|      list.innerHTML = '<div class="detail-empty">无匹配目标</div>';
   #|      return;
   #|    }
-  #|    list.innerHTML = milestones.map(node => {
-  #|      const progress = node.progress ? node.progress.done + '/' + node.progress.total + ' · ' + node.progress.pct + '%' : '';
-  #|      return `
-  #|        <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}" title="双击查看详情">
-  #|          <div class="node-row-title">${escapeHtml(node.title)}</div>
-  #|          <div class="node-row-meta">
-  #|            <i class="status-dot" style="--dot:${node.color};--dot-glow:${node.glow}"></i>
-  #|            <span>${escapeHtml(node.closureLabel)}</span>
-  #|            <span>${escapeHtml(node.productLabel)}</span>
-  #|            ${node.owner ? '<span>@' + escapeHtml(node.owner) + '</span>' : ''}
-  #|            <span>${escapeHtml(progress)}</span>
+  #|    const releaseMap = new Map();
+  #|    const unassigned = [];
+  #|    const releases = dag.releases || [];
+  #|    for (const r of releases) {
+  #|      releaseMap.set(r.key, []);
+  #|    }
+  #|    for (const node of milestones) {
+  #|      const m = node.milestone;
+  #|      if (m && releaseMap.has(m)) {
+  #|        releaseMap.get(m).push(node);
+  #|      } else {
+  #|        unassigned.push(node);
+  #|      }
+  #|    }
+  #|    const htmlParts = [];
+  #|    for (const r of releases) {
+  #|      const groupNodes = releaseMap.get(r.key);
+  #|      if (groupNodes.length > 0) {
+  #|        const releaseName = escapeHtml(localized(r.label, r.key));
+  #|        const statusText = r.status === 'closed' ? '已关闭' : (r.status === 'open' ? '进行中' : '计划中');
+  #|        const statusClass = r.status === 'closed' ? 'closed' : (r.status === 'open' ? 'open' : 'planned');
+  #|        htmlParts.push(`
+  #|          <div class="release-group-header">
+  #|            <span class="release-group-title">${releaseName}</span>
+  #|            <span class="release-group-status ${statusClass}">${statusText}</span>
   #|          </div>
-  #|        </button>`;
-  #|    }).join('');
+  #|        `);
+  #|        for (const node of groupNodes) {
+  #|          htmlParts.push(renderGoalRow(node));
+  #|        }
+  #|      }
+  #|    }
+  #|    if (unassigned.length > 0) {
+  #|      if (releases.length > 0) {
+  #|        htmlParts.push(`
+  #|          <div class="release-group-header">
+  #|            <span class="release-group-title">未指派</span>
+  #|          </div>
+  #|        `);
+  #|      }
+  #|      for (const node of unassigned) {
+  #|        htmlParts.push(renderGoalRow(node));
+  #|      }
+  #|    }
+  #|    list.innerHTML = htmlParts.join('');
   #|    list.querySelectorAll('[data-node-id]').forEach(button => {
   #|      const id = button.getAttribute('data-node-id');
   #|      button.addEventListener('click', () => selectNode(id, true));
-  #|      // Double-click a goal row → same modal as double-clicking the graph node.
-  #|      // Listener is per-button (not delegated) so it survives the list re-render
-  #|      // that the first click triggers, even if the button detaches.
   #|      button.addEventListener('dblclick', event => {
   #|        event.preventDefault();
   #|        selectNode(id, false);
@@ -2012,6 +2097,19 @@ let page_tail : String =
   #|    }
   #|    select.innerHTML = options.join('');
   #|    select.value = state.productFilter;
+  #|  }
+  #|
+  #|  function renderReleaseFilter() {
+  #|    const select = document.getElementById('release-filter');
+  #|    if (!select) return;
+  #|    const options = ['<option value="all">全部计划</option>'];
+  #|    const releases = dag.releases || [];
+  #|    for (const r of releases) {
+  #|      options.push('<option value="' + escapeHtml(r.key) + '">' + escapeHtml(localized(r.label, r.key)) + '</option>');
+  #|    }
+  #|    options.push('<option value="unassigned">未指派</option>');
+  #|    select.innerHTML = options.join('');
+  #|    select.value = state.releaseFilter;
   #|  }
   #|
   #|  function renderLegend() {
@@ -2257,9 +2355,21 @@ let page_tail : String =
   #|    fitView(true);
   #|  }
   #|
+  #|  function updateReleaseFilter(value) {
+  #|    state.releaseFilter = value || 'all';
+  #|    applyFilter();
+  #|    if (state.selectedId && !state.visibleNodes.some(n => n.id === state.selectedId)) {
+  #|      selectNode(null, false);
+  #|    }
+  #|    renderStats();
+  #|    renderMilestoneList();
+  #|    fitView(true);
+  #|  }
+  #|
   #|  function resetLayout() {
   #|    state.filter = 'all';
   #|    state.productFilter = 'all';
+  #|    state.releaseFilter = 'all';
   #|    state.search = '';
   #|    state.selectedId = null;
   #|    state.hoveredId = null;
@@ -2273,8 +2383,10 @@ let page_tail : String =
   #|    });
   #|    const search = document.getElementById('goal-search');
   #|    const product = document.getElementById('product-filter');
+  #|    const release = document.getElementById('release-filter');
   #|    if (search) search.value = '';
   #|    if (product) product.value = 'all';
+  #|    if (release) release.value = 'all';
   #|    seedLayout();
   #|    applyFilter();
   #|    renderStats();
@@ -2464,6 +2576,10 @@ let page_tail : String =
   #|    });
   #|    document.getElementById('goal-search').addEventListener('input', event => updateSearch(event.target.value));
   #|    document.getElementById('product-filter').addEventListener('change', event => updateProductFilter(event.target.value));
+  #|    const releaseFilterEl = document.getElementById('release-filter');
+  #|    if (releaseFilterEl) {
+  #|      releaseFilterEl.addEventListener('change', event => updateReleaseFilter(event.target.value));
+  #|    }
   #|
   #|    const resetButton = document.getElementById('reset-layout');
   #|    const resetShortcut = SHORTCUTS.resetLayout;
@@ -2639,6 +2755,7 @@ let page_tail : String =
   #|    seedLayout();
   #|    applyFilter();
   #|    renderProductFilter();
+  #|    renderReleaseFilter();
   #|    renderLegend();
   #|    renderStats();
   #|    renderMilestoneList();

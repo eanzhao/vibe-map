@@ -11,7 +11,7 @@ pub(all) struct DiscoveredTask {
   tests : Array[String]
   /// Doc paths describing this node.
   docs : Array[String]
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// One "package" (build/source unit) discovered by an adapter. Maps 1:1 to a
@@ -25,6 +25,6 @@ pub(all) struct DiscoveredPackage {
   docs : Array[String]
   /// Source-level nodes under this package.
   tasks : Array[DiscoveredTask]
-} derive(Show)
+} derive(Debug)
 
 // (Backfill behaviour is template-driven — see `template.mbt`.)

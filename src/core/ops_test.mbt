@@ -4,9 +4,9 @@ test "add goal and task, progress tracks done count" {
   dag.add_goal(id="m1", title="用户能登录")
   dag.add_task(id="i1", goal="m1", title="写 auth middleware")
   dag.add_task(id="i2", goal="m1", title="加 session cookie")
-  assert_eq(dag.progress("m1"), (0, 2))
+  @debug.assert_eq(dag.progress("m1"), (0, 2))
   dag.update_status("i1", @core.Done)
-  assert_eq(dag.progress("m1"), (1, 2))
+  @debug.assert_eq(dag.progress("m1"), (1, 2))
 }
 
 ///|
@@ -15,7 +15,7 @@ test "duplicate id is rejected" {
   dag.add_goal(id="m1", title="A")
   let err : Result[Unit, @core.DagError] = try? dag.add_goal(id="m1", title="B")
   guard err is Err(DuplicateId("m1")) else {
-    fail("expected DuplicateId, got: \{err}")
+    fail("expected DuplicateId, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -28,7 +28,7 @@ test "task under unknown goal is rejected" {
     title="x",
   )
   guard err is Err(UnknownGoal("nope")) else {
-    fail("expected UnknownGoal, got: \{err}")
+    fail("expected UnknownGoal, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -44,7 +44,7 @@ test "cycle in task deps is detected" {
   dag.tasks[idx] = { ..i1, deps: ["i2"] }
   let err : Result[Unit, @core.DagError] = try? dag.assert_acyclic()
   guard err is Err(CycleDetected(_)) else {
-    fail("expected CycleDetected, got: \{err}")
+    fail("expected CycleDetected, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -107,7 +107,7 @@ test "add_release appends to releases, duplicates rejected" {
     label_zh="y",
   )
   guard err is Err(DuplicateRelease("0.4.0")) else {
-    fail("expected DuplicateRelease, got: \{err}")
+    fail("expected DuplicateRelease, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -121,7 +121,7 @@ test "add_release rejects unknown status" {
     status="shipped",
   )
   guard err is Err(InvalidMetadata(_)) else {
-    fail("expected InvalidMetadata, got: \{err}")
+    fail("expected InvalidMetadata, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -133,7 +133,7 @@ test "assign_release fails if release does not exist" {
     "g1", "ghost",
   )
   guard err is Err(UnknownRelease("ghost")) else {
-    fail("expected UnknownRelease, got: \{err}")
+    fail("expected UnknownRelease, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -145,7 +145,7 @@ test "assign_release fails if goal does not exist" {
     "ghost", "0.4.0",
   )
   guard err is Err(UnknownGoal("ghost")) else {
-    fail("expected UnknownGoal, got: \{err}")
+    fail("expected UnknownGoal, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -156,7 +156,7 @@ test "assign_release sets goal.milestone" {
   dag.add_goal(id="g1", title="A")
   dag.assign_release("g1", "0.4.0")
   let (_, g) = dag.find_goal("g1").unwrap()
-  assert_eq(g.milestone, Some("0.4.0"))
+  @debug.assert_eq(g.milestone, Some("0.4.0"))
   let members = dag.release_member_ids("0.4.0")
   assert_eq(members.length(), 1)
   assert_eq(members[0], "g1")
@@ -172,7 +172,7 @@ test "goal milestone is validated once releases are configured" {
     milestone="ghost",
   )
   guard err is Err(UnknownRelease("ghost")) else {
-    fail("expected UnknownRelease, got: \{err}")
+    fail("expected UnknownRelease, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -194,7 +194,7 @@ test "validate rejects duplicate release keys from hand-edited JSON" {
   }
   let err : Result[Unit, @core.DagError] = try? dag.validate()
   guard err is Err(DuplicateRelease("0.4.0")) else {
-    fail("expected DuplicateRelease, got: \{err}")
+    fail("expected DuplicateRelease, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -206,7 +206,7 @@ test "remove_release refuses if goals still point at it" {
   dag.assign_release("g1", "0.4.0")
   let err : Result[Unit, @core.DagError] = try? dag.remove_release("0.4.0")
   guard err is Err(ReleaseHasMembers("0.4.0", members)) else {
-    fail("expected ReleaseHasMembers, got: \{err}")
+    fail("expected ReleaseHasMembers, got: \{@debug.to_repr(err)}")
   }
   assert_eq(members.length(), 1)
 }
@@ -220,7 +220,7 @@ test "remove_release with force clears member milestones" {
   dag.remove_release("0.4.0", force=true)
   assert_eq(dag.has_release("0.4.0"), false)
   let (_, g) = dag.find_goal("g1").unwrap()
-  assert_eq(g.milestone, None)
+  @debug.assert_eq(g.milestone, None)
 }
 
 ///|
@@ -232,7 +232,7 @@ test "update_release cannot regress closed -> open" {
     status="open",
   )
   guard err is Err(ReleaseStatusRegression("0.4.0", "closed", "open")) else {
-    fail("expected ReleaseStatusRegression, got: \{err}")
+    fail("expected ReleaseStatusRegression, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -265,7 +265,7 @@ test "release_progress raises UnknownRelease for missing key" {
     "nope",
   )
   guard err is Err(UnknownRelease("nope")) else {
-    fail("expected UnknownRelease, got: \{err}")
+    fail("expected UnknownRelease, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -277,13 +277,13 @@ test "set_deps refuses self-dep and catches cycles" {
   // self-dep
   let err1 : Result[Unit, @core.DagError] = try? dag.set_deps("a", ["a"])
   guard err1 is Err(InvalidMetadata(_)) else {
-    fail("expected InvalidMetadata for self-dep, got: \{err1}")
+    fail("expected InvalidMetadata for self-dep, got: \{@debug.to_repr(err1)}")
   }
   // cycle via two set_deps calls: a→b, b→a
   dag.set_deps("a", ["b"])
   let err2 : Result[Unit, @core.DagError] = try? dag.set_deps("b", ["a"])
   guard err2 is Err(CycleDetected(_)) else {
-    fail("expected CycleDetected, got: \{err2}")
+    fail("expected CycleDetected, got: \{@debug.to_repr(err2)}")
   }
 }
 
@@ -295,12 +295,12 @@ test "set_deps validates layer (goal→goal, task→task)" {
   // goal can't depend on task
   let err1 : Result[Unit, @core.DagError] = try? dag.set_deps("g1", ["t1"])
   guard err1 is Err(UnknownId(_)) else {
-    fail("expected UnknownId (task as goal dep), got: \{err1}")
+    fail("expected UnknownId (task as goal dep), got: \{@debug.to_repr(err1)}")
   }
   // task can't depend on goal
   let err2 : Result[Unit, @core.DagError] = try? dag.set_deps("t1", ["g1"])
   guard err2 is Err(UnknownId(_)) else {
-    fail("expected UnknownId (goal as task dep), got: \{err2}")
+    fail("expected UnknownId (goal as task dep), got: \{@debug.to_repr(err2)}")
   }
 }
 
@@ -316,7 +316,7 @@ test "add_dep is idempotent and respects cycles" {
   // adding reverse edge cycles
   let err : Result[Unit, @core.DagError] = try? dag.add_dep("b", "a")
   guard err is Err(CycleDetected(_)) else {
-    fail("expected CycleDetected, got: \{err}")
+    fail("expected CycleDetected, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -345,7 +345,7 @@ test "rename rejects duplicate new id" {
   dag.add_goal(id="b", title="B")
   let err : Result[Unit, @core.DagError] = try? dag.rename("a", "b")
   guard err is Err(DuplicateId("b")) else {
-    fail("expected DuplicateId, got: \{err}")
+    fail("expected DuplicateId, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -371,7 +371,7 @@ test "set_task_goal validates destination goal" {
   dag.add_task(id="t1", goal="g1", title="x")
   let err : Result[Unit, @core.DagError] = try? dag.set_task_goal("t1", "ghost")
   guard err is Err(UnknownGoal("ghost")) else {
-    fail("expected UnknownGoal, got: \{err}")
+    fail("expected UnknownGoal, got: \{@debug.to_repr(err)}")
   }
 }
 
@@ -382,10 +382,10 @@ test "set_description rejects task ids; set_task_notes rejects goal ids" {
   dag.add_task(id="t1", goal="g1", title="x")
   let e1 : Result[Unit, @core.DagError] = try? dag.set_description("t1", "...")
   guard e1 is Err(UnknownId(_)) else {
-    fail("set_description on task should fail, got: \{e1}")
+    fail("set_description on task should fail, got: \{@debug.to_repr(e1)}")
   }
   let e2 : Result[Unit, @core.DagError] = try? dag.set_task_notes("g1", "...")
   guard e2 is Err(UnknownId(_)) else {
-    fail("set_task_notes on goal should fail, got: \{e2}")
+    fail("set_task_notes on goal should fail, got: \{@debug.to_repr(e2)}")
   }
 }

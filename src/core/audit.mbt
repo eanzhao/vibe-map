@@ -6,7 +6,7 @@ pub(all) struct Violation {
   node_id : String
   node_kind : String
   message : String
-} derive(Eq, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 fn is_empty_option(value : String?) -> Bool {
@@ -60,7 +60,7 @@ fn add_missing_region_metadata(
 pub(all) struct AuditReport {
   ok : Bool
   violations : Array[Violation]
-} derive(Eq, Show, ToJson)
+} derive(Eq, Debug, ToJson)
 
 ///|
 /// Two rules:
@@ -130,6 +130,94 @@ pub fn Dag::audit(self : Dag) -> AuditReport {
         message: "goal has no `docs` entries",
       })
     }
+
+    // Release checks: release_unknown
+    if self.has_any_release() {
+      match m.milestone {
+        Some(key) =>
+          if !self.has_release(key) {
+            violations.push({
+              kind: "release_unknown",
+              node_id: m.id,
+              node_kind: "goal",
+              message: "goal '\{m.id}' references unknown release '\{key}'",
+            })
+          }
+        None => ()
+      }
+    }
+
+    // Release checks: release_blocked (chronology violations)
+    match m.milestone {
+      Some(key_a) =>
+        if self.has_release(key_a) {
+          let (idx_a, _) = self.find_release(key_a).unwrap()
+          for dep_id in m.deps {
+            match self.find_goal(dep_id) {
+              Some((_, dep_goal)) =>
+                match dep_goal.milestone {
+                  None =>
+                    violations.push({
+                      kind: "release_blocked",
+                      node_id: m.id,
+                      node_kind: "goal",
+                      message: "goal '\{m.id}' (release '\{key_a}') depends on goal '\{dep_id}' which has no assigned release",
+                    })
+                  Some(key_b) =>
+                    match self.find_release(key_b) {
+                      Some((idx_b, _)) =>
+                        if idx_b > idx_a {
+                          violations.push({
+                            kind: "release_blocked",
+                            node_id: m.id,
+                            node_kind: "goal",
+                            message: "goal '\{m.id}' (release '\{key_a}') depends on goal '\{dep_id}' from future release '\{key_b}'",
+                          })
+                        }
+                      None => () // handled by release_unknown
+                    }
+                }
+              None => ()
+            }
+          }
+        }
+      None => ()
+    }
+  }
+  // Closed release checks: release_blocked (shaped ship gates)
+  match self.releases {
+    Some(arr) =>
+      for r in arr {
+        if r.status == "closed" {
+          let members = self.release_members(r.key)
+          let cfg = self.effective_config()
+          let public_idx = match closure_index(cfg, "public") {
+            Some(i) => i
+            None => -1
+          }
+          if public_idx >= 0 {
+            for m in members {
+              let c = match m.closure {
+                Some(x) => x
+                None => "seed"
+              }
+              let goal_idx = match closure_index(cfg, c) {
+                Some(i) => i
+                None => -1
+              }
+              if goal_idx < public_idx {
+                violations.push({
+                  kind: "release_blocked",
+                  node_id: m.id,
+                  node_kind: "goal",
+                  message: "goal '\{m.id}' (release '\{r.key}') has closure stage '\{c}' below 'public', but the release is closed",
+                })
+              }
+            }
+          }
+        }
+      }
+    None => ()
   }
   for i in self.tasks {
     if i.regression_testable && i.tests.length() == 0 {
@@ -140,7 +228,7 @@ pub fn Dag::audit(self : Dag) -> AuditReport {
         message: "task is regression-testable but has no `tests` entries",
       })
     }
-    if not(i.status is Todo) && i.docs.length() == 0 {
+    if !(i.status is Todo) && i.docs.length() == 0 {
       violations.push({
         kind: "missing_docs",
         node_id: i.id,

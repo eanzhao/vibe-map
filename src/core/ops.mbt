@@ -126,7 +126,7 @@ fn check_config(cfg : VmapConfig) -> Unit raise DagError {
   let seen_closures : Map[String, Bool] = {}
   for tier in cfg.closure_tiers {
     check_unique_key(seen_closures, tier.key, "config.closure_tiers")
-    if not(hex_color_like(tier.color)) {
+    if !hex_color_like(tier.color) {
       raise InvalidMetadata(
         "config.closure_tiers.\{tier.key}.color must be #RRGGBB",
       )
@@ -160,7 +160,7 @@ fn check_goal_region(
 ) -> Unit raise DagError {
   match closure {
     Some(key) =>
-      if not(config_has_closure(cfg, key)) {
+      if !config_has_closure(cfg, key) {
         raise InvalidMetadata(
           "goal \{id}.closure='\{key}' is not in config.closure_tiers",
         )
@@ -169,7 +169,7 @@ fn check_goal_region(
   }
   match formal {
     Some(key) =>
-      if not(config_has_formal(cfg, key)) {
+      if !config_has_formal(cfg, key) {
         raise InvalidMetadata(
           "goal \{id}.formal='\{key}' is not in config.formal_levels",
         )
@@ -178,7 +178,7 @@ fn check_goal_region(
   }
   match product {
     Some(key) =>
-      if not(config_has_product(cfg, key)) {
+      if !config_has_product(cfg, key) {
         raise InvalidMetadata(
           "goal \{id}.product='\{key}' is not in config.products",
         )
@@ -195,7 +195,7 @@ fn check_goal_region(
   match promoted_at {
     Some(timeline) =>
       for key, _ in timeline {
-        if not(config_has_closure(cfg, key)) {
+        if !config_has_closure(cfg, key) {
           raise InvalidMetadata(
             "goal \{id}.promoted_at contains unknown closure '\{key}'",
           )
@@ -254,7 +254,7 @@ pub fn Dag::add_goal(
     raise DuplicateId(id)
   }
   for d in deps {
-    if not(self.has_goal(d)) {
+    if !self.has_goal(d) {
       raise UnknownId("goal dep \{d}")
     }
   }
@@ -303,7 +303,7 @@ pub fn Dag::set_goal_closure(
 ) -> Unit raise DagError {
   let cfg = self.effective_config()
   check_config(cfg)
-  if not(config_has_closure(cfg, closure)) {
+  if !config_has_closure(cfg, closure) {
     raise InvalidMetadata("closure '\{closure}' is not in config.closure_tiers")
   }
   match self.find_goal(id) {
@@ -335,7 +335,7 @@ pub fn Dag::set_goal_formal(
 ) -> Unit raise DagError {
   let cfg = self.effective_config()
   check_config(cfg)
-  if not(config_has_formal(cfg, formal)) {
+  if !config_has_formal(cfg, formal) {
     raise InvalidMetadata("formal '\{formal}' is not in config.formal_levels")
   }
   match self.find_goal(id) {
@@ -352,7 +352,7 @@ pub fn Dag::set_goal_product(
 ) -> Unit raise DagError {
   let cfg = self.effective_config()
   check_config(cfg)
-  if not(config_has_product(cfg, product)) {
+  if !config_has_product(cfg, product) {
     raise InvalidMetadata("product '\{product}' is not in config.products")
   }
   match self.find_goal(id) {
@@ -475,11 +475,11 @@ pub fn Dag::add_task(
   if self.has_id(id) {
     raise DuplicateId(id)
   }
-  if not(self.has_goal(goal)) {
+  if !self.has_goal(goal) {
     raise UnknownGoal(goal)
   }
   for d in deps {
-    if not(self.has_task(d)) {
+    if !self.has_task(d) {
       raise UnknownId("task dep \{d}")
     }
   }
@@ -636,20 +636,20 @@ pub fn Dag::validate(self : Dag) -> Unit raise DagError {
     seen[i.id] = true
   }
   for i in self.tasks {
-    if not(self.has_goal(i.goal)) {
+    if !self.has_goal(i.goal) {
       raise UnknownGoal("task \{i.id} -> \{i.goal}")
     }
   }
   for m in self.goals {
     for d in m.deps {
-      if not(self.has_goal(d)) {
+      if !self.has_goal(d) {
         raise UnknownId("goal \{m.id} dep -> \{d}")
       }
     }
   }
   for i in self.tasks {
     for d in i.deps {
-      if not(self.has_task(d)) {
+      if !self.has_task(d) {
         raise UnknownId("task \{i.id} dep -> \{d}")
       }
     }
@@ -776,7 +776,7 @@ fn Dag::validate_release_reference(
   }
   match self.releases {
     Some(arr) =>
-      if arr.length() > 0 && not(self.has_release(release_key)) {
+      if arr.length() > 0 && !self.has_release(release_key) {
         raise UnknownRelease(release_key)
       }
     None => ()
@@ -983,7 +983,7 @@ pub fn Dag::remove_release(
       match self.find_release(key) {
         Some(_) => {
           let members = self.release_member_ids(key)
-          if members.length() > 0 && not(force) {
+          if members.length() > 0 && !force {
             raise ReleaseHasMembers(key, members)
           }
           if force {
@@ -1014,7 +1014,7 @@ pub fn Dag::assign_release(
   goal_id : String,
   release_key : String,
 ) -> Unit raise DagError {
-  if not(self.has_release(release_key)) {
+  if !self.has_release(release_key) {
     raise UnknownRelease(release_key)
   }
   match self.find_goal(goal_id) {
@@ -1059,7 +1059,12 @@ pub(all) struct ReleaseProgress {
   by_closure : Map[String, Int]
   blocked : Array[String]
   ready_to_close : Bool
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
+
+///|
+pub impl Show for ReleaseProgress with output(self, logger) {
+  logger.write_string(@debug.to_repr(self).to_string())
+}
 
 ///|
 /// Compute the snapshot. Raises `UnknownRelease` if the key is not registered.
@@ -1145,7 +1150,7 @@ pub fn Dag::set_deps(
   match self.find_goal(id) {
     Some((idx, g)) => {
       for d in deps {
-        if not(self.has_goal(d)) {
+        if !self.has_goal(d) {
           raise UnknownId("goal dep \{d}")
         }
       }
@@ -1158,7 +1163,7 @@ pub fn Dag::set_deps(
   match self.find_task(id) {
     Some((idx, t)) => {
       for d in deps {
-        if not(self.has_task(d)) {
+        if !self.has_task(d) {
           raise UnknownId("task dep \{d}")
         }
       }
@@ -1181,7 +1186,7 @@ pub fn Dag::add_dep(
   }
   match self.find_goal(id) {
     Some((idx, g)) => {
-      if not(self.has_goal(dep)) {
+      if !self.has_goal(dep) {
         raise UnknownId("goal dep \{dep}")
       }
       if array_has(g.deps, dep) {
@@ -1197,7 +1202,7 @@ pub fn Dag::add_dep(
   }
   match self.find_task(id) {
     Some((idx, t)) => {
-      if not(self.has_task(dep)) {
+      if !self.has_task(dep) {
         raise UnknownId("task dep \{dep}")
       }
       if array_has(t.deps, dep) {
@@ -1246,7 +1251,7 @@ pub fn Dag::set_task_goal(
   task_id : String,
   new_goal : String,
 ) -> Unit raise DagError {
-  if not(self.has_goal(new_goal)) {
+  if !self.has_goal(new_goal) {
     raise UnknownGoal(new_goal)
   }
   match self.find_task(task_id) {
@@ -1468,7 +1473,7 @@ pub fn Dag::unassign_release(
   release_key : String,
   only : Array[String],
 ) -> Unit raise DagError {
-  if not(self.has_release(release_key)) {
+  if !self.has_release(release_key) {
     raise UnknownRelease(release_key)
   }
   let only_set : Map[String, Bool] = {}
@@ -1479,7 +1484,7 @@ pub fn Dag::unassign_release(
   for idx, g in self.goals {
     match g.milestone {
       Some(m) =>
-        if m == release_key && (not(limit_to_subset) || only_set.contains(g.id)) {
+        if m == release_key && (!limit_to_subset || only_set.contains(g.id)) {
           self.goals[idx] = { ..g, milestone: None }
         }
       None => ()
@@ -1507,7 +1512,7 @@ pub fn Dag::upstream(self : Dag, id : String) -> Array[String] {
 
   fn visit(node : String) -> Unit {
     for d in deps_of(node) {
-      if not(visited.contains(d)) {
+      if !visited.contains(d) {
         visited[d] = true
         order.push(d)
         visit(d)
@@ -1550,7 +1555,7 @@ pub fn Dag::downstream(self : Dag, id : String) -> Array[String] {
     match reverse.get(node) {
       Some(arr) =>
         for x in arr {
-          if not(visited.contains(x)) {
+          if !visited.contains(x) {
             visited[x] = true
             order.push(x)
             visit(x)

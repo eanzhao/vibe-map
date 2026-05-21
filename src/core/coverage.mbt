@@ -15,7 +15,7 @@ pub(all) struct CoverageReport {
   scanned_md_files : Int
   /// Top-level source dirs inspected as the code universe.
   scanned_code_dirs : Int
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub(all) struct DocsCoverage {
@@ -30,7 +30,7 @@ pub(all) struct DocsCoverage {
   /// `unreferenced_total`.
   unreferenced_examples : Array[String]
   unreferenced_total : Int
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub(all) struct CodeCoverage {
@@ -44,7 +44,7 @@ pub(all) struct CodeCoverage {
   /// Dirs without any matching DAG node — these are the most common
   /// "codebase ↔ DAG mismatch" signal.
   unmatched : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub(all) struct IssuesCoverage {
@@ -64,7 +64,7 @@ pub(all) struct IssuesCoverage {
   /// `tools/audit_github.py` for strict checking.
   goals_with_gh_query : Int
   pct : Double
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 /// Minimal shape we accept from `gh issue list --json number,title,state,url`.
@@ -74,7 +74,7 @@ pub(all) struct IssueEntry {
   title : String
   state : String
   url : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 /// Run all three coverage checks. `scan_roots` is the paths to scan for
@@ -107,7 +107,7 @@ pub fn Dag::coverage(
     } else {
       detect_default_src()
     }
-    if effective_src == "" || not(@fs.path_exists(effective_src)) {
+    if effective_src == "" || !@fs.path_exists(effective_src) {
       None
     } else {
       Some(compute_code_coverage(self, effective_src))
@@ -204,7 +204,7 @@ fn compute_docs_coverage(
   let examples = if unreferenced.length() <= max_examples {
     unreferenced
   } else {
-    unreferenced[0:max_examples].to_array()
+    unreferenced[0:max_examples].to_owned()
   }
   {
     total,
@@ -257,13 +257,13 @@ fn compute_issues_coverage(
   max_examples : Int,
 ) -> IssuesCoverage raise DagError {
   let raw = @fs.read_file_to_string(issues_file) catch {
-    err => raise IoError("read \{issues_file}: \{err}")
+    err => raise IoError("read \{issues_file}: \{@debug.to_repr(err)}")
   }
   let parsed = @json.parse(raw) catch {
-    err => raise ParseError("parse \{issues_file}: \{err}")
+    err => raise ParseError("parse \{issues_file}: \{@debug.to_repr(err)}")
   }
   let entries : Array[IssueEntry] = @json.from_json(parsed) catch {
-    err => raise ParseError("decode \{issues_file}: \{err}")
+    err => raise ParseError("decode \{issues_file}: \{@debug.to_repr(err)}")
   }
   let text = collect_referenced_text(dag)
   let unreferenced : Array[String] = []
@@ -295,7 +295,7 @@ fn compute_issues_coverage(
   let examples = if unreferenced.length() <= max_examples {
     unreferenced
   } else {
-    unreferenced[0:max_examples].to_array()
+    unreferenced[0:max_examples].to_owned()
   }
   {
     total,
@@ -349,18 +349,18 @@ fn pick_weakest(
 /// Recursively collect `.md` files under `path`, skipping hidden / build /
 /// dependency dirs. Shared with the doctor + future commands.
 fn collect_md_files(path : String, out : Array[String]) -> Unit raise DagError {
-  if not(@fs.path_exists(path)) {
+  if !@fs.path_exists(path) {
     return
   }
   let is_dir = @fs.is_dir(path) catch {
-    err => raise IoError("stat \{path}: \{err}")
+    err => raise IoError("stat \{path}: \{@debug.to_repr(err)}")
   }
   if is_dir {
     if should_skip_walk_dir(basename_of_path(path)) {
       return
     }
     let entries = @fs.read_dir(path) catch {
-      err => raise IoError("read_dir \{path}: \{err}")
+      err => raise IoError("read_dir \{path}: \{@debug.to_repr(err)}")
     }
     entries.sort_by((a, b) => a.lexical_compare(b))
     for e in entries {
@@ -379,17 +379,17 @@ fn collect_md_files(path : String, out : Array[String]) -> Unit raise DagError {
 /// Skips dot-dirs and the usual build artifacts.
 fn scan_top_dirs(root : String) -> Array[String] raise DagError {
   let out : Array[String] = []
-  if not(@fs.path_exists(root)) {
+  if !@fs.path_exists(root) {
     return out
   }
   let is_dir = @fs.is_dir(root) catch {
-    err => raise IoError("stat \{root}: \{err}")
+    err => raise IoError("stat \{root}: \{@debug.to_repr(err)}")
   }
-  if not(is_dir) {
+  if !is_dir {
     return out
   }
   let entries = @fs.read_dir(root) catch {
-    err => raise IoError("read_dir \{root}: \{err}")
+    err => raise IoError("read_dir \{root}: \{@debug.to_repr(err)}")
   }
   entries.sort_by((a, b) => a.lexical_compare(b))
   for e in entries {
@@ -445,14 +445,14 @@ fn basename_of_path(path : String) -> String {
   if last_slash < 0 {
     path
   } else {
-    path[last_slash + 1:path.length()].to_string()
+    path[last_slash + 1:path.length()].to_owned()
   }
 }
 
 ///|
 fn normalize_dot_slash(path : String) -> String {
   if path.has_prefix("./") {
-    path[2:path.length()].to_string()
+    path[2:path.length()].to_owned()
   } else {
     path
   }
@@ -511,8 +511,8 @@ fn contains_with_digit_boundary(text : String, needle : String) -> Bool {
     return false
   }
   for i in 0..<=(text.length() - needle.length()) {
-    let suffix = text[i:text.length()].to_string()
-    if suffix.has_prefix(needle) && not(has_digit_after_prefix(suffix, needle)) {
+    let suffix = text[i:text.length()].to_owned()
+    if suffix.has_prefix(needle) && !has_digit_after_prefix(suffix, needle) {
       return true
     }
   }

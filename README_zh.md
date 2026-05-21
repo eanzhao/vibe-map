@@ -334,8 +334,8 @@ vmap upgrade                           打印升级命令（管道到 bash 执�
 | **0.5.1** | 2026-05-19 | Skills 更新：bootstrap 流程里 agent 用 `gh issue list` 把 GitHub issues 当 PRD 信号读 |
 | **0.5.2** | 2026-05-20 | 新增 `vmap coverage`（docs / src / issues 覆盖率）+ `vmap doctor`（density / lane / orphan / mismatch 健康度告警）；以 MIT 许可发布到 [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) |
 | **0.5.3** | 2026-05-20 | `vibe-map.html` 前端优化：双击侧栏 goal 行弹出详情 modal、页面上的 GitHub URL 均可点击（新标签打开）、双击展开的任务卡片弹出任务详情 modal |
+| **0.6.0** | 2026-05-21 | 发布建模阶段 2、审计阶段 2、可视化阶段 3 与 AI 回归上下文支持：`vmap release status` / `close` 命令行子命令（支持平台特定的 FFI 日期获取）、`vmap audit --release` 过滤支持、核心发布审计规则（`release_unknown` 与 `release_blocked`）、HTML 可视化侧边栏 Release 分组与过滤下拉框，以及 `vmap regression prompt` 子命令（用于汇总生成供 AI 自动修复的 markdown 诊断提示词上下文） |
 
-> 0.4.0 的 audit Stage 2 / viz Stage 3 / release-modeling Stage 2 还在 in-flight，未独立打 tag；剩余 scope 计划进 0.6 / 0.7。
 
 ## 贡献
 
@@ -350,7 +350,7 @@ vmap upgrade                           打印升级命令（管道到 bash 执�
 ```bash
 moon install                # 拉 moonbitlang/x 依赖
 moon build --target native  # 出 _build/native/debug/build/cmd/vmap/vmap.exe
-moon test                   # 59 tests
+moon test                   # 63 tests
 moon fmt && moon check
 ```
 

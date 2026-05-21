@@ -7,7 +7,7 @@ pub(all) struct BackfillReport {
   added_tasks : Array[String]
   skipped_goals : Array[String]
   skipped_tasks : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 /// Run a backfill template against `src_root` and merge the result into this
@@ -107,7 +107,7 @@ fn task_id_for(rel_path : String, stem : String) -> String {
 /// `path/to/dir/` -> `path/to/dir`. Leaves bare names alone.
 fn strip_trailing_slash(path : String) -> String {
   if path.length() > 1 && path.has_suffix("/") {
-    path[0:path.length() - 1].to_string()
+    path[0:path.length() - 1].to_owned()
   } else {
     path
   }
@@ -120,7 +120,7 @@ fn relative_path(root : String, abs : String) -> String {
     return "."
   }
   if abs.has_prefix(root + "/") {
-    abs[root.length() + 1:abs.length()].to_string()
+    abs[root.length() + 1:abs.length()].to_owned()
   } else {
     abs
   }

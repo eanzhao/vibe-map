@@ -122,7 +122,7 @@ test "doctor: matching id substring suppresses codebase mismatch" {
 ///|
 fn cleanup_dir2(path : String) -> Unit raise {
   let is_dir = @fs.is_dir(path) catch { _ => false }
-  if not(is_dir) {
+  if !is_dir {
     if @fs.path_exists(path) {
       @fs.remove_file(path)
     }

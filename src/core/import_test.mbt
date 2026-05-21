@@ -40,7 +40,7 @@ test "import: duplicate id is rejected" {
   @fs.write_string_to_file(src, body)
   let r : Result[@core.Dag, @core.DagError] = try? @core.import_dag(src)
   guard r is Err(DuplicateId("x")) else {
-    fail("expected DuplicateId, got: \{r}")
+    fail("expected DuplicateId, got: \{@debug.to_repr(r)}")
   }
 }
 
@@ -60,7 +60,7 @@ test "import: unknown goal on task is rejected" {
   @fs.write_string_to_file(src, body)
   let r : Result[@core.Dag, @core.DagError] = try? @core.import_dag(src)
   guard r is Err(UnknownGoal(_)) else {
-    fail("expected UnknownGoal, got: \{r}")
+    fail("expected UnknownGoal, got: \{@debug.to_repr(r)}")
   }
 }
 
@@ -81,6 +81,6 @@ test "import: cycle in deps is rejected" {
   @fs.write_string_to_file(src, body)
   let r : Result[@core.Dag, @core.DagError] = try? @core.import_dag(src)
   guard r is Err(CycleDetected(_)) else {
-    fail("expected CycleDetected, got: \{r}")
+    fail("expected CycleDetected, got: \{@debug.to_repr(r)}")
   }
 }

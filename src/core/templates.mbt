@@ -110,10 +110,10 @@ let dotnet_template_json : String =
 ///|
 fn parse_template(raw : String) -> Template raise DagError {
   let j = @json.parse(raw) catch {
-    err => raise ParseError("template JSON: \{err}")
+    err => raise ParseError("template JSON: \{@debug.to_repr(err)}")
   }
   @json.from_json(j) catch {
-    err => raise ParseError("template decode: \{err}")
+    err => raise ParseError("template decode: \{@debug.to_repr(err)}")
   }
 }
 
@@ -152,7 +152,7 @@ pub fn auto_detect_template(root : String) -> Template? raise DagError {
 /// Load a template from disk (JSON file).
 pub fn load_template_file(path : String) -> Template raise DagError {
   let raw = @fs.read_file_to_string(path) catch {
-    err => raise IoError("read template \{path}: \{err}")
+    err => raise IoError("read template \{path}: \{@debug.to_repr(err)}")
   }
   parse_template(raw)
 }

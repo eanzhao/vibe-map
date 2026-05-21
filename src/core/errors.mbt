@@ -11,4 +11,9 @@ pub(all) suberror DagError {
   InvalidMetadata(String)
   IoError(String)
   ParseError(String)
-} derive(Show)
+} derive(Debug)
+
+///|
+pub impl Show for DagError with output(self, logger) {
+  logger.write_string(@debug.to_repr(self).to_string())
+}

@@ -9,7 +9,7 @@ pub(all) struct DoctorReport {
   /// Counts the doctor used to make its decisions, so users can see the
   /// inputs without re-running the scan.
   stats : DoctorStats
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub(all) struct DoctorWarning {
@@ -24,7 +24,7 @@ pub(all) struct DoctorWarning {
   /// Extra structured fields keyed by name. Always strings so the JSON
   /// stays simple — numeric values get stringified.
   details : Map[String, String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub(all) struct DoctorStats {
@@ -40,7 +40,7 @@ pub(all) struct DoctorStats {
   /// goals / max(1, markdown_files / 5 + code_dirs). Hand-tuned so a DAG
   /// with 30 goals against 200 docs and 12 code dirs lands near 0.6.
   density_ratio : Double
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 /// Run all doctor checks. Empty `scan_root` falls back to `.`, empty

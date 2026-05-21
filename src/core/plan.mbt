@@ -5,7 +5,7 @@ pub(all) struct PlanReport {
   added_tasks : Array[String]
   skipped_goals : Array[String]
   skipped_tasks : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 /// Scan markdown files for planning items and synthesize nodes. `format`
@@ -38,7 +38,7 @@ pub fn Dag::plan_from_docs(
   }
   for md_path in md_files {
     let raw = @fs.read_file_to_string(md_path) catch {
-      err => raise IoError("read \{md_path}: \{err}")
+      err => raise IoError("read \{md_path}: \{@debug.to_repr(err)}")
     }
     match format {
       "checklist" => self.ingest_checklist(md_path, raw, report)
@@ -146,10 +146,10 @@ fn parse_tlist_items(raw : String) -> Array[TlistItem] {
   let mut current_title = ""
   let mut waiting_for_status = false
   for line_view in raw.split("\n") {
-    let line = line_view.to_string()
-    let trimmed = line.trim().to_string()
+    let line = line_view.to_owned()
+    let trimmed = line.trim().to_owned()
     if trimmed.has_prefix("```") || trimmed.has_prefix("~~~") {
-      in_code = not(in_code)
+      in_code = !in_code
       continue
     }
     if in_code {
@@ -158,7 +158,7 @@ fn parse_tlist_items(raw : String) -> Array[TlistItem] {
     match parse_t_header(trimmed) {
       Some(parsed) => {
         // Flush a pending T-section that never got a Status line.
-        if waiting_for_status && not(current_title.has_prefix("~~")) {
+        if waiting_for_status && !current_title.has_prefix("~~") {
           out.push({
             number: current_number,
             title: current_title,
@@ -175,7 +175,7 @@ fn parse_tlist_items(raw : String) -> Array[TlistItem] {
     if waiting_for_status {
       match parse_status_line(trimmed) {
         Some(status) => {
-          if not(current_title.has_prefix("~~")) {
+          if !current_title.has_prefix("~~") {
             out.push({ number: current_number, title: current_title, status })
           }
           waiting_for_status = false
@@ -184,7 +184,7 @@ fn parse_tlist_items(raw : String) -> Array[TlistItem] {
       }
     }
   }
-  if waiting_for_status && not(current_title.has_prefix("~~")) {
+  if waiting_for_status && !current_title.has_prefix("~~") {
     out.push({ number: current_number, title: current_title, status: Todo })
   }
   out
@@ -194,10 +194,10 @@ fn parse_tlist_items(raw : String) -> Array[TlistItem] {
 /// Match `## T<N> — <title>` (em-dash) or `## T<N> - <title>` (hyphen).
 /// Returns `Some((number, title))` if matched.
 fn parse_t_header(line : String) -> (String, String)? {
-  if not(line.has_prefix("## T")) {
+  if !line.has_prefix("## T") {
     return None
   }
-  let rest = line[4:line.length()].to_string()
+  let rest = line[4:line.length()].to_owned()
   let sb = StringBuilder::new()
   let mut consumed = 0
   for ch in rest {
@@ -212,11 +212,11 @@ fn parse_t_header(line : String) -> (String, String)? {
   if number == "" {
     return None
   }
-  let after = rest[consumed:rest.length()].to_string().trim().to_string()
+  let after = rest[consumed:rest.length()].to_owned().trim().to_owned()
   let title = if after.has_prefix("—") {
-    after[1:after.length()].to_string().trim().to_string()
+    after[1:after.length()].to_owned().trim().to_owned()
   } else if after.has_prefix("-") {
-    after[1:after.length()].to_string().trim().to_string()
+    after[1:after.length()].to_owned().trim().to_owned()
   } else {
     return None
   }
@@ -228,11 +228,11 @@ fn parse_t_header(line : String) -> (String, String)? {
 fn parse_status_line(line : String) -> Status? {
   let prefix = "**Status:**"
   let rest = if line.has_prefix(prefix) {
-    line[prefix.length():line.length()].to_string().trim().to_string()
+    line[prefix.length():line.length()].to_owned().trim().to_owned()
   } else {
     let prefix2 = "**Status**:"
     if line.has_prefix(prefix2) {
-      line[prefix2.length():line.length()].to_string().trim().to_string()
+      line[prefix2.length():line.length()].to_owned().trim().to_owned()
     } else {
       return None
     }
@@ -263,15 +263,15 @@ fn map_status_text(text : String) -> Status {
 ///|
 /// Walk a path and append every `.md` (or `.mbt.md`) file path to `out`.
 fn collect_markdown(path : String, out : Array[String]) -> Unit raise DagError {
-  if not(@fs.path_exists(path)) {
+  if !@fs.path_exists(path) {
     raise IoError("path not found: \{path}")
   }
   let is_dir = @fs.is_dir(path) catch {
-    err => raise IoError("stat \{path}: \{err}")
+    err => raise IoError("stat \{path}: \{@debug.to_repr(err)}")
   }
   if is_dir {
     let entries = @fs.read_dir(path) catch {
-      err => raise IoError("read_dir \{path}: \{err}")
+      err => raise IoError("read_dir \{path}: \{@debug.to_repr(err)}")
     }
     entries.sort_by((a, b) => a.lexical_compare(b))
     for entry in entries {
@@ -292,10 +292,10 @@ fn parse_checklist_items(raw : String) -> Array[String] {
   let items = []
   let mut in_code = false
   for line_view in raw.split("\n") {
-    let line = line_view.to_string()
-    let trimmed = line.trim().to_string()
+    let line = line_view.to_owned()
+    let trimmed = line.trim().to_owned()
     if trimmed.has_prefix("```") || trimmed.has_prefix("~~~") {
-      in_code = not(in_code)
+      in_code = !in_code
       continue
     }
     if in_code {
@@ -315,7 +315,7 @@ fn parse_checklist_items(raw : String) -> Array[String] {
 fn checklist_text(line : String) -> String {
   for marker in ["- [ ] ", "* [ ] ", "- [ ]", "* [ ]"] {
     if line.has_prefix(marker) {
-      return line[marker.length():line.length()].to_string().trim().to_string()
+      return line[marker.length():line.length()].to_owned().trim().to_owned()
     }
   }
   ""
@@ -326,13 +326,13 @@ fn checklist_text(line : String) -> String {
 /// as a single extension.
 fn doc_stem(path : String) -> String {
   let basename = match last_index_of(path, '/') {
-    Some(idx) => path[idx + 1:path.length()].to_string()
+    Some(idx) => path[idx + 1:path.length()].to_owned()
     None => path
   }
   if basename.has_suffix(".mbt.md") {
-    basename[0:basename.length() - 7].to_string()
+    basename[0:basename.length() - 7].to_owned()
   } else if basename.has_suffix(".md") {
-    basename[0:basename.length() - 3].to_string()
+    basename[0:basename.length() - 3].to_owned()
   } else {
     basename
   }
@@ -371,7 +371,7 @@ fn slug_short(text : String) -> String {
       sb.write_char(c)
       last_dash = false
       written = written + 1
-    } else if not(last_dash) {
+    } else if !last_dash {
       sb.write_char('-')
       last_dash = true
       written = written + 1
@@ -380,7 +380,7 @@ fn slug_short(text : String) -> String {
   let raw = sb.to_string()
   // Trim trailing dash.
   let trimmed = if raw.has_suffix("-") {
-    raw[0:raw.length() - 1].to_string()
+    raw[0:raw.length() - 1].to_owned()
   } else {
     raw
   }

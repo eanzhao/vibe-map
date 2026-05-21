@@ -343,6 +343,11 @@ fn build_cli() -> @argparse.Command {
           ),
         ],
         options=[
+          @argparse.OptionArg::new(
+            "release",
+            long="release",
+            about="Filter violations to goals/tasks associated with this release.",
+          ),
           @argparse.OptionArg::new("file", long="file", default_values=[
             @core.default_path,
           ]),
@@ -549,6 +554,39 @@ fn build_cli() -> @argparse.Command {
                 "goals",
                 long="goals",
                 about="Comma-separated goal ids to unassign (default: all members).",
+              ),
+              @argparse.OptionArg::new("file", long="file", default_values=[
+                @core.default_path,
+              ]),
+            ],
+          ),
+          @argparse.Command::new(
+            "status",
+            about="Show a progress snapshot of a release.",
+            positionals=[@argparse.PositionArg::new("key")],
+            flags=[
+              @argparse.FlagArg::new(
+                "json",
+                long="json",
+                about="Emit a JSON snapshot.",
+              ),
+            ],
+            options=[
+              @argparse.OptionArg::new("file", long="file", default_values=[
+                @core.default_path,
+              ]),
+            ],
+          ),
+          @argparse.Command::new(
+            "close",
+            about="Close a release lane if all member goals are committed or shipped.",
+            positionals=[@argparse.PositionArg::new("key")],
+            flags=[no_render_flag()],
+            options=[
+              @argparse.OptionArg::new(
+                "date",
+                long="date",
+                about="Date override (YYYY-MM-DD). If omitted, retrieves system date.",
               ),
               @argparse.OptionArg::new("file", long="file", default_values=[
                 @core.default_path,
@@ -798,6 +836,36 @@ fn build_cli() -> @argparse.Command {
           ]),
         ],
       ),
+      @argparse.Command::new(
+        "regression",
+        about="AI-assisted regression fixing utilities.",
+        subcommand_required=true,
+        subcommands=[
+          @argparse.Command::new(
+            "prompt",
+            about="Generate a diagnostic prompt for an AI agent to fix a goal's regression.",
+            options=[
+              @argparse.OptionArg::new(
+                "id",
+                long="id",
+                required=true,
+                about="Goal ID to generate prompt for",
+              ),
+              @argparse.OptionArg::new(
+                "error-file",
+                long="error-file",
+                about="Path to file containing test failure output",
+              ),
+              @argparse.OptionArg::new(
+                "file",
+                long="file",
+                default_values=[@core.default_path],
+                about="Path to the vibe-map.json file",
+              ),
+            ],
+          ),
+        ],
+      ),
     ],
   )
 }
@@ -832,6 +900,8 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
         "rm" => cmd_release_rm(sub_sub)
         "update" => cmd_release_update(sub_sub)
         "unassign" => cmd_release_unassign(sub_sub)
+        "status" => cmd_release_status(sub_sub)
+        "close" => cmd_release_close(sub_sub)
         _ => fail("unknown release subcommand: \{sub_name}")
       }
     }
@@ -850,6 +920,13 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
     "upgrade" => cmd_upgrade(sub)
     "coverage" => cmd_coverage(sub)
     "doctor" => cmd_doctor(sub)
+    "regression" => {
+      let (sub_name, sub_sub) = sub.subcommand.unwrap()
+      match sub_name {
+        "prompt" => cmd_regression_prompt(sub_sub)
+        _ => fail("unknown regression subcommand: \{sub_name}")
+      }
+    }
     _ => fail("unknown subcommand: \{name}")
   }
 }
@@ -877,7 +954,7 @@ fn parse_csv(raw : String) -> Array[String] {
   }
   let out = []
   for part in raw.split(",") {
-    let trimmed = part.trim().to_string()
+    let trimmed = part.trim().to_owned()
     if trimmed != "" {
       out.push(trimmed)
     }
@@ -887,7 +964,7 @@ fn parse_csv(raw : String) -> Array[String] {
 
 ///|
 fn parse_int_arg(raw : String, name : String) -> Int raise {
-  @strconv.parse_int(raw) catch {
+  @string.parse_int(raw) catch {
     _ => fail("invalid \{name}: \{raw} (want integer)")
   }
 }
@@ -912,7 +989,7 @@ fn parse_kv_csv(raw : String, name : String) -> Map[String, String] raise {
     return out
   }
   for part in raw.split(",") {
-    let trimmed = part.trim().to_string()
+    let trimmed = part.trim().to_owned()
     if trimmed == "" {
       continue
     }
@@ -920,8 +997,8 @@ fn parse_kv_csv(raw : String, name : String) -> Map[String, String] raise {
     if pieces.length() != 2 {
       fail("invalid \{name} item: \{trimmed} (want key=value)")
     }
-    let key = pieces[0].trim().to_string()
-    let value = pieces[1].trim().to_string()
+    let key = pieces[0].trim().to_owned()
+    let value = pieces[1].trim().to_owned()
     if key == "" || value == "" {
       fail("invalid \{name} item: \{trimmed} (key and value are required)")
     }
@@ -1186,7 +1263,7 @@ fn cmd_update(m : @argparse.Matches) -> Unit raise {
     }
     touched = true
   }
-  if not(touched) {
+  if !touched {
     fail("update needs at least one changed field (see `vmap update --help`)")
   }
   @core.save(dag, path)
@@ -1219,7 +1296,7 @@ fn cmd_status(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let dag = @core.load(path, default_name="untitled")
   let release_filter = opt(m, "release")
-  if release_filter != "" && not(dag.has_release(release_filter)) {
+  if release_filter != "" && !dag.has_release(release_filter) {
     fail("unknown release: \{release_filter}")
   }
   if m.flags.get("json").unwrap_or(false) {
@@ -1304,7 +1381,39 @@ fn status_json(dag : @core.Dag, release? : String = "") -> Json {
 fn cmd_audit(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let dag = @core.load(path, default_name="untitled")
-  let report = dag.audit()
+  let raw_report = dag.audit()
+  let release_filter = match m.values.get("release") {
+    Some([r, ..]) => r
+    _ => ""
+  }
+  let report = if release_filter != "" {
+    let filtered = raw_report.violations.filter(fn(v) {
+      if v.node_kind == "goal" {
+        match dag.find_goal(v.node_id) {
+          Some((_, goal)) => goal.milestone == Some(release_filter)
+          None => false
+        }
+      } else if v.node_kind == "task" {
+        match dag.find_task(v.node_id) {
+          Some((_, task)) =>
+            match dag.find_goal(task.goal) {
+              Some((_, goal)) => goal.milestone == Some(release_filter)
+              None => false
+            }
+          None => false
+        }
+      } else {
+        false
+      }
+    })
+    let r : @core.AuditReport = {
+      ok: filtered.length() == 0,
+      violations: filtered,
+    }
+    r
+  } else {
+    raw_report
+  }
   if m.flags.get("json").unwrap_or(false) {
     println(report.to_json().stringify(indent=2))
   } else if report.ok {
@@ -1315,7 +1424,7 @@ fn cmd_audit(m : @argparse.Matches) -> Unit raise {
       println("  ! [\{v.node_kind} \{v.node_id}] \{v.kind}: \{v.message}")
     }
   }
-  if not(report.ok) {
+  if !report.ok {
     @sys.exit(3)
   }
 }
@@ -1555,7 +1664,7 @@ fn cmd_release_update(m : @argparse.Matches) -> Unit raise {
   } else {
     ""
   }
-  if not(touched) {
+  if !touched {
     fail(
       "release update needs at least one field (--label-en/--label-zh/--target/--status/--notes)",
     )
@@ -1646,21 +1755,21 @@ fn cmd_show(m : @argparse.Matches) -> Unit raise {
         "  focus=\{focus_v}  archived=\{archived_v}  regression_testable=\{g.regression_testable}",
       )
       if g.deps.length() > 0 {
-        println("  deps: \{g.deps}")
+        println("  deps: \{@debug.to_repr(g.deps)}")
       }
       if g.tests.length() > 0 {
-        println("  tests: \{g.tests}")
+        println("  tests: \{@debug.to_repr(g.tests)}")
       }
       if g.docs.length() > 0 {
-        println("  docs: \{g.docs}")
+        println("  docs: \{@debug.to_repr(g.docs)}")
       }
       let up = dag.upstream(id)
       if up.length() > 0 {
-        println("  upstream (transitive): \{up}")
+        println("  upstream (transitive): \{@debug.to_repr(up)}")
       }
       let down = dag.downstream(id)
       if down.length() > 0 {
-        println("  downstream (transitive): \{down}")
+        println("  downstream (transitive): \{@debug.to_repr(down)}")
       }
       let tasks = dag.tasks_of(id)
       if tasks.length() > 0 {
@@ -1703,21 +1812,21 @@ fn cmd_show(m : @argparse.Matches) -> Unit raise {
       }
       println("  regression_testable=\{t.regression_testable}")
       if t.deps.length() > 0 {
-        println("  deps: \{t.deps}")
+        println("  deps: \{@debug.to_repr(t.deps)}")
       }
       if t.tests.length() > 0 {
-        println("  tests: \{t.tests}")
+        println("  tests: \{@debug.to_repr(t.tests)}")
       }
       if t.docs.length() > 0 {
-        println("  docs: \{t.docs}")
+        println("  docs: \{@debug.to_repr(t.docs)}")
       }
       let up = dag.upstream(id)
       if up.length() > 0 {
-        println("  upstream (transitive): \{up}")
+        println("  upstream (transitive): \{@debug.to_repr(up)}")
       }
       let down = dag.downstream(id)
       if down.length() > 0 {
-        println("  downstream (transitive): \{down}")
+        println("  downstream (transitive): \{@debug.to_repr(down)}")
       }
     }
     None => fail("unknown id: \{id}")
@@ -1736,7 +1845,7 @@ fn cmd_list_goals(m : @argparse.Matches) -> Unit raise {
   let only_archived = m.flags.get("archived").unwrap_or(false)
   let only_no_tests = m.flags.get("no-tests").unwrap_or(false)
   let only_no_docs = m.flags.get("no-docs").unwrap_or(false)
-  if release_f != "" && not(dag.has_release(release_f)) {
+  if release_f != "" && !dag.has_release(release_f) {
     fail("unknown release: \{release_f}")
   }
   let filtered : Array[@core.Goal] = []
@@ -1765,10 +1874,10 @@ fn cmd_list_goals(m : @argparse.Matches) -> Unit raise {
         None => continue
       }
     }
-    if only_focus && not(g.focus.unwrap_or(false)) {
+    if only_focus && !g.focus.unwrap_or(false) {
       continue
     }
-    if only_archived && not(g.archived.unwrap_or(false)) {
+    if only_archived && !g.archived.unwrap_or(false) {
       continue
     }
     if only_no_tests && g.tests.length() > 0 {
@@ -1809,7 +1918,7 @@ fn cmd_list_tasks(m : @argparse.Matches) -> Unit raise {
   let dag = @core.load(path, default_name="untitled")
   let goal_f = opt(m, "goal")
   let status_f = opt(m, "status")
-  if goal_f != "" && not(dag.has_goal(goal_f)) {
+  if goal_f != "" && !dag.has_goal(goal_f) {
     fail("unknown goal: \{goal_f}")
   }
   let status_filter : @core.Status? = if status_f == "" {
@@ -1864,7 +1973,7 @@ fn cmd_deps(m : @argparse.Matches) -> Unit raise {
   }
   let want_up = m.flags.get("upstream").unwrap_or(false)
   let want_down = m.flags.get("downstream").unwrap_or(false)
-  let show_both = not(want_up) && not(want_down)
+  let show_both = !want_up && !want_down
   let up = if want_up || show_both { dag.upstream(id) } else { [] }
   let down = if want_down || show_both { dag.downstream(id) } else { [] }
   if m.flags.get("json").unwrap_or(false) {
@@ -2105,4 +2214,104 @@ fn cmd_upgrade(_m : @argparse.Matches) -> Unit {
   println(
     "curl -fsSL https://raw.githubusercontent.com/eanzhao/vibe-map/master/install.sh | bash",
   )
+}
+
+///|
+fn cmd_release_status(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let key = opt(m, "key")
+  if key == "" {
+    fail("release status needs a positional release key")
+  }
+  let dag = @core.load(path, default_name="untitled")
+  let progress = dag.release_progress(key)
+  let json_mode = m.flags.get("json").unwrap_or(false)
+  if json_mode {
+    println(progress.to_json().stringify(indent=2))
+  } else {
+    let r = progress.release
+    let target_str = r.target.unwrap_or("none")
+    let closed_str = r.closed_at.unwrap_or("none")
+    let notes_str = r.notes.unwrap_or("none")
+    println("Release: \{r.key}")
+    println("  Label (en): \{r.label.en}")
+    println("  Label (zh): \{r.label.zh}")
+    println("  Status: \{r.status}")
+    println("  Target Date: \{target_str}")
+    println("  Closed At: \{closed_str}")
+    println("  Notes: \{notes_str}")
+    println("Goals: \{progress.total_goals}")
+    println("  Closure Distribution:")
+    let cfg = dag.effective_config()
+    for tier in cfg.closure_tiers {
+      match progress.by_closure.get(tier.key) {
+        Some(count) => println("    \{tier.key}: \{count}")
+        None => ()
+      }
+    }
+    println("  Ready to close: \{progress.ready_to_close}")
+    if progress.blocked.length() > 0 {
+      println("  Blockers (below 'public'):")
+      for b in progress.blocked {
+        println("    - \{b}")
+      }
+    }
+  }
+}
+
+///|
+fn cmd_release_close(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let key = opt(m, "key")
+  if key == "" {
+    fail("release close needs a positional release key")
+  }
+  let dag = @core.load(path, default_name="untitled")
+  let progress = dag.release_progress(key)
+  if !progress.ready_to_close {
+    let blocker_str = progress.blocked.join(", ")
+    fail(
+      "release '\{key}' cannot be closed; contains non-public goals: \{blocker_str}",
+    )
+  }
+  let date_opt = opt(m, "date")
+  let close_date = if date_opt != "" {
+    date_opt
+  } else {
+    @core.get_current_date()
+  }
+  dag.update_release(key, status="closed")
+  dag.set_release_closed_at(key, close_date)
+  @core.save(dag, path)
+  maybe_render(dag, m)
+  println("~ release \{key} closed at \{close_date}")
+}
+
+///|
+fn cmd_regression_prompt(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  if id == "" {
+    fail("regression prompt needs a goal --id")
+  }
+  let error_file = opt(m, "error-file")
+  let error_content = if error_file != "" {
+    if !@fs.path_exists(error_file) {
+      fail("error-file not found: \{error_file}")
+    }
+    let content = @fs.read_file_to_string(error_file) catch {
+      err =>
+        fail(
+          "failed to read error-file '\{error_file}': \{@debug.to_repr(err)}",
+        )
+    }
+    content
+  } else {
+    ""
+  }
+  let dag = @core.load(path, default_name="untitled")
+  let prompt = dag.regression_prompt(id, error_content~) catch {
+    err => fail("failed to generate regression prompt: \{@debug.to_repr(err)}")
+  }
+  println(prompt)
 }

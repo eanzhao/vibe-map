@@ -68,3 +68,83 @@ test "audit: goal without GitHub query is flagged as missing region metadata" {
   assert_eq(report.ok, false)
   assert_true(report.violations.any(v => v.kind == "missing_region_metadata"))
 }
+
+///|
+test "audit: goal referencing unknown release is flagged" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_goal(
+    id="m1",
+    title="A",
+    docs=["m1.md"],
+    owner="eanzhao",
+    gh_query="q",
+    milestone="0.2.0",
+  )
+  dag.add_release(key="0.1.0", label_en="r1", label_zh="r1")
+  let report = dag.audit()
+  assert_eq(report.ok, false)
+  assert_true(
+    report.violations.any(v => v.kind == "release_unknown" && v.node_id == "m1"),
+  )
+}
+
+///|
+test "audit: goal chronology dependency violation is flagged" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_release(key="0.1.0", label_en="r1", label_zh="r1")
+  dag.add_release(key="0.2.0", label_en="r2", label_zh="r2")
+  dag.add_goal(
+    id="m2",
+    title="B",
+    docs=["m2.md"],
+    owner="eanzhao",
+    gh_query="q",
+  )
+  dag.add_goal(
+    id="m3",
+    title="C",
+    docs=["m3.md"],
+    owner="eanzhao",
+    gh_query="q",
+    milestone="0.2.0",
+  )
+  dag.add_goal(
+    id="m1",
+    title="A",
+    docs=["m1.md"],
+    owner="eanzhao",
+    gh_query="q",
+    milestone="0.1.0",
+    deps=["m2", "m3"],
+  )
+  let report = dag.audit()
+  assert_eq(report.ok, false)
+  let blocked_v = report.violations.filter(v => {
+    v.kind == "release_blocked" && v.node_id == "m1"
+  })
+  assert_eq(blocked_v.length(), 2)
+}
+
+///|
+test "audit: closed release with goals below public is flagged" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_release(key="0.1.0", label_en="r1", label_zh="r1", status="closed")
+  dag.add_goal(
+    id="m1",
+    title="A",
+    docs=["m1.md"],
+    owner="eanzhao",
+    gh_query="q",
+    milestone="0.1.0",
+    closure="seed",
+  )
+  let report = dag.audit()
+  assert_eq(report.ok, false)
+  assert_true(
+    report.violations.any(v => {
+      v.kind == "release_blocked" &&
+      v.node_id == "m1" &&
+      v.message.contains("below 'public'")
+    }),
+  )
+}

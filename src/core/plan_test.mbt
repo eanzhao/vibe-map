@@ -2,6 +2,7 @@
 test "plan: synthesizes goal + todo tasks from a markdown file" {
   // Lay down a fixture in /tmp so we don't depend on this repo's own docs.
   let dir = "/tmp/vmap-plan-test"
+  let _ = try? @fs.remove_file("\{dir}/auth.md")
   let _ = try? @fs.remove_dir(dir)
   @fs.create_dir(dir)
   @fs.write_string_to_file(
@@ -21,6 +22,7 @@ test "plan: synthesizes goal + todo tasks from a markdown file" {
 ///|
 test "plan: skips checklist items inside fenced code blocks" {
   let dir = "/tmp/vmap-plan-fence-test"
+  let _ = try? @fs.remove_file("\{dir}/spec.md")
   let _ = try? @fs.remove_dir(dir)
   @fs.create_dir(dir)
   @fs.write_string_to_file(
@@ -35,6 +37,7 @@ test "plan: skips checklist items inside fenced code blocks" {
 ///|
 test "plan: re-running on the same DAG is idempotent" {
   let dir = "/tmp/vmap-plan-idem"
+  let _ = try? @fs.remove_file("\{dir}/x.md")
   let _ = try? @fs.remove_dir(dir)
   @fs.create_dir(dir)
   @fs.write_string_to_file("\{dir}/x.md", "- [ ] alpha\n- [ ] beta\n")
@@ -49,6 +52,7 @@ test "plan: re-running on the same DAG is idempotent" {
 ///|
 test "plan tlist: parses chengsheng-style T-headers and Status lines" {
   let dir = "/tmp/vmap-plan-tlist"
+  let _ = try? @fs.remove_file("\{dir}/todos.md")
   let _ = try? @fs.remove_dir(dir)
   @fs.create_dir(dir)
   let body =

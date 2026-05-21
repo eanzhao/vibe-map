@@ -5,7 +5,12 @@ pub(all) enum Status {
   InProgress
   Blocked
   Done
-} derive(Eq, Show)
+} derive(Eq, Debug)
+
+///|
+pub impl Show for Status with output(self, logger) {
+  logger.write_string(@debug.to_repr(self).to_string())
+}
 
 ///|
 pub impl ToJson for Status with to_json(self) {
@@ -37,19 +42,19 @@ pub impl @json.FromJson for Status with from_json(j, path) {
 pub(all) struct Project {
   name : String
   description : String
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct LocalizedText {
   en : String
   zh : String
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct ProductConfig {
   key : String
   label : LocalizedText
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct ClosureTierConfig {
@@ -57,33 +62,33 @@ pub(all) struct ClosureTierConfig {
   label : LocalizedText
   color : String
   trigger : LocalizedText
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct FormalLevelConfig {
   key : String
   shape : String?
   label : LocalizedText
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct FocusQuarterConfig {
   label : LocalizedText
   border_color : String
   border_width : Int
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct ArchiveRuleConfig {
   after_mature_days : Int
   opacity : Double
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct UiConfig {
   title : LocalizedText
   default_lang : String
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 /// A release lane (e.g. "0.4.0") groups goals around a shipped version.
@@ -95,7 +100,7 @@ pub(all) struct ReleaseConfig {
   status : String
   notes : String?
   closed_at : String?
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct VmapConfig {
@@ -106,7 +111,7 @@ pub(all) struct VmapConfig {
   focus_quarter : FocusQuarterConfig
   archive_rule : ArchiveRuleConfig
   ui : UiConfig
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub fn default_config() -> VmapConfig {
@@ -232,7 +237,7 @@ pub(all) struct Goal {
   tests : Array[String]
   /// Documentation paths describing this goal.
   docs : Array[String]
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct Task {
@@ -248,7 +253,7 @@ pub(all) struct Task {
   tests : Array[String]
   /// Documentation paths describing this task.
   docs : Array[String]
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
 
 ///|
 pub(all) struct Dag {
@@ -260,7 +265,12 @@ pub(all) struct Dag {
   /// array reference itself may be initialized on first `add_release`; the
   /// underlying Array can be mutated in place once present.
   mut releases : Array[ReleaseConfig]?
-} derive(Eq, Show, ToJson, FromJson)
+} derive(Eq, Debug, ToJson, FromJson)
+
+///|
+pub impl Show for Dag with output(self, logger) {
+  logger.write_string(@debug.to_repr(self).to_string())
+}
 
 ///|
 /// Empty DAG with the given project name.
