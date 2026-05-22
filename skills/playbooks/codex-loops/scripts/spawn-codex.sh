@@ -107,8 +107,50 @@ fi
 
 ARGS+=(-)
 
+run_codex_with_timeout() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$TIMEOUT" codex "${ARGS[@]}" < "$PROMPT" > "$LOG" 2>&1
+    return $?
+  fi
+
+  if command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$TIMEOUT" codex "${ARGS[@]}" < "$PROMPT" > "$LOG" 2>&1
+    return $?
+  fi
+
+  # macOS does not ship GNU timeout. Job control gives the background codex
+  # process its own process group, so timeout cleanup also reaches child tests.
+  set -m
+  codex "${ARGS[@]}" < "$PROMPT" > "$LOG" 2>&1 &
+  child=$!
+  set +m
+  (
+    sleep "$TIMEOUT"
+    if kill -0 "$child" 2>/dev/null; then
+      kill -TERM "-$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null || true
+      sleep 5
+      kill -KILL "-$child" 2>/dev/null || kill -KILL "$child" 2>/dev/null || true
+    fi
+  ) &
+  watchdog=$!
+
+  wait "$child" 2>/dev/null
+  child_status=$?
+
+  if kill -0 "$watchdog" 2>/dev/null; then
+    kill "$watchdog" 2>/dev/null || true
+    wait "$watchdog" 2>/dev/null || true
+  fi
+
+  if (( child_status == 143 || child_status == 137 )); then
+    return 124
+  fi
+
+  return "$child_status"
+}
+
 set +e
-timeout "$TIMEOUT" codex "${ARGS[@]}" < "$PROMPT" > "$LOG" 2>&1
+run_codex_with_timeout
 EXIT=$?
 set -e
 

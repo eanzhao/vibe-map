@@ -2,6 +2,7 @@
 package "eanzhao/vibe-map/core"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/core/json",
 }
 
@@ -24,11 +25,15 @@ pub fn ensure_parent_dir(String) -> Unit raise DagError
 
 pub fn find_template_by_name(String) -> Template? raise DagError
 
+pub fn get_current_date() -> String
+
 pub fn import_dag(String) -> Dag raise DagError
 
 pub fn load(String, default_name? : String) -> Dag raise DagError
 
 pub fn load_template_file(String) -> Template raise DagError
+
+pub fn run_command(String) -> Int
 
 pub fn save(Dag, String) -> Unit raise DagError
 
@@ -49,26 +54,19 @@ pub(all) suberror DagError {
   InvalidMetadata(String)
   IoError(String)
   ParseError(String)
-}
+} derive(@debug.Debug)
 pub impl Show for DagError
 
 // Types and methods
 pub(all) struct ArchiveRuleConfig {
   after_mature_days : Int
   opacity : Double
-}
-pub impl Eq for ArchiveRuleConfig
-pub impl Show for ArchiveRuleConfig
-pub impl ToJson for ArchiveRuleConfig
-pub impl @json.FromJson for ArchiveRuleConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct AuditReport {
   ok : Bool
   violations : Array[Violation]
-}
-pub impl Eq for AuditReport
-pub impl Show for AuditReport
-pub impl ToJson for AuditReport
+} derive(Eq, ToJson, @debug.Debug)
 
 pub(all) struct BackfillReport {
   template : String
@@ -76,29 +74,21 @@ pub(all) struct BackfillReport {
   added_tasks : Array[String]
   skipped_goals : Array[String]
   skipped_tasks : Array[String]
-}
-pub impl Show for BackfillReport
-pub impl ToJson for BackfillReport
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct ClosureTierConfig {
   key : String
   label : LocalizedText
   color : String
   trigger : LocalizedText
-}
-pub impl Eq for ClosureTierConfig
-pub impl Show for ClosureTierConfig
-pub impl ToJson for ClosureTierConfig
-pub impl @json.FromJson for ClosureTierConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct CodeCoverage {
   total : Int
   matched : Int
   pct : Double
   unmatched : Array[String]
-}
-pub impl Show for CodeCoverage
-pub impl ToJson for CodeCoverage
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct CoverageReport {
   docs : DocsCoverage?
@@ -108,9 +98,7 @@ pub(all) struct CoverageReport {
   weakest : String
   scanned_md_files : Int
   scanned_code_dirs : Int
-}
-pub impl Show for CoverageReport
-pub impl ToJson for CoverageReport
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct Dag {
   config : VmapConfig?
@@ -118,10 +106,10 @@ pub(all) struct Dag {
   goals : Array[Goal]
   tasks : Array[Task]
   mut releases : Array[ReleaseConfig]?
-}
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn Dag::add_dep(Self, String, String) -> Unit raise DagError
 pub fn Dag::add_doc(Self, String, String) -> Unit raise DagError
-pub fn Dag::add_goal(Self, id~ : String, title~ : String, description? : String, deps? : Array[String], closure? : String, formal? : String, product? : String, milestone? : String, owner? : String, issue_count? : Int, focus? : Bool, archived? : Bool, promoted_at? : Map[String, String], gh_query? : String, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
+pub fn Dag::add_goal(Self, id~ : String, title~ : String, description? : String, deps? : Array[String], closure? : String, formal? : String, product? : String, milestone? : String, owner? : String, issue_count? : Int, focus? : Bool, archived? : Bool, promoted_at? : Map[String, String], gh_query? : String, regression_testable? : Bool, tests? : Array[String], docs? : Array[String], probes? : Array[String]?) -> Unit raise DagError
 pub fn Dag::add_release(Self, key~ : String, label_en~ : String, label_zh~ : String, target? : String, status? : String, notes? : String) -> Unit raise DagError
 pub fn Dag::add_task(Self, id~ : String, goal~ : String, title~ : String, deps? : Array[String], notes? : String, status? : Status, regression_testable? : Bool, tests? : Array[String], docs? : Array[String]) -> Unit raise DagError
 pub fn Dag::add_test(Self, String, String) -> Unit raise DagError
@@ -146,6 +134,7 @@ pub fn Dag::has_task(Self, String) -> Bool
 pub fn Dag::kind_of(Self, String) -> String?
 pub fn Dag::plan_from_docs(Self, Array[String], format? : String) -> PlanReport raise DagError
 pub fn Dag::progress(Self, String) -> (Int, Int)
+pub fn Dag::regression_prompt(Self, String, error_content? : String) -> String raise DagError
 pub fn Dag::release_member_ids(Self, String) -> Array[String]
 pub fn Dag::release_members(Self, String) -> Array[Goal]
 pub fn Dag::release_progress(Self, String) -> ReleaseProgress raise DagError
@@ -166,6 +155,8 @@ pub fn Dag::set_goal_gh_query(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_goal_issue_count(Self, String, Int) -> Unit raise DagError
 pub fn Dag::set_goal_milestone(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_goal_owner(Self, String, String) -> Unit raise DagError
+pub fn Dag::set_goal_probe_results(Self, String, Array[ProbeResult]?) -> Unit raise DagError
+pub fn Dag::set_goal_probes(Self, String, Array[String]?) -> Unit raise DagError
 pub fn Dag::set_goal_product(Self, String, String) -> Unit raise DagError
 pub fn Dag::set_goal_promoted_at(Self, String, Map[String, String]) -> Unit raise DagError
 pub fn Dag::set_regression_testable(Self, String, Bool) -> Unit raise DagError
@@ -180,34 +171,26 @@ pub fn Dag::update_status(Self, String, Status) -> Unit raise DagError
 pub fn Dag::update_title(Self, String, String) -> Unit raise DagError
 pub fn Dag::upstream(Self, String) -> Array[String]
 pub fn Dag::validate(Self) -> Unit raise DagError
-pub impl Eq for Dag
 pub impl Show for Dag
-pub impl ToJson for Dag
-pub impl @json.FromJson for Dag
 
 pub(all) struct DetectRules {
   files : Array[String]
   globs : Array[String]
-}
-pub impl Show for DetectRules
-pub impl ToJson for DetectRules
-pub impl @json.FromJson for DetectRules
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct DiscoveredPackage {
   rel_path : String
   title : String
   docs : Array[String]
   tasks : Array[DiscoveredTask]
-}
-pub impl Show for DiscoveredPackage
+} derive(@debug.Debug)
 
 pub(all) struct DiscoveredTask {
   stem : String
   title : String
   tests : Array[String]
   docs : Array[String]
-}
-pub impl Show for DiscoveredTask
+} derive(@debug.Debug)
 
 pub(all) struct DocsCoverage {
   total : Int
@@ -215,17 +198,13 @@ pub(all) struct DocsCoverage {
   pct : Double
   unreferenced_examples : Array[String]
   unreferenced_total : Int
-}
-pub impl Show for DocsCoverage
-pub impl ToJson for DocsCoverage
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct DoctorReport {
   ok : Bool
   warnings : Array[DoctorWarning]
   stats : DoctorStats
-}
-pub impl Show for DoctorReport
-pub impl ToJson for DoctorReport
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct DoctorStats {
   goals : Int
@@ -235,9 +214,7 @@ pub(all) struct DoctorStats {
   markdown_files : Int
   code_dirs : Int
   density_ratio : Double
-}
-pub impl Show for DoctorStats
-pub impl ToJson for DoctorStats
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct DoctorWarning {
   kind : String
@@ -245,39 +222,26 @@ pub(all) struct DoctorWarning {
   message : String
   goal_id : String?
   details : Map[String, String]
-}
-pub impl Show for DoctorWarning
-pub impl ToJson for DoctorWarning
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct FileRules {
   source : SourceRule
   test_colocated : PatternList
   task_doc : PatternList
   package_doc : NameList
-}
-pub impl Show for FileRules
-pub impl ToJson for FileRules
-pub impl @json.FromJson for FileRules
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct FocusQuarterConfig {
   label : LocalizedText
   border_color : String
   border_width : Int
-}
-pub impl Eq for FocusQuarterConfig
-pub impl Show for FocusQuarterConfig
-pub impl ToJson for FocusQuarterConfig
-pub impl @json.FromJson for FocusQuarterConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct FormalLevelConfig {
   key : String
   shape : String?
   label : LocalizedText
-}
-pub impl Eq for FormalLevelConfig
-pub impl Show for FormalLevelConfig
-pub impl ToJson for FormalLevelConfig
-pub impl @json.FromJson for FormalLevelConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct Goal {
   id : String
@@ -297,21 +261,16 @@ pub(all) struct Goal {
   regression_testable : Bool
   tests : Array[String]
   docs : Array[String]
-}
-pub impl Eq for Goal
-pub impl Show for Goal
-pub impl ToJson for Goal
-pub impl @json.FromJson for Goal
+  probes : Array[String]?
+  probe_results : Array[ProbeResult]?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct IssueEntry {
   number : Int
   title : String
   state : String
   url : String
-}
-pub impl Show for IssueEntry
-pub impl ToJson for IssueEntry
-pub impl @json.FromJson for IssueEntry
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct IssuesCoverage {
   total : Int
@@ -322,25 +281,16 @@ pub(all) struct IssuesCoverage {
   unreferenced_total : Int
   goals_with_gh_query : Int
   pct : Double
-}
-pub impl Show for IssuesCoverage
-pub impl ToJson for IssuesCoverage
+} derive(ToJson, @debug.Debug)
 
 pub(all) struct LocalizedText {
   en : String
   zh : String
-}
-pub impl Eq for LocalizedText
-pub impl Show for LocalizedText
-pub impl ToJson for LocalizedText
-pub impl @json.FromJson for LocalizedText
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct NameList {
   names : Array[String]
-}
-pub impl Show for NameList
-pub impl ToJson for NameList
-pub impl @json.FromJson for NameList
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct PackageDiscovery {
   marker_files : Array[String]
@@ -351,44 +301,36 @@ pub(all) struct PackageDiscovery {
   stop_at_package : Bool
   group_by : String
   group_depth : Int
-}
-pub impl Show for PackageDiscovery
-pub impl ToJson for PackageDiscovery
-pub impl @json.FromJson for PackageDiscovery
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct PatternList {
   patterns : Array[String]
-}
-pub impl Show for PatternList
-pub impl ToJson for PatternList
-pub impl @json.FromJson for PatternList
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct PlanReport {
   added_goals : Array[String]
   added_tasks : Array[String]
   skipped_goals : Array[String]
   skipped_tasks : Array[String]
-}
-pub impl Show for PlanReport
-pub impl ToJson for PlanReport
+} derive(ToJson, @debug.Debug)
+
+pub(all) struct ProbeResult {
+  command : String
+  status : String
+  error : String?
+  run_at : String?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn ProbeResult::new(String, String, String?, String?) -> Self
 
 pub(all) struct ProductConfig {
   key : String
   label : LocalizedText
-}
-pub impl Eq for ProductConfig
-pub impl Show for ProductConfig
-pub impl ToJson for ProductConfig
-pub impl @json.FromJson for ProductConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct Project {
   name : String
   description : String
-}
-pub impl Eq for Project
-pub impl Show for Project
-pub impl ToJson for Project
-pub impl @json.FromJson for Project
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct ReleaseConfig {
   key : String
@@ -397,11 +339,7 @@ pub(all) struct ReleaseConfig {
   status : String
   notes : String?
   closed_at : String?
-}
-pub impl Eq for ReleaseConfig
-pub impl Show for ReleaseConfig
-pub impl ToJson for ReleaseConfig
-pub impl @json.FromJson for ReleaseConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct ReleaseProgress {
   release : ReleaseConfig
@@ -409,25 +347,20 @@ pub(all) struct ReleaseProgress {
   by_closure : Map[String, Int]
   blocked : Array[String]
   ready_to_close : Bool
-}
+} derive(ToJson, @debug.Debug)
 pub impl Show for ReleaseProgress
-pub impl ToJson for ReleaseProgress
 
 pub(all) struct SourceRule {
   globs : Array[String]
   excludes : Array[String]
-}
-pub impl Show for SourceRule
-pub impl ToJson for SourceRule
-pub impl @json.FromJson for SourceRule
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) enum Status {
   Todo
   InProgress
   Blocked
   Done
-}
-pub impl Eq for Status
+} derive(Eq, @debug.Debug)
 pub impl Show for Status
 pub impl ToJson for Status
 pub impl @json.FromJson for Status
@@ -442,42 +375,28 @@ pub(all) struct Task {
   regression_testable : Bool
   tests : Array[String]
   docs : Array[String]
-}
-pub impl Eq for Task
-pub impl Show for Task
-pub impl ToJson for Task
-pub impl @json.FromJson for Task
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct Template {
   name : String
   detect : DetectRules
   package_discovery : PackageDiscovery
   files : FileRules
-}
+} derive(ToJson, @debug.Debug, @json.FromJson)
 pub fn Template::detect_at(Self, String) -> Bool raise DagError
 pub fn Template::discover(Self, String) -> Array[DiscoveredPackage] raise DagError
-pub impl Show for Template
-pub impl ToJson for Template
-pub impl @json.FromJson for Template
 
 pub(all) struct UiConfig {
   title : LocalizedText
   default_lang : String
-}
-pub impl Eq for UiConfig
-pub impl Show for UiConfig
-pub impl ToJson for UiConfig
-pub impl @json.FromJson for UiConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct Violation {
   kind : String
   node_id : String
   node_kind : String
   message : String
-}
-pub impl Eq for Violation
-pub impl Show for Violation
-pub impl ToJson for Violation
+} derive(Eq, ToJson, @debug.Debug)
 
 pub(all) struct VmapConfig {
   version : Int
@@ -487,11 +406,7 @@ pub(all) struct VmapConfig {
   focus_quarter : FocusQuarterConfig
   archive_rule : ArchiveRuleConfig
   ui : UiConfig
-}
-pub impl Eq for VmapConfig
-pub impl Show for VmapConfig
-pub impl ToJson for VmapConfig
-pub impl @json.FromJson for VmapConfig
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 // Type aliases
 
