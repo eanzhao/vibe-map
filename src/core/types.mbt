@@ -203,6 +203,23 @@ pub fn default_config() -> VmapConfig {
   }
 }
 
+pub(all) struct ProbeResult {
+  command : String
+  status : String
+  error : String?
+  run_at : String?
+} derive(Eq, Debug, ToJson, FromJson)
+
+///|
+pub fn ProbeResult::new(
+  command : String,
+  status : String,
+  error : String?,
+  run_at : String?,
+) -> ProbeResult {
+  { command, status, error, run_at }
+}
+
 ///|
 pub(all) struct Goal {
   id : String
@@ -237,7 +254,12 @@ pub(all) struct Goal {
   tests : Array[String]
   /// Documentation paths describing this goal.
   docs : Array[String]
+  /// Regression probe commands.
+  probes : Array[String]?
+  /// Results of the regression probe runs.
+  probe_results : Array[ProbeResult]?
 } derive(Eq, Debug, ToJson, FromJson)
+
 
 ///|
 pub(all) struct Task {

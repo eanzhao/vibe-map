@@ -12,3 +12,21 @@ extern "js" fn get_current_date_js() -> String =
 pub fn get_current_date() -> String {
   get_current_date_js()
 }
+
+///|
+extern "js" fn run_command_js(cmd : String) -> Int =
+  #| (cmd) => {
+  #|   try {
+  #|     const execSync = require('child_process').execSync;
+  #|     execSync(cmd, { stdio: 'inherit' });
+  #|     return 0;
+  #|   } catch (e) {
+  #|     return e.status || 1;
+  #|   }
+  #| }
+
+///|
+pub fn run_command(cmd : String) -> Int {
+  run_command_js(cmd)
+}
+

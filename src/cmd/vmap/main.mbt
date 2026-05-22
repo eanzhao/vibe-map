@@ -136,6 +136,11 @@ fn build_cli() -> @argparse.Command {
                 long="gh-query",
                 about="GitHub search query used by drift tooling.",
               ),
+              @argparse.OptionArg::new(
+                "probes",
+                long="probes",
+                about="Comma-separated list of regression probe commands.",
+              ),
               @argparse.OptionArg::new("file", long="file", default_values=[
                 @core.default_path,
               ]),
@@ -280,6 +285,11 @@ fn build_cli() -> @argparse.Command {
           @argparse.OptionArg::new("issue-count", long="issue-count"),
           @argparse.OptionArg::new("promoted-at", long="promoted-at"),
           @argparse.OptionArg::new("gh-query", long="gh-query"),
+          @argparse.OptionArg::new(
+            "probes",
+            long="probes",
+            about="Replace the probes list (comma-separated; empty string clears).",
+          ),
           @argparse.OptionArg::new("file", long="file", default_values=[
             @core.default_path,
           ]),
@@ -864,6 +874,31 @@ fn build_cli() -> @argparse.Command {
               ),
             ],
           ),
+          @argparse.Command::new(
+            "run",
+            about="Run regression probes for goals and record status.",
+            flags=[
+              @argparse.FlagArg::new(
+                "all",
+                long="all",
+                about="Run probes for all goals, even if not completed.",
+              ),
+              no_render_flag(),
+            ],
+            options=[
+              @argparse.OptionArg::new(
+                "id",
+                long="id",
+                about="Run probes only for a specific goal",
+              ),
+              @argparse.OptionArg::new(
+                "file",
+                long="file",
+                default_values=[@core.default_path],
+                about="Path to the vibe-map.json file",
+              ),
+            ],
+          ),
         ],
       ),
     ],
@@ -924,6 +959,7 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
       let (sub_name, sub_sub) = sub.subcommand.unwrap()
       match sub_name {
         "prompt" => cmd_regression_prompt(sub_sub)
+        "run" => cmd_regression_run(sub_sub)
         _ => fail("unknown regression subcommand: \{sub_name}")
       }
     }
@@ -1054,6 +1090,11 @@ fn cmd_add_goal(m : @argparse.Matches) -> Unit raise {
   let path = opt(m, "file", default=@core.default_path)
   let id = opt(m, "id")
   let title = opt(m, "title")
+  let probes = if provided(m, "probes") {
+    Some(parse_csv(opt(m, "probes")))
+  } else {
+    None
+  }
   let dag = @core.load(path, default_name="untitled")
   dag.add_goal(
     id~,
@@ -1073,6 +1114,7 @@ fn cmd_add_goal(m : @argparse.Matches) -> Unit raise {
     regression_testable=m.flags.get("regression-testable").unwrap_or(false),
     tests=parse_csv(opt(m, "tests")),
     docs=parse_csv(opt(m, "docs")),
+    probes~,
   )
   @core.save(dag, path)
   maybe_render(dag, m)
@@ -1247,6 +1289,13 @@ fn cmd_update(m : @argparse.Matches) -> Unit raise {
       dag.remove_test(id, p)
       println("~ \{id} -test \{p}")
     }
+    touched = true
+  }
+  if provided(m, "probes") {
+    let raw = opt(m, "probes")
+    let probes = if raw == "" { None } else { Some(parse_csv(raw)) }
+    dag.set_goal_probes(id, probes)
+    println("~ \{id} probes -> \{raw}")
     touched = true
   }
   if provided(m, "add-doc") {
@@ -2314,4 +2363,82 @@ fn cmd_regression_prompt(m : @argparse.Matches) -> Unit raise {
     err => fail("failed to generate regression prompt: \{@debug.to_repr(err)}")
   }
   println(prompt)
+}
+
+///|
+fn cmd_regression_run(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  let all_goals = m.flags.get("all").unwrap_or(false)
+  let dag = @core.load(path, default_name="untitled")
+  let selected_goals = []
+
+  if id != "" {
+    let mut found = false
+    for g in dag.goals {
+      if g.id == id {
+        selected_goals.push(g)
+        found = true
+        break
+      }
+    }
+    if !found {
+      fail("goal not found: \{id}")
+    }
+  } else {
+    for g in dag.goals {
+      let has_probes = match g.probes {
+        Some(p) => p.length() > 0
+        None => false
+      }
+      if has_probes {
+        selected_goals.push(g)
+      } else {
+        let (done, total) = dag.progress(g.id)
+        let is_completed = total > 0 && done == total
+        if is_completed && !all_goals {
+          println("⚠️ Warning: goal '\{g.id}' is completed but has no probes. Add probes with 'vmap update \{g.id} --probes \"...\"'.")
+        }
+      }
+    }
+  }
+
+  if selected_goals.length() == 0 {
+    println("No goals selected for regression.")
+    return
+  }
+
+  let mut any_failed = false
+  for g in selected_goals {
+    match g.probes {
+      Some(cmds) => {
+        if cmds.length() > 0 {
+          println("Running probes for goal '\{g.id}'...")
+          let results = []
+          let run_at = Some(@core.get_current_date())
+          for cmd in cmds {
+            println("  $ \{cmd}")
+            let exit_code = @core.run_command(cmd)
+            let status = if exit_code == 0 { "passed" } else { "failed" }
+            if exit_code != 0 {
+              any_failed = true
+            }
+            let error = if exit_code == 0 { None } else { Some("Exit status: \{exit_code}") }
+            results.push(@core.ProbeResult::new(cmd, status, error, run_at))
+            println("    -> \{status}")
+          }
+          dag.set_goal_probe_results(g.id, Some(results))
+        }
+      }
+      None => ()
+    }
+  }
+
+  @core.save(dag, path)
+  maybe_render(dag, m)
+  if any_failed {
+    fail("Some regression probes failed.")
+  } else {
+    println("All executed regression probes passed!")
+  }
 }

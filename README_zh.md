@@ -335,6 +335,7 @@ vmap upgrade                           打印升级命令（管道到 bash 执�
 | **0.5.2** | 2026-05-20 | 新增 `vmap coverage`（docs / src / issues 覆盖率）+ `vmap doctor`（density / lane / orphan / mismatch 健康度告警）；以 MIT 许可发布到 [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) |
 | **0.5.3** | 2026-05-20 | `vibe-map.html` 前端优化：双击侧栏 goal 行弹出详情 modal、页面上的 GitHub URL 均可点击（新标签打开）、双击展开的任务卡片弹出任务详情 modal |
 | **0.6.0** | 2026-05-21 | 发布建模阶段 2、审计阶段 2、可视化阶段 3 与 AI 回归上下文支持：`vmap release status` / `close` 命令行子命令（支持平台特定的 FFI 日期获取）、`vmap audit --release` 过滤支持、核心发布审计规则（`release_unknown` 与 `release_blocked`）、HTML 可视化侧边栏 Release 分组与过滤下拉框，以及 `vmap regression prompt` 子命令（用于汇总生成供 AI 自动修复的 markdown 诊断提示词上下文） |
+| **0.6.1** | 2026-05-22 | 回归探针看板与运行器：引入自动化回归运行器 `vmap regression run`（跨平台 FFI 命令运行），HTML 可视化侧栏选项卡切换支持 “回归探针” 状态看板（已通过/已失败/未运行/缺少探针），以及在 `vibe-map.html` 节点详情卡片中渲染详细执行记录与探针警告。 |
 
 
 ## 贡献

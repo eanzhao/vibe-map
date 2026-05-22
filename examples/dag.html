@@ -199,6 +199,96 @@
     padding: 12px;
   }
 
+  .panel-tabs {
+    display: flex;
+    gap: 16px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(15, 23, 42, 0.25);
+  }
+  .panel-tab {
+    position: relative;
+    padding: 10px 4px;
+    border: 0;
+    background: transparent;
+    color: var(--text-dimmed);
+    font-size: 11.5px;
+    font-weight: 700;
+    transition: color 140ms ease;
+  }
+  .panel-tab::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: transparent;
+    transition: background 140ms ease;
+  }
+  .panel-tab:hover { color: var(--text-secondary); }
+  .panel-tab.active { color: var(--text-primary); }
+  .panel-tab.active::after { background: var(--cyan); }
+
+  .probe-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+  .probe-badge.passed { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+  .probe-badge.failed { background: rgba(251, 113, 133, 0.12); color: #fb7185; }
+  .probe-badge.pending { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+  .probe-badge.missing { background: rgba(253, 211, 77, 0.12); color: #fcd34d; }
+
+  .probe-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 11px;
+  }
+  .probe-table th, .probe-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .probe-table th {
+    color: var(--text-dimmed);
+    font-weight: 600;
+  }
+  .probe-table td {
+    color: var(--text-secondary);
+  }
+  .probe-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: rgba(15, 23, 42, 0.4);
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    word-break: break-all;
+  }
+  .probe-alert {
+    background: rgba(253, 211, 77, 0.08);
+    border: 1px solid rgba(252, 211, 77, 0.3);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--gold);
+    line-height: 1.5;
+  }
+  .probe-error-msg {
+    color: var(--rose);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px;
+    margin-top: 2px;
+    word-break: break-all;
+  }
+
   .progress {
     overflow: hidden;
     height: 8px;
@@ -838,14 +928,18 @@
   </header>
   <main class="workspace">
     <aside class="panel">
+      <div class="panel-tabs" role="tablist">
+        <button class="panel-tab active" data-tab="progress" role="tab" aria-selected="true">项目进度</button>
+        <button class="panel-tab" data-tab="probes" role="tab" aria-selected="false">回归探针</button>
+      </div>
       <div class="panel-head">
         <div>
-          <h2 class="panel-title">项目进度</h2>
+          <h2 class="panel-title" id="sidebar-title">项目进度</h2>
           <p class="panel-subtitle" id="overview-subtitle"></p>
         </div>
       </div>
       <div class="panel-body">
-        <div class="control-stack">
+        <div class="control-stack" id="sidebar-controls">
           <input class="search-input" id="goal-search" type="search" placeholder="搜索 goal / owner / milestone" aria-label="搜索 goal" />
           <select class="select-input" id="product-filter" aria-label="产品筛选">
             <option value="all">全部产品</option>
@@ -1097,7 +1191,7 @@
       "closure": "scoped",
       "formal": "sop",
       "product": "vmap",
-      "milestone": "CLI",
+      "milestone": "0.4.0",
       "owner": "eanzhao",
       "issue_count": 1,
       "focus": true,
@@ -1119,7 +1213,7 @@
       "closure": "mature",
       "formal": "checked",
       "product": "vmap",
-      "milestone": "Core",
+      "milestone": "0.3.0",
       "owner": "eanzhao",
       "issue_count": 8,
       "focus": false,
@@ -1130,8 +1224,12 @@
       },
       "gh_query": "is:issue is:open repo:eanzhao/vibe-region-map core",
       "regression_testable": true,
-      "tests": [],
-      "docs": []
+      "tests": [
+        "src/core/regression_test.mbt"
+      ],
+      "docs": [
+        "AGENTS.md"
+      ]
     },
     {
       "id": "pkg-render",
@@ -1143,7 +1241,7 @@
       "closure": "public",
       "formal": "checked",
       "product": "vmap",
-      "milestone": "Viz",
+      "milestone": "0.3.0",
       "owner": "eanzhao",
       "issue_count": 3,
       "focus": true,
@@ -1166,7 +1264,7 @@
       "closure": "seed",
       "formal": "sop",
       "product": "vmap",
-      "milestone": "Roadmap",
+      "milestone": "0.4.0",
       "owner": "eanzhao",
       "issue_count": 4,
       "focus": false,
@@ -1379,6 +1477,25 @@
         "/tmp/vmap-fake-roadmap/roadmap.md"
       ]
     }
+  ],
+  "releases": [
+    {
+      "key": "0.3.0",
+      "label": {
+        "en": "v0.3.0 Release",
+        "zh": "v0.3.0 版本"
+      },
+      "status": "closed",
+      "closed_at": "1970-01-01"
+    },
+    {
+      "key": "0.4.0",
+      "label": {
+        "en": "v0.4.0 Release",
+        "zh": "v0.4.0 版本"
+      },
+      "status": "planned"
+    }
   ]
 }</script>
 <script>
@@ -1455,6 +1572,7 @@
     modalTaskId: null,
     transform: { x: 0, y: 0, scale: 1 },
     pointer: { down: false, mode: null, moved: false, lastX: 0, lastY: 0, node: null },
+    activeTab: 'progress',
   };
 
   const SHORTCUTS = {
@@ -1711,8 +1829,17 @@
         glow: closure.glow,
         deps: m.deps || [],
         docs: m.docs || [],
-        tests: m.tests || [],
-        tasks: (tasksByGoal.get(m.id) || []).map(task => ({
+        regressionTestable: !!m.regression_testable,
+        probes: m.probes || null,
+        probeResults: m.probe_results || null,
+        progress: { done: bucket.done, total: bucket.total, pct },
+        radius: Math.max(40, Math.min(70, 40 + Math.sqrt(Math.max(1, issueCount)) * 5)),
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+      };
+      tasks: (tasksByGoal.get(m.id) || []).map(task => ({
           id: task.id,
           title: task.title || task.id,
           status: task.status || 'todo',
@@ -2377,7 +2504,7 @@
     state.navigationPeerIds = null;
     state.focusIds = id ? dependencyClosure(id) : null;
     renderDetails();
-    renderMilestoneList();
+    updateSidebarList();
     if (focusView && id) {
       const node = state.nodeById.get(id);
       if (node) {
@@ -2404,14 +2531,23 @@
     document.getElementById('metric-deps').textContent = String(edgeCount);
     document.getElementById('overall-progress-label').textContent = done + '/' + issues;
     document.getElementById('overall-progress-bar').style.width = pct + '%';
-    const closureSummary = CONFIG.closure_tiers
-      .map(tier => {
-        const n = state.nodes.filter(node => node.closure === tier.key).length;
-        return n ? localized(tier.label, tier.key) + ' ' + n : '';
-      })
-      .filter(Boolean)
-      .join(' / ');
-    document.getElementById('overview-subtitle').textContent = milestones + ' 个目标，' + issues + ' 个任务' + (closureSummary ? ' · ' + closureSummary : '');
+    if (state.activeTab === 'progress') {
+      const closureSummary = CONFIG.closure_tiers
+        .map(tier => {
+          const n = state.nodes.filter(node => node.closure === tier.key).length;
+          return n ? localized(tier.label, tier.key) + ' ' + n : '';
+        })
+        .filter(Boolean)
+        .join(' / ');
+      document.getElementById('overview-subtitle').textContent = milestones + ' 个目标，' + issues + ' 个任务' + (closureSummary ? ' · ' + closureSummary : '');
+    } else {
+      const completed = state.nodes.filter(n => n.progress.total > 0 && n.progress.done === n.progress.total);
+      const withProbes = state.nodes.filter(n => n.probes && n.probes.length > 0);
+      const passed = withProbes.filter(n => n.probeResults && n.probeResults.length > 0 && n.probeResults.every(r => r.status === 'passed'));
+      const failed = withProbes.filter(n => n.probeResults && n.probeResults.some(r => r.status === 'failed'));
+      const missing = completed.filter(n => !n.probes || n.probes.length === 0);
+      document.getElementById('overview-subtitle').textContent = '已通 ' + passed.length + ' / 失败 ' + failed.length + ' / 缺少 ' + missing.length;
+    }
     document.getElementById('canvas-subtitle').textContent = 'n=' + state.nodes.length + ' e=' + edgeCount + ' dep=' + depCount;
   }
 
@@ -2428,6 +2564,88 @@
           <span>${escapeHtml(progress)}</span>
         </div>
       </button>`;
+  }
+
+  function getProbeStatus(node) {
+    const isCompleted = node.progress.total > 0 && node.progress.done === node.progress.total;
+    const hasProbes = node.probes && node.probes.length > 0;
+    if (hasProbes) {
+      if (!node.probeResults || node.probeResults.length === 0) {
+        return 'pending';
+      }
+      if (node.probeResults.some(r => r.status === 'failed')) {
+        return 'failed';
+      }
+      return 'passed';
+    } else {
+      return isCompleted ? 'missing' : 'none';
+    }
+  }
+
+  function renderProbeRow(node) {
+    const status = getProbeStatus(node);
+    let badgeHtml = '';
+    if (status === 'passed') {
+      badgeHtml = '<span class="probe-badge passed">✔ 已通过</span>';
+    } else if (status === 'failed') {
+      badgeHtml = '<span class="probe-badge failed">✘ 已失败</span>';
+    } else if (status === 'pending') {
+      badgeHtml = '<span class="probe-badge pending">? 未运行</span>';
+    } else if (status === 'missing') {
+      badgeHtml = '<span class="probe-badge missing">⚠️ 缺少探针</span>';
+    }
+
+    return `
+      <button class="node-row ${node.id === state.selectedId ? 'active' : ''}" type="button" data-node-id="${escapeHtml(node.id)}" title="双击查看详情">
+        <div class="node-row-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>${escapeHtml(node.title)}</span>
+          ${badgeHtml}
+        </div>
+        <div class="node-row-meta">
+          <span>${escapeHtml(node.id)}</span>
+          ${node.owner ? '<span>@' + escapeHtml(node.owner) + '</span>' : ''}
+        </div>
+      </button>`;
+  }
+
+  function renderProbesList() {
+    const list = document.getElementById('milestone-list');
+    const probeNodes = state.nodes.filter(n => (n.probes && n.probes.length > 0) || (n.progress.total > 0 && n.progress.done === n.progress.total));
+    if (probeNodes.length === 0) {
+      list.innerHTML = '<div class="detail-empty">暂无相关探针</div>';
+      return;
+    }
+    const statusRank = { failed: 0, missing: 1, pending: 2, passed: 3, none: 4 };
+    probeNodes.sort((a, b) => {
+      const rankA = statusRank[getProbeStatus(a)];
+      const rankB = statusRank[getProbeStatus(b)];
+      if (rankA !== rankB) return rankA - rankB;
+      return a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+    });
+
+    list.innerHTML = probeNodes.map(renderProbeRow).join('');
+
+    list.querySelectorAll('[data-node-id]').forEach(button => {
+      const id = button.getAttribute('data-node-id');
+      button.addEventListener('click', () => selectNode(id, true));
+      button.addEventListener('dblclick', event => {
+        event.preventDefault();
+        selectNode(id, false);
+        openNodeModal(id);
+      });
+    });
+  }
+
+  function updateSidebarList() {
+    if (state.activeTab === 'progress') {
+      document.getElementById('sidebar-title').textContent = '项目进度';
+      document.getElementById('sidebar-controls').style.display = '';
+      renderMilestoneList();
+    } else {
+      document.getElementById('sidebar-title').textContent = '回归探针';
+      document.getElementById('sidebar-controls').style.display = 'none';
+      renderProbesList();
+    }
   }
 
   function renderMilestoneList() {
@@ -2622,6 +2840,32 @@
         <div class="kv"><strong>被依赖</strong>${chips(outbound, '无')}</div>
         <div class="kv kv-wide"><strong>任务详情</strong>${taskDetails(goalTasks)}</div>
         <div class="kv"><strong>测试</strong>${chips(node.tests, '未记录')}</div>
+        ${(function() {
+          const isCompleted = node.progress && node.progress.total > 0 && node.progress.done === node.progress.total;
+          if (node.probes && node.probes.length > 0) {
+            const rowsHtml = node.probes.map((cmd, idx) => {
+              const res = (node.probeResults && node.probeResults[idx]) || null;
+              let statusBadge = '<span class="probe-badge pending">未运行</span>';
+              let errorHtml = '';
+              if (res) {
+                if (res.status === 'passed') {
+                  statusBadge = '<span class="probe-badge passed">已通过</span>';
+                } else {
+                  statusBadge = '<span class="probe-badge failed">已失败</span>';
+                  if (res.error) {
+                    errorHtml = '<div class="probe-error-msg">' + escapeHtml(res.error) + '</div>';
+                  }
+                }
+              }
+              const runTime = (res && res.run_at) ? escapeHtml(res.run_at) : '-';
+              return '<tr><td><code class="probe-code">' + escapeHtml(cmd) + '</code>' + errorHtml + '</td><td>' + statusBadge + '</td><td>' + runTime + '</td></tr>';
+            }).join('');
+            return '<div class="kv kv-wide"><strong>回归探针</strong><table class="probe-table"><thead><tr><th>命令</th><th>状态</th><th>运行时间</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+          } else if (isCompleted) {
+            return '<div class="kv kv-wide"><strong>回归探针</strong><div class="probe-alert">⚠️ <strong>缺少回归探针：</strong>当前目标已完成，但尚未配置任何回归探针命令。<br/>请让 AI Coding Agent 或手动使用 <code>vmap update ' + escapeHtml(node.id) + ' --probes "..."</code> 写入探针以启动自动化回归。</div></div>';
+          }
+          return '';
+        })()}
         <div class="kv"><strong>文档</strong>${chips(node.docs, '未记录')}</div>
         <div class="kv"><strong>GitHub</strong><span>${githubField(node.ghQuery)}</span></div>
       </div>`;
@@ -2736,7 +2980,7 @@
       selectNode(null, false);
     }
     renderStats();
-    renderMilestoneList();
+    updateSidebarList();
     fitView(true);
   }
 
@@ -2747,7 +2991,7 @@
       selectNode(null, false);
     }
     renderStats();
-    renderMilestoneList();
+    updateSidebarList();
     fitView(true);
   }
 
@@ -2758,7 +3002,7 @@
       selectNode(null, false);
     }
     renderStats();
-    renderMilestoneList();
+    updateSidebarList();
     fitView(true);
   }
 
@@ -2769,7 +3013,7 @@
       selectNode(null, false);
     }
     renderStats();
-    renderMilestoneList();
+    updateSidebarList();
     fitView(true);
   }
 
@@ -2798,7 +3042,7 @@
     applyFilter();
     renderStats();
     renderDetails();
-    renderMilestoneList();
+    updateSidebarList();
     fitView(true);
   }
 
@@ -2977,6 +3221,18 @@
 
   function bindEvents() {
     window.addEventListener('resize', resizeCanvas);
+
+    document.querySelectorAll('.panel-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        state.activeTab = tab.getAttribute('data-tab');
+        document.querySelectorAll('.panel-tab').forEach(t => {
+          t.classList.toggle('active', t.getAttribute('data-tab') === state.activeTab);
+          t.setAttribute('aria-selected', t.getAttribute('data-tab') === state.activeTab ? 'true' : 'false');
+        });
+        updateSidebarList();
+        renderStats();
+      });
+    });
 
     document.querySelectorAll('.filter-button').forEach(button => {
       button.addEventListener('click', () => setFilter(button.getAttribute('data-filter') || 'all'));
@@ -3165,7 +3421,7 @@
     renderReleaseFilter();
     renderLegend();
     renderStats();
-    renderMilestoneList();
+    updateSidebarList();
     renderDetails();
     resizeCanvas();
     bindEvents();

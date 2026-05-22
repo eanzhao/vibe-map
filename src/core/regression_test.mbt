@@ -56,3 +56,43 @@ test "regression_prompt: formats goal, tasks, docs, tests, and error messages" {
     @fs.remove_file(temp_test_path)
   }
 }
+
+///|
+test "goal serialization with probes and probe_results" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_goal(
+    id="goal-probes",
+    title="Goal with Probes",
+    description="Goal with Probes description",
+    probes=Some(["echo hello", "exit 0"]),
+  )
+
+  let run_at = Some("2026-05-22")
+  let results = [
+    @core.ProbeResult::new("echo hello", "passed", None, run_at),
+    @core.ProbeResult::new("exit 0", "passed", None, run_at),
+  ]
+  dag.set_goal_probe_results("goal-probes", Some(results))
+
+  // Serialize to JSON and parse back
+  let json_val = dag.to_json()
+  let parsed_dag : @core.Dag = @json.from_json(json_val)
+
+  match parsed_dag.find_goal("goal-probes") {
+    Some((_, g)) => {
+      assert_true(g.probes == Some(["echo hello", "exit 0"]))
+      match g.probe_results {
+        Some(res) => {
+          assert_eq(res.length(), 2)
+          assert_eq(res[0].command, "echo hello")
+          assert_eq(res[0].status, "passed")
+          assert_true(res[0].error == None)
+          assert_true(res[0].run_at == run_at)
+        }
+        None => fail("probe_results should be Some")
+      }
+    }
+    None => fail("goal-probes should be found")
+  }
+}
+

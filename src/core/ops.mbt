@@ -249,6 +249,7 @@ pub fn Dag::add_goal(
   regression_testable? : Bool = false,
   tests? : Array[String] = [],
   docs? : Array[String] = [],
+  probes? : Array[String]? = None,
 ) -> Unit raise DagError {
   if self.has_id(id) {
     raise DuplicateId(id)
@@ -291,9 +292,12 @@ pub fn Dag::add_goal(
     regression_testable,
     tests,
     docs,
+    probes,
+    probe_results: None,
   })
   self.assert_acyclic()
 }
+
 
 ///|
 pub fn Dag::set_goal_closure(
@@ -590,6 +594,33 @@ pub fn Dag::set_docs(
     None => raise UnknownId(id)
   }
 }
+
+///|
+/// Set probes on a goal.
+pub fn Dag::set_goal_probes(
+  self : Dag,
+  id : String,
+  probes : Array[String]?,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, m)) => self.goals[idx] = { ..m, probes, }
+    None => raise UnknownId(id)
+  }
+}
+
+///|
+/// Set probe results on a goal.
+pub fn Dag::set_goal_probe_results(
+  self : Dag,
+  id : String,
+  probe_results : Array[ProbeResult]?,
+) -> Unit raise DagError {
+  match self.find_goal(id) {
+    Some((idx, m)) => self.goals[idx] = { ..m, probe_results, }
+    None => raise UnknownId(id)
+  }
+}
+
 
 ///|
 /// Remove a node by id. Also strips it from any other node's deps. If the id

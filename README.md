@@ -335,6 +335,7 @@ Older JSON missing newer fields still loads (Option fields default to None). `cl
 | **0.5.2** | 2026-05-20 | `vmap coverage` (docs/src/issues coverage) + `vmap doctor` (density / lane / orphan / mismatch warnings); published to [mooncakes.io](https://mooncakes.io/docs/eanzhao/vibe-map) under MIT |
 | **0.5.3** | 2026-05-20 | `vibe-map.html` frontend: double-click a sidebar goal row to open its detail modal, GitHub URLs across the page become new-tab links, double-click an expanded task card for a dedicated task detail modal |
 | **0.6.0** | 2026-05-21 | Release modeling Stage 2, Audit Stage 2, Visualizer Stage 3 & AI Regression Context: `vmap release status` / `close` CLI subcommands (with target-specific FFI date retrieval), `vmap audit --release` filtering, core release audit rules (`release_unknown` & `release_blocked`), HTML visualizer sidebar release grouping & filter dropdown, and `vmap regression prompt` to compile structured markdown diagnostics context for external AI agents |
+| **0.6.1** | 2026-05-22 | Regression Probes Dashboard & Runner: Added automated regression sweep runner `vmap regression run` (cross-platform FFI command execution), left progress sidebar tab-switcher to display Probes status dashboard (Passed/Failed/Missing/Pending), and detailed execution stats/warnings rendering inside `vibe-map.html` |
 
 
 ## Contributing

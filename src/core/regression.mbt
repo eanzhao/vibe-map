@@ -124,6 +124,10 @@ pub fn Dag::regression_prompt(
   sb.write_string(
     "4. Modify the source code to resolve the failure. Ensure that the test suite compiles and all tests pass.\n",
   )
+  sb.write_string(
+    "5. For completed goals, ensure there is a set of regression probes (commands) defined in the goal's `probes` field inside `.vmap/vibe-map.json` so they can be run in future regression sweeps.\n",
+  )
 
   sb.to_string()
 }
+
