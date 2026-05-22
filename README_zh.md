@@ -80,12 +80,22 @@ moon install && moon build --target native --release
 
 具体怎么做查 ~/.vmap/skills/playbooks/：
   new-feature.md / audit-fix-loop.md / release-shipping.md / daily-progress.md
+  codex-goal-implement-loop.md / codex-architecture-refactor-loop.md
 命令速查 ~/.vmap/skills/cheatsheet.md。
 
 每次 vmap mutating 命令会自动刷新 .vmap/vibe-map.html，我随时打开看。开始吧。
 ````
 
 更详细的版本 + 调试技巧见 [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md)。如果项目里已经有 `.claude/skills/vibe-map-bootstrap/SKILL.md`（vibe-map 这个 repo 自带一份），Claude Code 打开就会自动加载，连 prompt 都不用复制。
+
+## 委托 Codex 执行的循环
+
+vibe-map 也可以指导一个 controller agent，把真正的代码修改派给 Codex CLI：
+
+- [`codex-goal-implement-loop.md`](skills/playbooks/codex-goal-implement-loop.md) 把 DAG 当任务队列：controller 读 vmap task，整理 docs/tests/架构上下文，在 worktree 里跑 `codex exec`，review diff，再回写 vmap。
+- [`codex-architecture-refactor-loop.md`](skills/playbooks/codex-architecture-refactor-loop.md) 把 `AGENTS.md`、`CLAUDE.md` 和架构文档抽成明确规则，让 Codex 审计违例，把每个重构 cluster 写回 vmap task，然后循环 implement / review / verify。
+
+核心分工：controller 管 vmap 状态和 git/PR 拓扑；Codex 子进程负责源码修改。人看的状态面仍然是 `.vmap/vibe-map.html`。
 
 ## vibe-map 建模的是什么
 

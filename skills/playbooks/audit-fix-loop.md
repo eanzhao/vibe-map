@@ -2,6 +2,8 @@
 
 > 用 `vmap audit` 让 AI 自己把测试 / 文档 / region metadata 补齐。
 
+如果用户要的是“按 AGENTS.md / CLAUDE.md 找架构违例并让 Codex CLI 持续重构”，读 `skills/playbooks/codex-architecture-refactor-loop.md`。这份只处理 vmap 自身 audit 报出的 metadata / docs / tests 缺口。
+
 ## 工作流
 
 ```bash

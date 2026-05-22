@@ -69,6 +69,8 @@ vmap 是个**双向接口**：
 
 如果用户坚持"就在这里一起做"，可以做，但**先 commit 一次当前 `.vmap/` 的状态作为基线**，再开始混着干，便于事后区分"图的变化"和"代码的变化"。
 
+**例外：用户明确要求 Codex CLI 委托循环**。这时当前会话是第三种 **controller 模式**：当前 agent 不亲手写 production code，只负责维护 vmap、派 `codex exec` 子进程、验收和回写状态。按下面的 Codex CLI playbook 做，不按普通维护/实现会话混着做。
+
 ---
 
 ## 心智模型
@@ -133,10 +135,27 @@ planned → open → closed
 | **`.vmap/` 还没初始化 + 代码已经一大坨**（冷启动） | 维护 | `skills/playbooks/bootstrap-existing-codebase.md` |
 | 接到一个新需求，要把它放进图 | 维护 | `skills/playbooks/new-feature.md` |
 | **图已经有了，按图把 todo task 一个个做掉** | 实现 | `skills/playbooks/implement-from-dag.md` |
+| 让当前 agent 调用 Codex CLI 按 DAG 实现 task | 实现 | `skills/playbooks/codex-goal-implement-loop.md` |
+| 让 Codex CLI 按 AGENTS.md / CLAUDE.md 持续重构 | 维护 + 实现 | `skills/playbooks/codex-architecture-refactor-loop.md` |
 | audit 报红，按它修 tests / docs | 维护 | `skills/playbooks/audit-fix-loop.md` |
 | 推一个 release 收尾 | 维护 | `skills/playbooks/release-shipping.md` |
 | 用户问"现在做到哪了" | 维护 | `skills/playbooks/daily-progress.md` |
 | 重命名 / 移动 task / 改 deps | 维护 | `skills/cheatsheet.md` |
+
+## Codex CLI 委托循环
+
+如果用户明确说“用 Codex CLI 跑”“让 Codex 实现”“无人值守重构”“按 AGENTS.md/CLAUDE.md 反复整理架构”，当前 agent 进入 **controller 模式**：
+
+1. **vmap 负责队列和状态**：从 focus goal / todo task 选工作，所有 phase 变化用 `vmap update` 回写。
+2. **Codex 子进程负责改代码**：用 `codex exec --cd <worktree> ...` 派实现、修复、审计或 review；controller 不亲手改 production code。
+3. **项目规则随 prompt 下发**：把 `AGENTS.md`、`CLAUDE.md`、目录内更近的 AGENTS、架构文档、CI guard 一起作为约束交给 Codex。
+4. **验收独立完成**：controller 检查 diff、summary marker、测试、`codex exec review` 或等价 review，再决定 done / rework / blocked。
+5. **状态必须可见**：本地 loop log 只是细节；用户看的 `.vmap/vibe-map.html` 必须同步显示 running / done / blocked。
+
+两种入口：
+
+- **按目标实现**：读 `skills/playbooks/codex-goal-implement-loop.md`。适合“把这个 goal/task 做完”。
+- **按架构原则重构**：读 `skills/playbooks/codex-architecture-refactor-loop.md`。适合“按 AGENTS.md / CLAUDE.md 找架构违例并持续修”。
 
 ## 防漏（v0.6.0 加入）
 

@@ -80,12 +80,22 @@ Constraints:
 
 Playbook lookups in ~/.vmap/skills/playbooks/:
   new-feature.md / audit-fix-loop.md / release-shipping.md / daily-progress.md
+  codex-goal-implement-loop.md / codex-architecture-refactor-loop.md
 Command cheatsheet: ~/.vmap/skills/cheatsheet.md.
 
 Every mutating vmap command auto-refreshes .vmap/vibe-map.html, which I'll keep open. Go.
 ````
 
 Longer version with debugging tips: [`skills/vibe-map-bootstrap.md`](skills/vibe-map-bootstrap.md). If your repo already has `.claude/skills/vibe-map-bootstrap/SKILL.md` (vibe-map ships one), Claude Code auto-loads it — no copy-paste needed.
+
+## Delegated Codex loops
+
+vibe-map can also guide a controller agent that delegates the actual code changes to Codex CLI:
+
+- [`codex-goal-implement-loop.md`](skills/playbooks/codex-goal-implement-loop.md) uses the DAG as a task queue: controller reads a vmap task, materializes the docs/tests/architecture context, runs `codex exec` in a worktree, reviews the diff, then updates vmap.
+- [`codex-architecture-refactor-loop.md`](skills/playbooks/codex-architecture-refactor-loop.md) turns `AGENTS.md`, `CLAUDE.md`, and architecture docs into an explicit rule set, asks Codex to audit violations, writes each refactor cluster back as a vmap task, and loops through implement/review/verify.
+
+The important split: the controller owns vmap state and git/PR topology; Codex subprocesses own source edits. The rendered `.vmap/vibe-map.html` stays the human-visible status surface.
 
 ## What vibe-map models
 

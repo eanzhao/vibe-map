@@ -2,6 +2,8 @@
 
 适用场景：项目已经有 `.vmap/`，用户让你按现有图推进某个 goal / task，而不是重新整理 DAG。
 
+如果用户明确要求“调用 Codex CLI 实现”或“无人值守跑实现循环”，不要用这份普通实现 playbook，改读 `skills/playbooks/codex-goal-implement-loop.md`。
+
 核心原则：**先看图，再写代码**。DAG 里的 `docs` / `tests` / `gh_query` 是 reading list 和验收线索，不是装饰字段。
 
 ## 1. 找当前要做的 task

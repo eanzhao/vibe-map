@@ -42,6 +42,8 @@
 
    - new-feature.md       接到新需求怎么放进图
    - audit-fix-loop.md     audit 报红怎么自动修
+   - codex-goal-implement-loop.md        用 Codex CLI 按 DAG 实现 task
+   - codex-architecture-refactor-loop.md 用 Codex CLI 按 AGENTS.md / CLAUDE.md 做架构重构
    - release-shipping.md   release 收尾怎么走
    - daily-progress.md     我问"做到哪了"时怎么回我
 
@@ -83,6 +85,10 @@ go.
 - 冷启动抽 goal 之前，**尽量把项目文档读完整**（README、docs/、design/、ROADMAP、ARCHITECTURE 等）。只跳过明确标注废弃 / deprecated / archived / legacy 的文档，以及和产品能力无关的贡献者指南类。
 
 具体咋做查 ~/.vmap/skills/playbooks/，命令速查 ~/.vmap/skills/cheatsheet.md。
+
+如果我要你调用 Codex CLI 直接推进实现或重构，先读：
+- ~/.vmap/skills/playbooks/codex-goal-implement-loop.md
+- ~/.vmap/skills/playbooks/codex-architecture-refactor-loop.md
 
 每次 vmap 命令都会自动刷新 .vmap/vibe-map.html，我随时开来看图。开始吧。
 ```
