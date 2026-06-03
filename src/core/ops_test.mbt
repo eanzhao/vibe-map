@@ -365,6 +365,92 @@ test "upstream and downstream return transitive closure" {
 }
 
 ///|
+test "context for goal returns deterministic ancestor goals and owned files" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_goal(id="g-base", title="Base", tests=["tests/base.mbt"], docs=[
+    "docs/base.md",
+  ])
+  dag.add_task(
+    id="t-base",
+    goal="g-base",
+    title="base impl",
+    tests=["tests/base-task.mbt"],
+    docs=["src/base.mbt"],
+  )
+  dag.add_goal(
+    id="g-mid",
+    title="Mid",
+    deps=["g-base"],
+    tests=["tests/shared.mbt"],
+    docs=["docs/mid.md"],
+  )
+  dag.add_task(
+    id="t-mid",
+    goal="g-mid",
+    title="mid impl",
+    tests=["tests/shared.mbt"],
+    docs=["src/mid.mbt"],
+  )
+  dag.add_goal(
+    id="g-leaf",
+    title="Leaf",
+    deps=["g-mid", "g-base"],
+    tests=["tests/leaf.mbt"],
+    docs=["docs/leaf.md"],
+  )
+  let slice = dag.context("g-leaf")
+  @debug.assert_eq(slice.ancestor_goals, ["g-base", "g-mid"])
+  @debug.assert_eq(slice.files, [
+    "docs/base.md", "docs/leaf.md", "docs/mid.md", "src/base.mbt", "src/mid.mbt",
+    "tests/base-task.mbt", "tests/base.mbt", "tests/leaf.mbt", "tests/shared.mbt",
+  ])
+}
+
+///|
+test "context for task follows task deps without unrelated sibling tasks" {
+  let dag = @core.Dag::empty("demo")
+  dag.add_goal(id="g-core", title="Core", docs=["docs/core.md"])
+  dag.add_task(
+    id="t-core",
+    goal="g-core",
+    title="core impl",
+    tests=["tests/core.mbt"],
+    docs=["src/core.mbt"],
+  )
+  dag.add_goal(id="g-feature", title="Feature", deps=["g-core"], docs=[
+    "docs/feature.md",
+  ])
+  dag.add_task(
+    id="t-feature-a",
+    goal="g-feature",
+    title="feature helper",
+    tests=["tests/a.mbt"],
+    docs=["src/a.mbt"],
+  )
+  dag.add_task(
+    id="t-feature-b",
+    goal="g-feature",
+    title="feature finish",
+    deps=["t-feature-a"],
+    tests=["tests/b.mbt"],
+    docs=["src/b.mbt"],
+  )
+  dag.add_task(
+    id="t-sibling",
+    goal="g-feature",
+    title="unrelated sibling",
+    tests=["tests/sibling.mbt"],
+    docs=["src/sibling.mbt"],
+  )
+  let slice = dag.context("t-feature-b")
+  @debug.assert_eq(slice.ancestor_goals, ["g-core"])
+  @debug.assert_eq(slice.files, [
+    "docs/core.md", "docs/feature.md", "src/a.mbt", "src/b.mbt", "src/core.mbt",
+    "tests/a.mbt", "tests/b.mbt", "tests/core.mbt",
+  ])
+}
+
+///|
 test "set_task_goal validates destination goal" {
   let dag = @core.Dag::empty("demo")
   dag.add_goal(id="g1", title="A")

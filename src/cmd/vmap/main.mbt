@@ -735,6 +735,16 @@ fn build_cli() -> @argparse.Command {
         ],
       ),
       @argparse.Command::new(
+        "context",
+        about="Emit the minimal deterministic context slice for a goal or task as JSON: { files, ancestorGoals }.",
+        positionals=[@argparse.PositionArg::new("id")],
+        options=[
+          @argparse.OptionArg::new("file", long="file", default_values=[
+            @core.default_path,
+          ]),
+        ],
+      ),
+      @argparse.Command::new(
         "rename",
         about="Rename a goal or task id; rewrites all references (deps + task.goal).",
         positionals=[
@@ -950,6 +960,7 @@ fn dispatch(matches : @argparse.Matches) -> Unit raise {
       }
     }
     "deps" => cmd_deps(sub)
+    "context" => cmd_context(sub)
     "rename" => cmd_rename(sub)
     "version" => cmd_version(sub)
     "upgrade" => cmd_upgrade(sub)
@@ -2047,6 +2058,18 @@ fn cmd_deps(m : @argparse.Matches) -> Unit raise {
       println("  → \{x}")
     }
   }
+}
+
+///|
+fn cmd_context(m : @argparse.Matches) -> Unit raise {
+  let path = opt(m, "file", default=@core.default_path)
+  let id = opt(m, "id")
+  if id == "" {
+    fail("context needs a positional id")
+  }
+  let dag = @core.load(path, default_name="untitled")
+  let slice = dag.context(id)
+  println(slice.to_json().stringify(indent=2))
 }
 
 ///|

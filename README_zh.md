@@ -239,6 +239,7 @@ vmap show <id> [--json]                单节点完整详情（含 tasks / upstr
 vmap list goals [filters] [--json]     按属性过滤列 goal
 vmap list tasks [filters] [--json]     按属性过滤列 task
 vmap deps <id> [--upstream/--downstream/--json]  传递依赖图
+vmap context <id>                      JSON 最小上下文：files + ancestorGoals
 vmap import --in <path>                批量加载手写的 vibe-map.json（校验 + 写盘）
 vmap render --out X.html               出可视化 HTML
 vmap status [--json] [--release K]     文本 / JSON 摘要（可按 release 过滤）
@@ -310,6 +311,13 @@ vmap upgrade                           打印升级命令（管道到 bash 执�
 
 老 JSON 缺新字段也能读（Option 字段自动 = None / 默认）。`closure` 单调推进在 `set_goal_closure` 时校验。Release 维度软校验：`releases` 非空时 `assign_release` 才校验 key 在内。
 
+`vmap context <id>` 只从现有 schema 推导：`deps` 给出祖先图，
+`docs` / `tests` 是节点归属的文件列表。命令返回确定性 JSON：
+
+```json
+{ "files": ["..."], "ancestorGoals": ["..."] }
+```
+
 ## 状态
 
 > 机器友好：`vmap release list --json`。下面是人友好版。
@@ -347,6 +355,7 @@ vmap upgrade                           打印升级命令（管道到 bash 执�
 | **0.6.0** | 2026-05-21 | 发布建模阶段 2、审计阶段 2、可视化阶段 3 与 AI 回归上下文支持：`vmap release status` / `close` 命令行子命令（支持平台特定的 FFI 日期获取）、`vmap audit --release` 过滤支持、核心发布审计规则（`release_unknown` 与 `release_blocked`）、HTML 可视化侧边栏 Release 分组与过滤下拉框，以及 `vmap regression prompt` 子命令（用于汇总生成供 AI 自动修复的 markdown 诊断提示词上下文） |
 | **0.6.1** | 2026-05-22 | 回归探针看板与运行器：引入自动化回归运行器 `vmap regression run`（跨平台 FFI 命令运行），HTML 可视化侧栏选项卡切换支持 “回归探针” 状态看板（已通过/已失败/未运行/缺少探针），以及在 `vibe-map.html` 节点详情卡片中渲染详细执行记录与探针警告。 |
 | **0.7.1** | 2026-05-23 | 委托 Codex 执行循环：新增 `codex-goal-implement-loop` 与 `codex-architecture-refactor-loop` 两套 playbook、配套 prompt 模板，以及跨平台 `spawn-codex.sh` 包装脚本，让 controller agent 可以把实现 / review / 架构重构交给 Codex CLI，同时继续用 vmap 作为人可见的状态面。 |
+| **0.7.2** | 2026-06-03 | 最小 agent 上下文切片：新增 `vmap context <id>`，基于现有 DAG 的 `deps`、`docs`、`tests` 输出确定性的 `{ files, ancestorGoals }` JSON，并为 goal / task 切片补了核心单测。 |
 
 
 ## 贡献

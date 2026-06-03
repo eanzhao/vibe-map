@@ -90,6 +90,12 @@ pub(all) struct CodeCoverage {
   unmatched : Array[String]
 } derive(ToJson, @debug.Debug)
 
+pub(all) struct ContextSlice {
+  files : Array[String]
+  ancestor_goals : Array[String]
+} derive(Eq, @debug.Debug)
+pub impl ToJson for ContextSlice
+
 pub(all) struct CoverageReport {
   docs : DocsCoverage?
   code : CodeCoverage?
@@ -118,6 +124,7 @@ pub fn Dag::assign_release(Self, String, String) -> Unit raise DagError
 pub fn Dag::audit(Self) -> AuditReport
 pub fn Dag::backfill(Self, String, Template) -> BackfillReport raise DagError
 pub fn Dag::backfill_moonbit(Self, String) -> BackfillReport raise DagError
+pub fn Dag::context(Self, String) -> ContextSlice raise DagError
 pub fn Dag::coverage(Self, Array[String], String, String, Bool, Bool, Bool, max_examples? : Int) -> CoverageReport raise DagError
 pub fn Dag::doctor(Self, String, String) -> DoctorReport raise DagError
 pub fn Dag::downstream(Self, String) -> Array[String]

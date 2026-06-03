@@ -239,6 +239,7 @@ vmap show <id> [--json]                full detail for one node (tasks / upstrea
 vmap list goals [filters] [--json]     list goals with filtering
 vmap list tasks [filters] [--json]     list tasks with filtering
 vmap deps <id> [--upstream/--downstream/--json]  transitive deps graph
+vmap context <id>                      JSON minimal context: files + ancestorGoals
 vmap import --in <path>                bulk-load a hand-written vibe-map.json (validate + write)
 vmap render --out X.html               render visualization HTML
 vmap status [--json] [--release K]     summary text / JSON (optionally per release)
@@ -310,6 +311,14 @@ State lives in `vibe-map.json`. The agent reads it directly:
 
 Older JSON missing newer fields still loads (Option fields default to None). `closure` monotonicity is enforced in `set_goal_closure`. Release lanes are soft-validated: keys are only checked against `releases` when that list is non-empty.
 
+`vmap context <id>` derives its slice from existing schema fields only: `deps`
+defines the ancestor graph, and `docs` / `tests` are the node-owned file lists.
+The command returns deterministic JSON:
+
+```json
+{ "files": ["..."], "ancestorGoals": ["..."] }
+```
+
 ## Status
 
 > Machine-friendly: `vmap release list --json`. Human-friendly below.
@@ -347,6 +356,7 @@ Older JSON missing newer fields still loads (Option fields default to None). `cl
 | **0.6.0** | 2026-05-21 | Release modeling Stage 2, Audit Stage 2, Visualizer Stage 3 & AI Regression Context: `vmap release status` / `close` CLI subcommands (with target-specific FFI date retrieval), `vmap audit --release` filtering, core release audit rules (`release_unknown` & `release_blocked`), HTML visualizer sidebar release grouping & filter dropdown, and `vmap regression prompt` to compile structured markdown diagnostics context for external AI agents |
 | **0.6.1** | 2026-05-22 | Regression Probes Dashboard & Runner: Added automated regression sweep runner `vmap regression run` (cross-platform FFI command execution), left progress sidebar tab-switcher to display Probes status dashboard (Passed/Failed/Missing/Pending), and detailed execution stats/warnings rendering inside `vibe-map.html` |
 | **0.7.1** | 2026-05-23 | Delegated Codex loops: added `codex-goal-implement-loop` and `codex-architecture-refactor-loop` playbooks, prompt templates, and a cross-platform `spawn-codex.sh` wrapper so a controller agent can delegate implementation/review/refactor work to Codex CLI while keeping vmap as the visible state surface |
+| **0.7.2** | 2026-06-03 | Minimal agent context slices: added `vmap context <id>` to emit deterministic `{ files, ancestorGoals }` JSON from existing DAG `deps`, `docs`, and `tests`, with core tests for goal and task slices |
 
 
 ## Contributing
